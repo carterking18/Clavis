@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Clavis</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f5f5f3;color:#1a1a1a;min-height:100vh}
+  .app{max-width:600px;margin:0 auto;padding:1.5rem 1rem 3rem}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+  .logo{font-size:18px;font-weight:600;letter-spacing:-0.02em;color:#1a1a1a}
+  .logo span{color:#c8a84b}
+  .greeting{font-size:13px;color:#888}
+  .nav{display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap}
+  .nb{padding:8px 16px;border-radius:8px;border:0.5px solid #d0d0cc;background:transparent;cursor:pointer;font-size:13px;color:#666;font-family:inherit;transition:all 0.15s}
+  .nb.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+  .sec{display:none}.sec.active{display:block}
+  .card-shell{background:#1a1a1a;border-radius:20px;padding:1.5rem;margin-bottom:1.25rem;min-height:180px;position:relative;overflow:hidden}
+  .card-shell::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(200,168,75,0.07)}
+  .card-shell::after{content:'';position:absolute;bottom:-60px;left:-20px;width:200px;height:200px;border-radius:50%;background:rgba(200,168,75,0.04)}
+  .cs-network{position:absolute;top:1.25rem;right:1.25rem;font-size:11px;color:#555;letter-spacing:0.08em;font-weight:500}
+  .cs-chip{width:34px;height:26px;border-radius:4px;background:#c8a84b;margin-bottom:1.25rem;opacity:0.9}
+  .cs-label{font-size:10px;color:#555;letter-spacing:0.1em;margin-bottom:3px;font-weight:500}
+  .cs-active-name{font-size:19px;font-weight:600;color:#f0f0f0;margin-bottom:3px;letter-spacing:-0.01em}
+  .cs-active-sub{font-size:12px;color:#777;margin-bottom:1.25rem}
+  .cs-bottom{display:flex;justify-content:space-between;align-items:flex-end;position:relative;z-index:1}
+  .cs-num{font-size:12px;color:#555;letter-spacing:0.14em}
+  .cs-cashback{font-size:24px;font-weight:600;color:#c8a84b;letter-spacing:-0.01em}
+  .cs-cb-label{font-size:10px;color:#666;margin-bottom:2px;letter-spacing:0.04em}
+  .tap-btn{width:100%;padding:13px;background:#c8a84b;color:#1a1a1a;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:1.5rem;transition:opacity 0.15s;letter-spacing:-0.01em}
+  .tap-btn:hover{opacity:0.88}
+  .tap-btn:active{transform:scale(0.99)}
+  .sec-title{font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:0.875rem;letter-spacing:-0.01em}
+  .context-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem}
+  .ctx-box{background:#fff;border-radius:10px;padding:0.875rem;border:0.5px solid #e8e8e4}
+  .ctx-label{font-size:10px;color:#999;margin-bottom:6px;letter-spacing:0.08em;font-weight:500}
+  .ctx-val{font-size:14px;font-weight:600;color:#1a1a1a}
+  select.ctx-select{width:100%;background:transparent;border:none;color:#1a1a1a;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;padding:0;outline:none}
+  .rec-card{border-radius:12px;border:0.5px solid #e8e8e4;background:#fff;padding:1rem 1.125rem;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.15s}
+  .rec-card:hover{border-color:#bbb;background:#fafaf8}
+  .rec-card.best{border:2px solid #1D9E75}
+  .rec-card.selected-card{border:2px solid #378ADD}
+  .rc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .rc-body{flex:1;min-width:0}
+  .rc-name{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rc-reason{font-size:12px;color:#888}
+  .rc-right{text-align:right;flex-shrink:0}
+  .rc-rate{font-size:16px;font-weight:600;color:#1D9E75}
+  .rc-val{font-size:11px;color:#999;margin-top:1px}
+  .badge{font-size:10px;padding:2px 7px;border-radius:6px;display:inline-block;margin-bottom:4px;font-weight:500;letter-spacing:0.02em}
+  .badge-best{background:#e1f5ee;color:#0F6E56}
+  .badge-manual{background:#e6f1fb;color:#185FA5}
+  .wallet-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .wc{background:#fff;border:0.5px solid #e8e8e4;border-radius:12px;padding:1rem}
+  .wc-type{font-size:10px;color:#bbb;margin-bottom:5px;letter-spacing:0.08em;font-weight:500}
+  .wc-name{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:3px}
+  .wc-bal{font-size:12px;color:#999;margin-bottom:8px}
+  .wc-bar-bg{height:3px;background:#f0f0ec;border-radius:2px}
+  .wc-bar{height:3px;border-radius:2px}
+  .perk-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid #f0f0ec}
+  .perk-item:last-child{border-bottom:none}
+  .perk-left{flex:1;min-width:0}
+  .perk-name{font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:2px}
+  .perk-card-label{font-size:12px;color:#999}
+  .perk-right{text-align:right;flex-shrink:0}
+  .perk-amt{font-size:15px;font-weight:600}
+  .perk-period{font-size:11px;color:#999;margin-top:2px}
+  .perk-bar-bg{height:3px;background:#f0f0ec;border-radius:2px;width:90px;margin-top:6px;margin-left:auto}
+  .perk-bar{height:3px;border-radius:2px}
+  .alert-box{background:#faeeda;border-radius:10px;padding:0.875rem 1rem;margin-bottom:1rem;font-size:13px;color:#633806;border:0.5px solid #FAC775;font-weight:500}
+  .perk-card-wrap{background:#fff;border:0.5px solid #e8e8e4;border-radius:12px;padding:0.5rem 1.125rem;margin-bottom:1.125rem}
+  .divider{height:0.5px;background:#f0f0ec;margin:1.125rem 0}
+  .tap-confirm{display:none;padding:12px 1rem;border-radius:10px;background:#e1f5ee;color:#0F6E56;font-size:14px;margin-top:0.875rem;text-align:center;font-weight:500;border:0.5px solid #9FE1CB}
+  .summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:1.25rem}
+  .summary-box{background:#fff;border-radius:10px;padding:0.875rem;border:0.5px solid #e8e8e4;text-align:center}
+  .summary-val{font-size:20px;font-weight:600;color:#1a1a1a;margin-bottom:2px}
+  .summary-label{font-size:11px;color:#999}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">Cla<span>vis</span></div>
+    <div class="greeting">Carter King</div>
+  </div>
+
+  <div class="nav">
+    <button class="nb active" onclick="show('tap',this)">Smart tap</button>
+    <button class="nb" onclick="show('wallet',this)">My wallet</button>
+    <button class="nb" onclick="show('perks',this)">Perks tracker</button>
+  </div>
+
+  <div id="tap" class="sec active">
+    <div class="card-shell">
+      <div class="cs-network">CLAVIS</div>
+      <div class="cs-chip"></div>
+      <div class="cs-label">ACTIVE CARD</div>
+      <div class="cs-active-name" id="gc-name">Amex Platinum</div>
+      <div class="cs-active-sub" id="gc-sub">Best for: Dining · Auto-selected</div>
+      <div class="cs-bottom">
+        <div>
+          <div class="cs-cb-label">EARNING THIS PURCHASE</div>
+          <div class="cs-cashback" id="gc-rate">5x pts / $1</div>
+        </div>
+        <div class="cs-num">**** **** **** 4821</div>
+      </div>
+    </div>
+
+    <button class="tap-btn" onclick="simulateTap()">Hold to tap Clavis</button>
+
+    <div class="context-row">
+      <div class="ctx-box">
+        <div class="ctx-label">CATEGORY</div>
+        <select class="ctx-select" id="cat-select" onchange="onCatChange()">
+          <option value="dining">Dining</option>
+          <option value="travel">Travel / flights</option>
+          <option value="hotel">Hotel</option>
+          <option value="grocery">Grocery</option>
+          <option value="gas">Gas</option>
+          <option value="streaming">Streaming</option>
+          <option value="retail">Retail / shopping</option>
+          <option value="saks">Saks Fifth Avenue</option>
+          <option value="equinox">Equinox / fitness</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="ctx-box">
+        <div class="ctx-label">AMOUNT</div>
+        <select class="ctx-select" id="amt-select" onchange="updateRecs()">
+          <option value="25">$25</option>
+          <option value="50" selected>$50</option>
+          <option value="100">$100</option>
+          <option value="250">$250</option>
+          <option value="500">$500</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="alert-zone"></div>
+    <div class="sec-title">Choose your card</div>
+    <div id="rec-list"></div>
+    <div class="tap-confirm" id="tap-confirm"></div>
+  </div>
+
+  <div id="wallet" class="sec">
+    <div class="summary-grid">
+      <div class="summary-box">
+        <div class="summary-val">9</div>
+        <div class="summary-label">Cards linked</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-val">$182</div>
+        <div class="summary-label">Gift card value</div>
+      </div>
+      <div class="summary-box">
+        <div class="summary-val">$485</div>
+        <div class="summary-label">Perks available</div>
+      </div>
+    </div>
+
+    <div class="sec-title">Credit cards</div>
+    <div class="wallet-grid" style="margin-bottom:1.125rem">
+      <div class="wc">
+        <div class="wc-type">CREDIT CARD</div>
+        <div class="wc-name">Amex Platinum</div>
+        <div class="wc-bal">695 pts this month</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:60%;background:#534AB7"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">CREDIT CARD</div>
+        <div class="wc-name">Chase Sapphire Reserve</div>
+        <div class="wc-bal">1,240 pts this month</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:75%;background:#185FA5"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">CREDIT CARD</div>
+        <div class="wc-name">Apple Card</div>
+        <div class="wc-bal">$18.40 cash back</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:30%;background:#444441"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">STORE CREDIT CARD</div>
+        <div class="wc-name">Amazon Prime Visa</div>
+        <div class="wc-bal">$22.00 cash back</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:45%;background:#BA7517"></div></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec-title">Loyalty cards</div>
+    <div class="wallet-grid" style="margin-bottom:1.125rem">
+      <div class="wc">
+        <div class="wc-type">LOYALTY</div>
+        <div class="wc-name">Starbucks Rewards</div>
+        <div class="wc-bal">4,820 stars · exp 60d</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:48%;background:#1D9E75"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">LOYALTY</div>
+        <div class="wc-name">Delta SkyMiles</div>
+        <div class="wc-bal">18,500 miles · no expiry</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:62%;background:#378ADD"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">LOYALTY</div>
+        <div class="wc-name">Marriott Bonvoy</div>
+        <div class="wc-bal">3,100 pts · 24mo expiry</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:18%;background:#D85A30"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">LOYALTY</div>
+        <div class="wc-name">Target Circle</div>
+        <div class="wc-bal">8,720 pts · exp 45d</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:35%;background:#D85A30"></div></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec-title">Gift cards</div>
+    <div class="wallet-grid">
+      <div class="wc">
+        <div class="wc-type">GIFT CARD</div>
+        <div class="wc-name">Amazon</div>
+        <div class="wc-bal">$47.50 remaining</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:48%;background:#BA7517"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">GIFT CARD</div>
+        <div class="wc-name">Apple Store</div>
+        <div class="wc-bal">$100.00 remaining</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:100%;background:#444441"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">GIFT CARD</div>
+        <div class="wc-name">Nike</div>
+        <div class="wc-bal">$23.18 remaining</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:23%;background:#3B6D11"></div></div>
+      </div>
+      <div class="wc">
+        <div class="wc-type">GIFT CARD</div>
+        <div class="wc-name">Chipotle</div>
+        <div class="wc-bal">$12.00 remaining</div>
+        <div class="wc-bar-bg"><div class="wc-bar" style="width:12%;background:#993C1D"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="perks" class="sec">
+    <div class="alert-box">2 credits expiring before quarter end — use them now.</div>
+    <div class="sec-title">Amex Platinum — active credits</div>
+    <div class="perk-card-wrap">
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">Dining credit</div>
+          <div class="perk-card-label">Monthly · resets in 18d</div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#1D9E75">$20 left</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:0%;background:#1D9E75"></div></div>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">Saks Fifth Avenue credit</div>
+          <div class="perk-card-label">Semi-annual · <span style="color:#854F0B;font-weight:600">exp in 8d</span></div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#854F0B">$50 left</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:0%;background:#854F0B"></div></div>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">Airline fee credit</div>
+          <div class="perk-card-label">Annual · resets Jan 1</div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#1D9E75">$200 left</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:0%;background:#1D9E75"></div></div>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">Equinox credit</div>
+          <div class="perk-card-label">Annual · resets Jan 1</div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#A32D2D">Used</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:100%;background:#A32D2D"></div></div>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">Uber Cash</div>
+          <div class="perk-card-label">Monthly · <span style="color:#854F0B;font-weight:600">exp in 18d</span></div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#854F0B">$15 left</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:25%;background:#854F0B"></div></div>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">Global Entry / TSA PreCheck</div>
+          <div class="perk-card-label">Once per 4.5 years</div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#1D9E75">$100 avail</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:0%;background:#1D9E75"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-title">Chase Sapphire Reserve — active credits</div>
+    <div class="perk-card-wrap">
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">Travel credit</div>
+          <div class="perk-card-label">Annual · <span style="color:#854F0B;font-weight:600">exp in 12d</span></div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#854F0B">$120 left</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:40%;background:#854F0B"></div></div>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">DoorDash DashPass</div>
+          <div class="perk-card-label">Annual · through Dec 2025</div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#1D9E75">Active</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:0%;background:#1D9E75"></div></div>
+        </div>
+      </div>
+      <div class="perk-item">
+        <div class="perk-left">
+          <div class="perk-name">Lyft Pink membership</div>
+          <div class="perk-card-label">Annual · resets Jan 1</div>
+        </div>
+        <div class="perk-right">
+          <div class="perk-amt" style="color:#A32D2D">Used</div>
+          <div class="perk-bar-bg"><div class="perk-bar" style="width:100%;background:#A32D2D"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cards=[
+  {id:'amex',name:'Amex Platinum',color:'#534AB7',cats:{dining:5,travel:5,hotel:5,saks:4,equinox:3,streaming:1,grocery:1,gas:1,retail:1,other:1},note:'Use $20 dining credit first',type:'credit'},
+  {id:'chase',name:'Chase Sapphire Reserve',color:'#185FA5',cats:{travel:10,hotel:5,dining:3,grocery:1,gas:1,streaming:1,retail:1,equinox:1,saks:1,other:1},note:'10x on travel via Chase portal',type:'credit'},
+  {id:'apple',name:'Apple Card',color:'#444441',cats:{retail:3,streaming:3,other:2,dining:2,grocery:1,gas:1,travel:1,hotel:1,saks:1,equinox:1},note:'3% back at Apple & select merchants',type:'credit'},
+  {id:'amazon',name:'Amazon Prime Visa',color:'#BA7517',cats:{retail:5,other:2,dining:2,grocery:2,travel:1,hotel:1,gas:1,streaming:1,saks:1,equinox:1},note:'5% at Amazon & Whole Foods',type:'credit'},
+  {id:'starbucks',name:'Starbucks Rewards',color:'#1D9E75',cats:{dining:4,other:0,travel:0,hotel:0,grocery:0,gas:0,streaming:0,retail:0,saks:0,equinox:0},note:'Stars only at Starbucks',type:'loyalty'},
+  {id:'delta',name:'Delta SkyMiles',color:'#378ADD',cats:{travel:3,dining:1,other:0,hotel:0,grocery:0,gas:0,streaming:0,retail:0,saks:0,equinox:0},note:'Miles on Delta flights only',type:'loyalty'},
+  {id:'amazon-gc',name:'Amazon gift card',color:'#BA7517',cats:{retail:0,other:0,dining:0,travel:0,hotel:0,grocery:0,gas:0,streaming:0,saks:0,equinox:0},note:'$47.50 remaining — use before credit card',type:'gift'},
+];
+
+const specialAlerts={
+  saks:'Your Amex Platinum Saks credit ($50) expires in 8 days — this purchase uses it automatically.',
+  equinox:'Your Amex Equinox credit is fully used. Charging to Amex Platinum at 1x.',
+  dining:'Your Amex $20 monthly dining credit is active — Amex Platinum recommended.',
+  travel:'Chase Sapphire Reserve gives 10x via Chase Travel portal. Booking direct? Still 5x.',
+};
+
+let selectedCardId=null;
+
+function getCategory(){return document.getElementById('cat-select').value}
+function getAmount(){return parseInt(document.getElementById('amt-select').value)}
+
+function onCatChange(){selectedCardId=null;updateRecs()}
+
+function updateRecs(){
+  const cat=getCategory();
+  const amt=getAmount();
+  const sorted=[...cards].sort((a,b)=>(b.cats[cat]||0)-(a.cats[cat]||0));
+  const best=sorted[0];
+  if(!selectedCardId){setActiveCard(best,cat,true)}
+  const alertZone=document.getElementById('alert-zone');
+  alertZone.innerHTML=specialAlerts[cat]?`<div class="alert-box">${specialAlerts[cat]}</div>`:'';
+  const list=document.getElementById('rec-list');
+  list.innerHTML=sorted.map((c,i)=>{
+    const mult=c.cats[cat]||0;
+    const earn=mult>0?(c.type==='gift'?'Apply gift card balance':`${mult}x pts · ~${mult*amt} pts`):'Not applicable here';
+    const cashEst=(mult>0&&c.type==='credit')?`≈ $${(amt*(mult*0.01)).toFixed(2)} value`:'';
+    const isBest=i===0&&mult>0;
+    const isSelected=selectedCardId===c.id;
+    return `<div class="rec-card${isBest?' best':''}${isSelected?' selected-card':''}" onclick="selectCard('${c.id}')">
+      <div class="rc-dot" style="background:${c.color}"></div>
+      <div class="rc-body">
+        ${isBest?'<div class="badge badge-best">Best choice</div>':''}
+        ${isSelected&&!isBest?'<div class="badge badge-manual">Your pick</div>':''}
+        <div class="rc-name">${c.name}</div>
+        <div class="rc-reason">${c.note}</div>
+      </div>
+      <div class="rc-right">
+        <div class="rc-rate">${mult>0?mult+'x':'-'}</div>
+        <div class="rc-val">${earn}</div>
+        ${cashEst?`<div class="rc-val">${cashEst}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectCard(id){
+  selectedCardId=id;
+  const c=cards.find(x=>x.id===id);
+  setActiveCard(c,getCategory(),false);
+  updateRecs();
+}
+
+function setActiveCard(c,cat,auto){
+  const mult=c.cats[cat]||0;
+  document.getElementById('gc-name').textContent=c.name;
+  document.getElementById('gc-sub').textContent=`Best for: ${cat.charAt(0).toUpperCase()+cat.slice(1)} · ${auto?'Auto-selected':'Manually selected'}`;
+  document.getElementById('gc-rate').textContent=mult>0?(c.type==='gift'?'Gift card balance':mult+'x pts / $1'):'—';
+}
+
+function simulateTap(){
+  const cat=getCategory();
+  const amt=getAmount();
+  const activeId=selectedCardId||cards.slice().sort((a,b)=>(b.cats[cat]||0)-(a.cats[cat]||0))[0].id;
+  const c=cards.find(x=>x.id===activeId);
+  const mult=c.cats[cat]||0;
+  const conf=document.getElementById('tap-confirm');
+  conf.style.display='block';
+  conf.textContent=`Tapped as ${c.name} · ${mult>0?mult+'x pts earned on $'+amt:'Gift card balance applied'} · Transaction complete`;
+  setTimeout(()=>{conf.style.display='none'},3500);
+}
+
+function show(id,btn){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+updateRecs();
+</script>
+</body>
+</html>
