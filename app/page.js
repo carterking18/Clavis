@@ -13,7 +13,16 @@ export default function Home() {
       } else {
         router.push('/auth')
       }
+    }).catch(() => {
+      router.push('/auth')
     })
+
+    // Fallback: force redirect after 2 seconds no matter what
+    const timeout = setTimeout(() => {
+      router.push('/auth')
+    }, 2000)
+
+    return () => clearTimeout(timeout)
   }, [router])
 
   return (
