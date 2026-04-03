@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [tapConfirm, setTapConfirm] = useState('')
   const [showAddCard, setShowAddCard] = useState(false)
   const [showAddPerk, setShowAddPerk] = useState(false)
+  const [showRankings, setShowRankings] = useState(false)
   const [addingToCardId, setAddingToCardId] = useState(null)
   const [emailSending, setEmailSending] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
@@ -75,13 +76,38 @@ export default function Dashboard() {
     })
   }, [router, loadCards])
 
+  function scoreCard(card) {
+    const mult = card.multipliers?.find(m => m.category === selectedCat)?.multiplier || 0
+    const perks = card.perks || []
+    const activePerks = perks.filter(p => p.used_amount < p.total_amount)
+    const expiringPerks = activePerks.filter(p => {
+      if (!p.resets_at) return false
+      const days = Math.ceil((new Date(p.resets_at) - new Date()) / (1000 * 60 * 60 * 24))
+      return days <= 14 && days > 0
+    })
+    const isGiftWithBalance = card.type === 'gift' && (card.balance || 0) > 0
+
+    let score = mult
+    score += activePerks.length * 2
+    score += expiringPerks.length * 3
+    if (isGiftWithBalance) score += 10
+
+    const reasons = []
+    if (mult > 0) reasons.push(isCashBack(card) ? `${mult}% back` : `${mult}x ${selectedCat}`)
+    if (expiringPerks.length > 0) reasons.push(`${expiringPerks.length} perk${expiringPerks.length > 1 ? 's' : ''} expiring soon`)
+    else if (activePerks.length > 0) reasons.push(`${activePerks.length} active perk${activePerks.length > 1 ? 's' : ''}`)
+    if (isGiftWithBalance) reasons.push(`$${card.balance} gift balance`)
+
+    return { card, score, reasons }
+  }
+
+  function getRankedCards() {
+    return [...cards].map(scoreCard).sort((a, b) => b.score - a.score)
+  }
+
   function getBestCard() {
     if (!cards.length) return null
-    return [...cards].sort((a, b) => {
-      const am = a.multipliers?.find(m => m.category === selectedCat)?.multiplier || 0
-      const bm = b.multipliers?.find(m => m.category === selectedCat)?.multiplier || 0
-      return bm - am
-    })[0]
+    return getRankedCards()[0].card
   }
 
   function getActiveCard() {
@@ -223,9 +249,15 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <button className="btn-primary" onClick={simulateTap} disabled={!activeCard} style={{ marginBottom: '1.5rem' }}>
+          <button className="btn-primary" onClick={simulateTap} disabled={!activeCard} style={{ marginBottom: '0.5rem' }}>
             Hold to tap Clavis
           </button>
+          {cards.length > 1 && (
+            <button onClick={() => setShowRankings(true)}
+              style={{ width: '100%', background: 'none', border: 'none', fontSize: '12px', color: '#aaa', cursor: 'pointer', marginBottom: '1.25rem', padding: '4px' }}>
+              See card rankings
+            </button>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1.25rem' }}>
             <div style={{ background: '#fff', borderRadius: '10px', padding: '0.875rem', border: '0.5px solid #e8e8e4' }}>
@@ -278,6 +310,38 @@ export default function Dashboard() {
 
           {tapConfirm && (
             <div className="success" style={{ marginTop: '1rem', textAlign: 'center' }}>{tapConfirm}</div>
+          )}
+
+          {showRankings && (
+            <div onClick={() => setShowRankings(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+              <div onClick={e => e.stopPropagation()}
+                style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: '1.5rem', width: '100%', maxWidth: '480px', maxHeight: '70vh', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: '600' }}>Card rankings</div>
+                    <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
+                  </div>
+                  <button onClick={() => setShowRankings(false)}
+                    style={{ background: '#f0f0ec', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', fontSize: '14px', color: '#666' }}>✕</button>
+                </div>
+                {getRankedCards().map(({ card, score, reasons }, i) => (
+                  <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '0.5px solid #f0f0ec' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: i === 0 ? '#1D9E75' : '#ccc', width: '20px', flexShrink: 0 }}>#{i + 1}</div>
+                    <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                      <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                        {reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a1a', flexShrink: 0 }}>
+                      {score > 0 ? score.toFixed(1) : '—'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
