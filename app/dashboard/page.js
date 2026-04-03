@@ -3,9 +3,33 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import { getUserCards, addCard, deleteCard, addMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
+import { getCardDesign } from '../../lib/cardImages'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
-const CARD_COLORS = ['#534AB7', '#185FA5', '#1D9E75', '#D85A30', '#444441', '#BA7517', '#993556', '#1a1a1a']
+
+function CardArt({ name, style = {} }) {
+  const design = getCardDesign(name)
+  return (
+    <div style={{
+      borderRadius: '8px',
+      background: `linear-gradient(135deg, ${design.gradient[0]}, ${design.gradient[1]})`,
+      padding: '8px 10px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      ...style
+    }}>
+      {design.chip && (
+        <div style={{ width: '20px', height: '14px', borderRadius: '3px', background: 'rgba(255,255,255,0.25)', border: '0.5px solid rgba(255,255,255,0.15)' }} />
+      )}
+      {design.network && (
+        <div style={{ alignSelf: 'flex-end', fontSize: '9px', fontWeight: '700', color: 'rgba(255,255,255,0.65)', letterSpacing: '0.05em', marginTop: 'auto' }}>
+          {design.network}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Dashboard() {
   const router = useRouter()
@@ -28,6 +52,7 @@ export default function Dashboard() {
     balance: '', balance_unit: 'points',
     multipliers: { dining: '', travel: '', hotel: '', grocery: '', gas: '', streaming: '', retail: '', other: '' }
   })
+  const newCardDesign = getCardDesign(newCard.name)
 
   const [newPerk, setNewPerk] = useState({
     name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: ''
@@ -226,7 +251,7 @@ export default function Dashboard() {
               return (
                 <div key={card.id} onClick={() => setSelectedCardId(isSelected ? null : card.id)}
                   style={{ borderRadius: '12px', border: isSelected ? '2px solid #378ADD' : isBest ? '2px solid #1D9E75' : '0.5px solid #e8e8e4', background: '#fff', padding: '1rem 1.125rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: card.color, flexShrink: 0 }}></div>
+                  <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {isBest && <div style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '6px', background: '#e1f5ee', color: '#0F6E56', display: 'inline-block', marginBottom: '4px', fontWeight: '500' }}>Best choice</div>}
                     {isSelected && !isBest && <div style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '6px', background: '#e6f1fb', color: '#185FA5', display: 'inline-block', marginBottom: '4px', fontWeight: '500' }}>Your pick</div>}
@@ -271,9 +296,9 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '8px', marginBottom: '1.25rem' }}>
               {cards.map(card => (
                 <div key={card.id} className="card">
-                  <div style={{ fontSize: '10px', color: '#bbb', marginBottom: '5px', letterSpacing: '0.08em' }}>{card.type.toUpperCase()}</div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: card.color, display: 'inline-block', flexShrink: 0 }}></span>
+                  <CardArt name={card.name} style={{ height: '56px', marginBottom: '8px' }} />
+                  <div style={{ fontSize: '10px', color: '#bbb', marginBottom: '3px', letterSpacing: '0.08em' }}>{card.type.toUpperCase()}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {card.name}
                   </div>
                   <div style={{ fontSize: '12px', color: '#999', marginBottom: '8px' }}>
@@ -340,16 +365,12 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
-                <label className="label">CARD COLOR</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {CARD_COLORS.map(c => (
-                    <div key={c} onClick={() => setNewCard({ ...newCard, color: c })}
-                      style={{ width: '28px', height: '28px', borderRadius: '50%', background: c, cursor: 'pointer', border: newCard.color === c ? '3px solid #c8a84b' : '2px solid transparent' }}>
-                    </div>
-                  ))}
+              {newCard.name && (
+                <div style={{ marginBottom: '12px' }}>
+                  <label className="label">CARD PREVIEW</label>
+                  <CardArt name={newCard.name} style={{ height: '64px' }} />
                 </div>
-              </div>
+              )}
 
               <div style={{ marginBottom: '16px' }}>
                 <label className="label">REWARDS MULTIPLIERS (x pts per $1)</label>
@@ -441,7 +462,7 @@ export default function Dashboard() {
             return (
               <div key={card.id} style={{ marginBottom: '1.25rem' }}>
                 <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '0.875rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: card.color, display: 'inline-block' }}></span>
+                  <CardArt name={card.name} style={{ width: '32px', height: '22px', flexShrink: 0 }} />
                   {card.name}
                 </div>
                 <div className="card" style={{ padding: '0.5rem 1.125rem' }}>
