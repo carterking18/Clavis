@@ -94,6 +94,15 @@ export default function Dashboard() {
     return card.multipliers?.find(m => m.category === selectedCat)?.multiplier || 0
   }
 
+  function isCashBack(card) {
+    return card?.balance_unit === 'cash back' || card?.balance_unit === 'dollars'
+  }
+
+  function formatRate(card, mult) {
+    if (mult <= 0) return null
+    return isCashBack(card) ? mult + '%' : mult + 'x pts'
+  }
+
   function simulateTap() {
     const card = getActiveCard()
     if (!card) return
@@ -205,7 +214,7 @@ export default function Dashboard() {
               <div>
                 <div style={{ fontSize: '10px', color: '#666', marginBottom: '2px' }}>EARNING THIS PURCHASE</div>
                 <div style={{ fontSize: '24px', fontWeight: '600', color: '#c8a84b' }}>
-                  {activeCard ? (getMultiplier(activeCard) > 0 ? getMultiplier(activeCard) + 'x pts / $1' : '1x pts / $1') : '—'}
+                  {activeCard ? (getMultiplier(activeCard) > 0 ? formatRate(activeCard, getMultiplier(activeCard)) + ' / $1' : (isCashBack(activeCard) ? '1% / $1' : '1x pts / $1')) : '—'}
                 </div>
               </div>
               <div style={{ fontSize: '12px', color: '#555', letterSpacing: '0.14em' }}>
@@ -259,8 +268,8 @@ export default function Dashboard() {
                     <div style={{ fontSize: '12px', color: '#888' }}>{card.type} · {card.balance_unit}</div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#1D9E75' }}>{mult > 0 ? mult + 'x' : '—'}</div>
-                    <div style={{ fontSize: '11px', color: '#999' }}>{mult > 0 ? `≈ $${(selectedAmt * mult * 0.01).toFixed(2)} value` : 'n/a'}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#1D9E75' }}>{mult > 0 ? formatRate(card, mult) : '—'}</div>
+                    <div style={{ fontSize: '11px', color: '#999' }}>{mult > 0 ? `≈ $${(selectedAmt * mult * 0.01).toFixed(2)} back` : 'n/a'}</div>
                   </div>
                 </div>
               )
