@@ -35,7 +35,7 @@ export async function POST(request) {
   }).join('')
 
   await resend.emails.send({
-    from: 'Clavis <alerts@yourdomain.com>',
+    from: 'Clavis <alerts@claviscard.com>',
     to: email,
     subject: 'Your Clavis perk summary',
     html: `
