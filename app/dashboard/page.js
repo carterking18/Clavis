@@ -373,7 +373,21 @@ export default function Dashboard() {
               )}
 
               <div style={{ marginBottom: '16px' }}>
-                <label className="label">REWARDS MULTIPLIERS (x pts per $1)</label>
+                <label className="label">REWARDS RATE</label>
+                <div style={{ fontSize: '11px', color: '#999', marginBottom: '8px' }}>
+                  For cash back cards, enter the percentage (e.g. 1.5 for 1.5%). For points cards, enter the multiplier (e.g. 3 for 3x).
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', background: '#f5f5f3', borderRadius: '8px', padding: '10px 12px' }}>
+                  <span style={{ fontSize: '12px', color: '#666', flexShrink: 0 }}>Apply to all categories</span>
+                  <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '6px 10px', fontSize: '13px', flex: 1 }}
+                    onChange={e => {
+                      const val = e.target.value
+                      const filled = {}
+                      CATEGORIES.forEach(cat => { filled[cat] = val })
+                      setNewCard({ ...newCard, multipliers: filled })
+                    }} />
+                </div>
+                <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '8px' }}>Or set per category:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                   {CATEGORIES.map(cat => (
                     <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
