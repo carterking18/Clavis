@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, addMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
@@ -44,6 +44,8 @@ export default function Dashboard() {
   const [showAddCard, setShowAddCard] = useState(false)
   const [showAddPerk, setShowAddPerk] = useState(false)
   const [showRankings, setShowRankings] = useState(false)
+  const [editingCard, setEditingCard] = useState(null)
+  const [editMultipliers, setEditMultipliers] = useState({})
   const [addingToCardId, setAddingToCardId] = useState(null)
   const [emailSending, setEmailSending] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
@@ -161,6 +163,25 @@ export default function Dashboard() {
       await loadCards()
       setShowAddPerk(false)
       setNewPerk({ name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: '' })
+    } catch (e) { console.error(e) }
+  }
+
+  function openEditCard(card) {
+    const mults = {}
+    CATEGORIES.forEach(cat => {
+      const m = card.multipliers?.find(m => m.category === cat)
+      mults[cat] = m ? String(m.multiplier) : ''
+    })
+    setEditMultipliers(mults)
+    setEditingCard(card)
+  }
+
+  async function handleSaveEdit() {
+    if (!editingCard) return
+    try {
+      await updateCardMultipliers(editingCard.id, editMultipliers)
+      await loadCards()
+      setEditingCard(null)
     } catch (e) { console.error(e) }
   }
 
@@ -311,38 +332,6 @@ export default function Dashboard() {
           {tapConfirm && (
             <div className="success" style={{ marginTop: '1rem', textAlign: 'center' }}>{tapConfirm}</div>
           )}
-
-          {showRankings && (
-            <div onClick={() => setShowRankings(false)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-              <div onClick={e => e.stopPropagation()}
-                style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: '1.5rem', width: '100%', maxWidth: '480px', maxHeight: '70vh', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: '600' }}>Card rankings</div>
-                    <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
-                  </div>
-                  <button onClick={() => setShowRankings(false)}
-                    style={{ background: '#f0f0ec', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', fontSize: '14px', color: '#666' }}>✕</button>
-                </div>
-                {getRankedCards().map(({ card, score, reasons }, i) => (
-                  <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '0.5px solid #f0f0ec' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: i === 0 ? '#1D9E75' : '#ccc', width: '20px', flexShrink: 0 }}>#{i + 1}</div>
-                    <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                      <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
-                        {reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}
-                      </div>
-                    </div>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a1a', flexShrink: 0 }}>
-                      {score > 0 ? score.toFixed(1) : '—'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -381,6 +370,10 @@ export default function Dashboard() {
                     <button onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}
                       style={{ flex: 1, padding: '5px', fontSize: '11px', border: '0.5px solid #d0d0cc', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: '#666' }}>
                       + perk
+                    </button>
+                    <button onClick={() => openEditCard(card)}
+                      style={{ padding: '5px 8px', fontSize: '11px', border: '0.5px solid #d0d0cc', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: '#666' }}>
+                      edit
                     </button>
                     <button onClick={() => deleteCard(card.id).then(loadCards)}
                       style={{ padding: '5px 8px', fontSize: '11px', border: '0.5px solid #F09595', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: '#A32D2D' }}>
@@ -594,6 +587,81 @@ export default function Dashboard() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {showRankings && (
+        <div onClick={() => setShowRankings(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: '1.5rem', width: '100%', maxWidth: '600px', maxHeight: '70vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <div style={{ fontSize: '15px', fontWeight: '600' }}>Card rankings</div>
+                <div style={{ fontSize: '12px', color: '#999', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
+              </div>
+              <button onClick={() => setShowRankings(false)}
+                style={{ background: '#f0f0ec', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', fontSize: '14px', color: '#666' }}>✕</button>
+            </div>
+            {getRankedCards().map(({ card, score, reasons }, i) => (
+              <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '0.5px solid #f0f0ec' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: i === 0 ? '#1D9E75' : '#ccc', width: '20px', flexShrink: 0 }}>#{i + 1}</div>
+                <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                  <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                    {reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}
+                  </div>
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a1a1a', flexShrink: 0 }}>
+                  {score > 0 ? score.toFixed(1) : '—'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {editingCard && (
+        <div onClick={() => setEditingCard(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: '1.5rem', width: '100%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '15px', fontWeight: '600' }}>Edit {editingCard.name}</div>
+              <button onClick={() => setEditingCard(null)}
+                style={{ background: '#f0f0ec', border: 'none', borderRadius: '50%', width: '28px', height: '28px', cursor: 'pointer', fontSize: '14px', color: '#666' }}>✕</button>
+            </div>
+            <CardArt name={editingCard.name} style={{ height: '56px', marginBottom: '1rem' }} />
+            <div style={{ fontSize: '11px', color: '#999', marginBottom: '8px' }}>
+              For cash back cards, enter the percentage (e.g. 1.5 for 1.5%). For points cards, enter the multiplier (e.g. 3 for 3x).
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', background: '#f5f5f3', borderRadius: '8px', padding: '10px 12px' }}>
+              <span style={{ fontSize: '12px', color: '#666', flexShrink: 0 }}>Apply to all categories</span>
+              <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '6px 10px', fontSize: '13px', flex: 1 }}
+                onChange={e => {
+                  const val = e.target.value
+                  const filled = {}
+                  CATEGORIES.forEach(cat => { filled[cat] = val })
+                  setEditMultipliers(filled)
+                }} />
+            </div>
+            <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '8px' }}>Or set per category:</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.25rem' }}>
+              {CATEGORIES.map(cat => (
+                <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: '#888', width: '70px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                  <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 10px', fontSize: '13px' }}
+                    value={editMultipliers[cat] || ''}
+                    onChange={e => setEditMultipliers({ ...editMultipliers, [cat]: e.target.value })} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-primary" onClick={handleSaveEdit}>Save changes</button>
+              <button className="btn-secondary" onClick={() => setEditingCard(null)}>Cancel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
