@@ -594,7 +594,11 @@ export default function Dashboard() {
 
           {showAddPerk && (
             <div style={{ marginTop: '1.25rem', background: '#fff', borderRadius: '12px', padding: '1.25rem', border: '0.5px solid #e8e8e4' }}>
-              <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '1rem' }}>Add a perk</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>Add a perk</div>
+              <div style={{ fontSize: '13px', color: '#888', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CardArt name={cards.find(c => c.id === addingToCardId)?.name || ''} style={{ width: '28px', height: '20px', flexShrink: 0 }} />
+                {cards.find(c => c.id === addingToCardId)?.name}
+              </div>
 
               <div style={{ marginBottom: '12px' }}>
                 <label className="label">PERK NAME</label>
