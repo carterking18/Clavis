@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { getUserCards, addCard, deleteCard, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers } from '../../lib/cardRewards'
+import { searchMerchants, getMerchantCategory } from '../../lib/merchants'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
@@ -45,6 +46,9 @@ export default function Dashboard() {
   const [showAddCard, setShowAddCard] = useState(false)
   const [showAddPerk, setShowAddPerk] = useState(false)
   const [showRankings, setShowRankings] = useState(false)
+  const [merchantQuery, setMerchantQuery] = useState('')
+  const [merchantSuggestions, setMerchantSuggestions] = useState([])
+  const [detectedMerchant, setDetectedMerchant] = useState(null)
   const [editingCard, setEditingCard] = useState(null)
   const [editMultipliers, setEditMultipliers] = useState({})
   const [addingToCardId, setAddingToCardId] = useState(null)
@@ -281,10 +285,52 @@ export default function Dashboard() {
             </button>
           )}
 
+          <div style={{ position: 'relative', marginBottom: '10px' }}>
+            <div style={{ background: '#fff', borderRadius: '10px', padding: '0.875rem', border: detectedMerchant ? '1px solid #1D9E75' : '0.5px solid #e8e8e4' }}>
+              <div style={{ fontSize: '10px', color: '#999', marginBottom: '6px', letterSpacing: '0.08em' }}>WHERE ARE YOU SHOPPING?</div>
+              <input
+                type="text"
+                placeholder="e.g. Starbucks, Target, Shell..."
+                value={merchantQuery}
+                onChange={e => {
+                  const q = e.target.value
+                  setMerchantQuery(q)
+                  setMerchantSuggestions(searchMerchants(q))
+                  if (!q) { setDetectedMerchant(null) }
+                }}
+                style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', fontFamily: 'inherit', outline: 'none' }}
+              />
+              {detectedMerchant && (
+                <div style={{ fontSize: '11px', color: '#1D9E75', marginTop: '4px' }}>
+                  → {detectedMerchant.category.charAt(0).toUpperCase() + detectedMerchant.category.slice(1)} category auto-selected
+                </div>
+              )}
+            </div>
+            {merchantSuggestions.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '0.5px solid #e8e8e4', borderRadius: '10px', zIndex: 50, marginTop: '4px', overflow: 'hidden', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+                {merchantSuggestions.map(m => (
+                  <div key={m.name} onClick={() => {
+                    setMerchantQuery(m.name)
+                    setDetectedMerchant(m)
+                    setSelectedCat(m.category)
+                    setSelectedCardId(null)
+                    setMerchantSuggestions([])
+                  }} style={{ padding: '10px 14px', fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '0.5px solid #f5f5f3' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f5f5f3'}
+                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                  >
+                    <span style={{ fontWeight: '500' }}>{m.name}</span>
+                    <span style={{ fontSize: '11px', color: '#999', background: '#f0f0ec', padding: '2px 7px', borderRadius: '5px' }}>{m.category}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1.25rem' }}>
             <div style={{ background: '#fff', borderRadius: '10px', padding: '0.875rem', border: '0.5px solid #e8e8e4' }}>
               <div style={{ fontSize: '10px', color: '#999', marginBottom: '6px', letterSpacing: '0.08em' }}>CATEGORY</div>
-              <select value={selectedCat} onChange={e => { setSelectedCat(e.target.value); setSelectedCardId(null) }}
+              <select value={selectedCat} onChange={e => { setSelectedCat(e.target.value); setSelectedCardId(null); setDetectedMerchant(null) }}
                 style={{ width: '100%', background: 'transparent', border: 'none', color: '#1a1a1a', fontSize: '14px', fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
               </select>
