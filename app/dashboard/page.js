@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { getUserCards, addCard, deleteCard, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers } from '../../lib/cardRewards'
+import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
 import { searchMerchants, getMerchantCategory } from '../../lib/merchants'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
@@ -51,6 +52,9 @@ export default function Dashboard() {
   const [detectedMerchant, setDetectedMerchant] = useState(null)
   const [editingCard, setEditingCard] = useState(null)
   const [editMultipliers, setEditMultipliers] = useState({})
+  const [suggestedPerks, setSuggestedPerks] = useState(null)
+  const [pendingCardId, setPendingCardId] = useState(null)
+  const [selectedPerkIndices, setSelectedPerkIndices] = useState([])
   const [addingToCardId, setAddingToCardId] = useState(null)
   const [emailSending, setEmailSending] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
@@ -157,8 +161,36 @@ export default function Dashboard() {
       if (Object.keys(mults).length) await addMultipliers(created.id, mults)
       await loadCards()
       setShowAddCard(false)
+      const perks = getSuggestedPerks(newCard.name)
       setNewCard({ name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a', balance: '', balance_unit: 'points', multipliers: { dining: '', travel: '', hotel: '', grocery: '', gas: '', streaming: '', retail: '', other: '' } })
+      if (perks && perks.length > 0) {
+        setSuggestedPerks(perks)
+        setPendingCardId(created.id)
+        setSelectedPerkIndices(perks.map((_, i) => i))
+      }
     } catch (e) { console.error(e) }
+  }
+
+  async function handleAddSuggestedPerks() {
+    if (!pendingCardId || !suggestedPerks) return
+    try {
+      const { data: { user } } = await (await import('../../lib/supabase')).supabase.auth.getUser()
+      for (const i of selectedPerkIndices) {
+        const p = suggestedPerks[i]
+        await addPerk({
+          name: p.name,
+          total_amount: p.total_amount,
+          used_amount: 0,
+          period: p.period,
+          resets_at: calculateResetsAt(p.period),
+          card_id: pendingCardId,
+        })
+      }
+      await loadCards()
+    } catch (e) { console.error(e) }
+    setSuggestedPerks(null)
+    setPendingCardId(null)
+    setSelectedPerkIndices([])
   }
 
   async function handleAddPerk() {
@@ -675,6 +707,36 @@ export default function Dashboard() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {suggestedPerks && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', padding: '1.5rem', width: '100%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>Known perks found</div>
+            <div style={{ fontSize: '12px', color: '#999', marginBottom: '1.25rem' }}>Select the perks you have on this card. You can edit amounts later.</div>
+            {suggestedPerks.map((perk, i) => (
+              <div key={i} onClick={() => setSelectedPerkIndices(prev =>
+                prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]
+              )} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '0.5px solid #f0f0ec', cursor: 'pointer' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: selectedPerkIndices.includes(i) ? '2px solid #1D9E75' : '1.5px solid #d0d0cc', background: selectedPerkIndices.includes(i) ? '#1D9E75' : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {selectedPerkIndices.includes(i) && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600' }}>{perk.name}</div>
+                  <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>{perk.period} {perk.total_amount > 0 ? `· $${perk.total_amount}` : ''}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '1.25rem' }}>
+              <button className="btn-primary" onClick={handleAddSuggestedPerks}>
+                Add {selectedPerkIndices.length} perk{selectedPerkIndices.length !== 1 ? 's' : ''}
+              </button>
+              <button className="btn-secondary" onClick={() => { setSuggestedPerks(null); setPendingCardId(null); setSelectedPerkIndices([]) }}>
+                Skip
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
