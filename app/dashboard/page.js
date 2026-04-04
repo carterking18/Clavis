@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import { getUserCards, addCard, deleteCard, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
+import { getSuggestedMultipliers } from '../../lib/cardRewards'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
@@ -395,7 +396,22 @@ export default function Dashboard() {
 
               <div style={{ marginBottom: '12px' }}>
                 <label className="label">CARD NAME</label>
-                <input className="input" placeholder="e.g. Amex Platinum" value={newCard.name} onChange={e => setNewCard({ ...newCard, name: e.target.value })} />
+                <input className="input" placeholder="e.g. Amex Gold" value={newCard.name} onChange={e => {
+                  const name = e.target.value
+                  const suggestion = getSuggestedMultipliers(name)
+                  if (suggestion) {
+                    const mults = {}
+                    CATEGORIES.forEach(cat => { mults[cat] = String(suggestion.multipliers[cat] ?? '') })
+                    setNewCard(prev => ({ ...prev, name, multipliers: mults, _suggestion: suggestion.note }))
+                  } else {
+                    setNewCard(prev => ({ ...prev, name, _suggestion: null }))
+                  }
+                }} />
+                {newCard._suggestion && (
+                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#185FA5', background: '#e6f1fb', border: '0.5px solid #a8c8f0', borderRadius: '6px', padding: '6px 10px' }}>
+                    ✦ Rates auto-filled — {newCard._suggestion}. Edit below if your card is different.
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
