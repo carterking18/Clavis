@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, updateCardBalance, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers } from '../../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
@@ -151,11 +151,23 @@ export default function Dashboard() {
     return isCashBack(card) ? mult + '%' : mult + 'x pts'
   }
 
-  function simulateTap() {
+  async function simulateTap() {
     const card = getActiveCard()
     if (!card) return
     const mult = getMultiplier(card)
-    setTapConfirm(`Tapped as ${card.name} · ${mult > 0 ? mult + 'x pts on $' + selectedAmt : 'card charged'} · Transaction complete`)
+
+    if (card.type === 'gift') {
+      const currentBalance = card.balance || 0
+      const charge = Math.min(selectedAmt, currentBalance)
+      const newBalance = Math.max(0, currentBalance - charge)
+      await updateCardBalance(card.id, newBalance)
+      await loadCards()
+      setTapConfirm(`Tapped ${card.name} · $${charge.toFixed(2)} charged · $${newBalance.toFixed(2)} remaining`)
+    } else {
+      const rate = formatRate(card, mult)
+      setTapConfirm(`Tapped as ${card.name} · ${rate ? `${rate} on $${selectedAmt}` : 'card charged'} · Transaction complete`)
+    }
+
     setTimeout(() => setTapConfirm(''), 3500)
   }
 
