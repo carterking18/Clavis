@@ -55,6 +55,8 @@ export default function Dashboard() {
   const [suggestedPerks, setSuggestedPerks] = useState(null)
   const [pendingCardId, setPendingCardId] = useState(null)
   const [selectedPerkIndices, setSelectedPerkIndices] = useState([])
+  const [emptyGiftCards, setEmptyGiftCards] = useState([])
+  const [emptyGiftCardIndex, setEmptyGiftCardIndex] = useState(0)
   const [addingToCardId, setAddingToCardId] = useState(null)
   const [emailSending, setEmailSending] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
@@ -86,6 +88,15 @@ export default function Dashboard() {
       loadCards().then(() => setLoading(false))
     })
   }, [router, loadCards])
+
+  useEffect(() => {
+    if (!cards.length) return
+    const empty = cards.filter(c => c.type === 'gift' && (c.balance || 0) <= 0)
+    if (empty.length > 0) {
+      setEmptyGiftCards(empty)
+      setEmptyGiftCardIndex(0)
+    }
+  }, [cards])
 
   function scoreCard(card) {
     const mult = card.multipliers?.find(m => m.category === selectedCat)?.multiplier || 0
@@ -718,6 +729,38 @@ export default function Dashboard() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {emptyGiftCards.length > 0 && emptyGiftCards[emptyGiftCardIndex] && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div style={{ background: '#fff', borderRadius: '20px', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
+            <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '64px', marginBottom: '1rem' }} />
+            <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px' }}>
+              {emptyGiftCards[emptyGiftCardIndex].name} is empty
+            </div>
+            <div style={{ fontSize: '13px', color: '#888', marginBottom: '1.25rem', lineHeight: '1.5' }}>
+              This gift card has a $0 balance. Would you like to remove it from your wallet?
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-primary" style={{ background: '#A32D2D' }} onClick={async () => {
+                await deleteCard(emptyGiftCards[emptyGiftCardIndex].id)
+                await loadCards()
+                const remaining = emptyGiftCards.filter((_, i) => i !== emptyGiftCardIndex)
+                setEmptyGiftCards(remaining)
+                setEmptyGiftCardIndex(0)
+              }}>
+                Remove card
+              </button>
+              <button className="btn-secondary" onClick={() => {
+                const remaining = emptyGiftCards.filter((_, i) => i !== emptyGiftCardIndex)
+                setEmptyGiftCards(remaining)
+                setEmptyGiftCardIndex(0)
+              }}>
+                Keep it
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
