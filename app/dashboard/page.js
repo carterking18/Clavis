@@ -39,7 +39,7 @@ export default function Dashboard() {
   const [tab, setTab] = useState('tap')
   const [loading, setLoading] = useState(true)
   const [selectedCat, setSelectedCat] = useState('dining')
-  const [selectedAmt, setSelectedAmt] = useState(50)
+  const [selectedAmt, setSelectedAmt] = useState(0)
   const [selectedCardId, setSelectedCardId] = useState(null)
   const [tapConfirm, setTapConfirm] = useState('')
   const [showAddCard, setShowAddCard] = useState(false)
@@ -291,10 +291,15 @@ export default function Dashboard() {
             </div>
             <div style={{ background: '#fff', borderRadius: '10px', padding: '0.875rem', border: '0.5px solid #e8e8e4' }}>
               <div style={{ fontSize: '10px', color: '#999', marginBottom: '6px', letterSpacing: '0.08em' }}>AMOUNT</div>
-              <select value={selectedAmt} onChange={e => setSelectedAmt(parseInt(e.target.value))}
-                style={{ width: '100%', background: 'transparent', border: 'none', color: '#1a1a1a', fontSize: '14px', fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
-                {[25, 50, 100, 250, 500].map(a => <option key={a} value={a}>${a}</option>)}
-              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>$</span>
+                <input
+                  type="number" min="0" placeholder="0"
+                  value={selectedAmt || ''}
+                  onChange={e => setSelectedAmt(parseFloat(e.target.value) || 0)}
+                  style={{ width: '100%', background: 'transparent', border: 'none', color: '#1a1a1a', fontSize: '14px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }}
+                />
+              </div>
             </div>
           </div>
 
