@@ -386,13 +386,11 @@ export default function Dashboard() {
               No cards yet. Go to My Wallet to add your first card.
             </div>
           ) : (
-            [...cards].sort((a, b) => {
-              const am = a.multipliers?.find(m => m.category === selectedCat)?.multiplier || 0
-              const bm = b.multipliers?.find(m => m.category === selectedCat)?.multiplier || 0
-              return bm - am
-            }).map((card, i) => {
+            getRankedCards().map(({ card, score }, i) => {
               const mult = getMultiplier(card)
-              const isBest = i === 0 && mult > 0
+              const isGift = card.type === 'gift'
+              const hasGiftBalance = isGift && (card.balance || 0) > 0
+              const isBest = i === 0 && (mult > 0 || hasGiftBalance)
               const isSelected = selectedCardId === card.id
               return (
                 <div key={card.id} onClick={() => setSelectedCardId(isSelected ? null : card.id)}
@@ -402,11 +400,20 @@ export default function Dashboard() {
                     {isBest && <div style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '6px', background: '#e1f5ee', color: '#0F6E56', display: 'inline-block', marginBottom: '4px', fontWeight: '500' }}>Best choice</div>}
                     {isSelected && !isBest && <div style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '6px', background: '#e6f1fb', color: '#185FA5', display: 'inline-block', marginBottom: '4px', fontWeight: '500' }}>Your pick</div>}
                     <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                    <div style={{ fontSize: '12px', color: '#888' }}>{card.type} · {card.balance_unit}</div>
+                    <div style={{ fontSize: '12px', color: '#888' }}>{card.type}{isGift ? '' : ` · ${card.balance_unit}`}</div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#1D9E75' }}>{mult > 0 ? formatRate(card, mult) : '—'}</div>
-                    <div style={{ fontSize: '11px', color: '#999' }}>{mult > 0 ? `≈ $${(selectedAmt * mult * 0.01).toFixed(2)} back` : 'n/a'}</div>
+                    {isGift ? (
+                      <>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: hasGiftBalance ? '#1D9E75' : '#aaa' }}>${(card.balance || 0).toFixed(2)}</div>
+                        <div style={{ fontSize: '11px', color: '#999' }}>{hasGiftBalance ? 'balance remaining' : 'no balance'}</div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: '#1D9E75' }}>{mult > 0 ? formatRate(card, mult) : '—'}</div>
+                        <div style={{ fontSize: '11px', color: '#999' }}>{mult > 0 ? `≈ $${(selectedAmt * mult * 0.01).toFixed(2)} back` : 'n/a'}</div>
+                      </>
+                    )}
                   </div>
                 </div>
               )
