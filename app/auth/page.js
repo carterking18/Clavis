@@ -30,20 +30,13 @@ export default function Auth() {
 
   return (
     <div className="app" style={{ maxWidth: '420px', paddingTop: '5rem' }}>
-
-      {/* Logo + tagline */}
       <div style={{ marginBottom: '2.5rem' }}>
-        <div style={{ fontFamily: "'SF Mono', 'Menlo', 'Monaco', monospace", fontSize: '16px', fontWeight: '700', letterSpacing: '0.16em', color: '#f0f0f0', marginBottom: '8px' }}>
-          CLA<span style={{ color: '#c8a84b' }}>VIS</span>
+        <div style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '-0.03em', marginBottom: '6px', color: '#f5f5f5' }}>
+          Cla<span style={{ color: '#e8b84b' }}>vis</span>
         </div>
-        <div style={{ fontFamily: "'SF Mono', 'Menlo', 'Monaco', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.12em' }}>
-          ONE CARD. EVERY REWARD.
+        <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.35)', fontWeight: '500' }}>
+          One card. Every reward.
         </div>
-      </div>
-
-      {/* Mode label */}
-      <div style={{ fontFamily: "'SF Mono', 'Menlo', 'Monaco', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.22)', letterSpacing: '0.2em', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: '1rem' }}>
-        {mode === 'login' ? 'SIGN IN' : 'CREATE ACCOUNT'}
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -61,7 +54,7 @@ export default function Auth() {
         />
       </div>
 
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '20px' }}>
         <label className="label">Password</label>
         <input
           className="input"
@@ -74,7 +67,7 @@ export default function Auth() {
       </div>
 
       <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
-        {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Create Account'}
+        {loading ? 'Loading...' : mode === 'login' ? 'Sign in' : 'Create account'}
       </button>
 
       <button
@@ -84,7 +77,6 @@ export default function Auth() {
       >
         {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
       </button>
-
     </div>
   )
 }
