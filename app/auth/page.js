@@ -29,19 +29,28 @@ export default function Auth() {
   }
 
   return (
-    <div className="app" style={{ maxWidth: '420px', paddingTop: '4rem' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ fontSize: '26px', fontWeight: '700', letterSpacing: '-0.02em', marginBottom: '6px' }}>
-          Cla<span style={{ color: '#c8a84b' }}>vis</span>
+    <div className="app" style={{ maxWidth: '420px', paddingTop: '5rem' }}>
+
+      {/* Logo + tagline */}
+      <div style={{ marginBottom: '2.5rem' }}>
+        <div style={{ fontFamily: "'SF Mono', 'Menlo', 'Monaco', monospace", fontSize: '16px', fontWeight: '700', letterSpacing: '0.16em', color: '#f0f0f0', marginBottom: '8px' }}>
+          CLA<span style={{ color: '#c8a84b' }}>VIS</span>
         </div>
-        <div style={{ fontSize: '14px', color: '#888' }}>One card. Every reward.</div>
+        <div style={{ fontFamily: "'SF Mono', 'Menlo', 'Monaco', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.12em' }}>
+          ONE CARD. EVERY REWARD.
+        </div>
+      </div>
+
+      {/* Mode label */}
+      <div style={{ fontFamily: "'SF Mono', 'Menlo', 'Monaco', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.22)', letterSpacing: '0.2em', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.07)', paddingBottom: '1rem' }}>
+        {mode === 'login' ? 'SIGN IN' : 'CREATE ACCOUNT'}
       </div>
 
       {error && <div className="error">{error}</div>}
       {message && <div className="success">{message}</div>}
 
       <div style={{ marginBottom: '14px' }}>
-        <label className="label">EMAIL</label>
+        <label className="label">Email</label>
         <input
           className="input"
           type="email"
@@ -52,8 +61,8 @@ export default function Auth() {
         />
       </div>
 
-      <div style={{ marginBottom: '20px' }}>
-        <label className="label">PASSWORD</label>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <label className="label">Password</label>
         <input
           className="input"
           type="password"
@@ -65,7 +74,7 @@ export default function Auth() {
       </div>
 
       <button className="btn-primary" onClick={handleSubmit} disabled={loading}>
-        {loading ? 'Loading...' : mode === 'login' ? 'Sign in' : 'Create account'}
+        {loading ? 'Loading...' : mode === 'login' ? 'Sign In' : 'Create Account'}
       </button>
 
       <button
@@ -75,6 +84,7 @@ export default function Auth() {
       >
         {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
       </button>
+
     </div>
   )
 }
