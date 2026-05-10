@@ -97,6 +97,7 @@ export default function Dashboard() {
   const [taps, setTaps] = useState([])
   const [tapsLoading, setTapsLoading] = useState(false)
   const [expandedRoiId, setExpandedRoiId] = useState(null)
+  const [missedInsight, setMissedInsight] = useState(null)
 
   const [newCard, setNewCard] = useState({
     name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a',
@@ -237,7 +238,27 @@ export default function Dashboard() {
     })
 
     setTapConfirm(confirmMsg)
-    setTimeout(() => setTapConfirm(''), 3500)
+    setMissedInsight(null)
+
+    // "Leaving money on the table" — only for non-gift taps
+    if (card.type !== 'gift' && selectedCardId) {
+      const ranked = getRankedCards()
+      const best = ranked[0]
+      if (best.card.id !== card.id && best.dollarVal > dollarVal + 0.0005) {
+        const bestMult = getMultiplier(best.card)
+        const bestFmt = formatValuePerDollar(best.card, bestMult)
+        const missedPerDollar = ((best.dollarVal - dollarVal) * 100).toFixed(1)
+        const missedOnAmt = selectedAmt > 0 ? (best.dollarVal - dollarVal) * selectedAmt : 0
+        setMissedInsight({
+          cardName: best.card.name,
+          rate: bestFmt,
+          missedPerDollar,
+          missedOnAmt: missedOnAmt > 0.01 ? missedOnAmt : null,
+        })
+      }
+    }
+
+    setTimeout(() => { setTapConfirm(''); setMissedInsight(null) }, 5000)
   }
 
   async function handleAddCard() {
@@ -584,7 +605,42 @@ export default function Dashboard() {
             </button>
           )}
 
-          {tapConfirm && <div className="success" style={{ marginTop: '10px', textAlign: 'center' }}>{tapConfirm}</div>}
+          {tapConfirm && (
+            <div className="success" style={{ marginTop: '10px', textAlign: 'center' }}>
+              {tapConfirm}
+            </div>
+          )}
+
+          {missedInsight && (
+            <div style={{
+              marginTop: '8px',
+              background: 'rgba(224,154,58,0.1)',
+              border: '1px solid rgba(224,154,58,0.28)',
+              borderRadius: '12px',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+            }}>
+              <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#e09a3a', marginBottom: '2px' }}>
+                  {missedInsight.missedOnAmt
+                    ? `$${missedInsight.missedOnAmt.toFixed(2)} more with ${missedInsight.cardName}`
+                    : `${missedInsight.missedPerDollar}¢/$ more with ${missedInsight.cardName}`}
+                </div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                  {missedInsight.cardName} earns {missedInsight.rate} here
+                  {missedInsight.missedOnAmt ? ` · ${missedInsight.missedPerDollar}¢ more per dollar` : ''}
+                </div>
+              </div>
+              <button
+                onClick={() => setMissedInsight(null)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', fontSize: '14px', padding: '0', flexShrink: 0 }}>
+                ✕
+              </button>
+            </div>
+          )}
         </div>
       )}
 
