@@ -1,4 +1,5 @@
 import './globals.css'
+import { SWRegister } from './sw-register'
 
 export const metadata = {
   title: 'Clavis',
@@ -27,7 +28,10 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="Clavis" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <SWRegister />
+      </body>
     </html>
   )
 }
