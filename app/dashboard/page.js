@@ -12,6 +12,25 @@ import { logTap, getTaps, deleteTap } from '../../lib/taps'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
+const CAT_META = {
+  dining:    { icon: '🍽', label: 'Dining' },
+  travel:    { icon: '✈', label: 'Travel' },
+  hotel:     { icon: '🏨', label: 'Hotel' },
+  grocery:   { icon: '🛒', label: 'Grocery' },
+  gas:       { icon: '⛽', label: 'Gas' },
+  streaming: { icon: '📺', label: 'Stream' },
+  retail:    { icon: '🛍', label: 'Retail' },
+  other:     { icon: '···', label: 'Other' },
+}
+
+function getSavedCategory() {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('clavis_last_cat')
+    if (saved && CATEGORIES.includes(saved)) return saved
+  }
+  return 'dining'
+}
+
 function CardArt({ name, style = {} }) {
   const design = getCardDesign(name)
   return (
@@ -55,7 +74,7 @@ export default function Dashboard() {
   const [cards, setCards] = useState([])
   const [tab, setTab] = useState('tap')
   const [loading, setLoading] = useState(true)
-  const [selectedCat, setSelectedCat] = useState('dining')
+  const [selectedCat, setSelectedCat] = useState(getSavedCategory)
   const [selectedAmt, setSelectedAmt] = useState(0)
   const [selectedCardId, setSelectedCardId] = useState(null)
   const [tapConfirm, setTapConfirm] = useState('')
@@ -127,6 +146,13 @@ export default function Dashboard() {
     els.forEach(el => obs.observe(el))
     return () => obs.disconnect()
   }, [tab, cards, showAddCard, showAddPerk, taps])
+
+  function pickCategory(cat) {
+    setSelectedCat(cat)
+    setSelectedCardId(null)
+    setDetectedMerchant(null)
+    if (typeof window !== 'undefined') localStorage.setItem('clavis_last_cat', cat)
+  }
 
   function isCashBack(card) { return card?.balance_unit === 'cash back' || card?.balance_unit === 'dollars' }
   function getMultiplier(card) {
@@ -344,167 +370,198 @@ export default function Dashboard() {
       {/* ── SMART TAP ─────────────────────────────────── */}
       {tab === 'tap' && (
         <div>
-          {/* Active card panel */}
-          {(() => {
-            const mult = getMultiplier(activeCard)
-            const dollarVal = activeCard ? dollarValuePerDollar(activeCard, mult) : 0
-            const valuePer = activeCard ? formatValuePerDollar(activeCard, mult) : null
-            const estimatedOnAmt = selectedAmt > 0 && dollarVal > 0 ? (dollarVal * selectedAmt) : 0
 
-            return (
-              <div data-reveal style={{ background: 'linear-gradient(145deg, #2a2a2e 0%, #212124 100%)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px', marginBottom: '12px' }}>
-                <div style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', marginBottom: '10px', textTransform: 'uppercase' }}>
-                  Active Card
-                </div>
-                <div style={{ fontSize: '19px', fontWeight: '700', color: '#f5f5f5', marginBottom: '3px', letterSpacing: '-0.02em' }}>
-                  {activeCard ? activeCard.name : 'No card selected'}
-                </div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginBottom: '16px' }}>
-                  {activeCard ? `${selectedCat} · ${selectedCardId ? 'Manually selected' : 'Auto-selected'}` : 'Add a card to begin'}
-                </div>
-                <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', marginBottom: '14px' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                  <div>
-                    <div style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.3)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                      Earning this purchase
-                    </div>
-                    <div style={{ fontSize: '28px', fontWeight: '800', color: '#e8b84b', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                      {activeCard
-                        ? (activeCard.type === 'gift'
-                            ? `$${(activeCard.balance || 0).toFixed(2)}`
-                            : mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1x pts')
-                        : '—'}
-                    </div>
-                    {activeCard && activeCard.type !== 'gift' && (
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.38)', marginTop: '4px' }}>
-                        {valuePer && mult > 0 ? valuePer : 'per dollar'}
-                        {estimatedOnAmt > 0 && (
-                          <span style={{ color: '#30c98a', marginLeft: '8px', fontWeight: '600' }}>
-                            ≈ ${estimatedOnAmt.toFixed(2)} back
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {activeCard?.type === 'gift' && (
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>balance remaining</div>
-                    )}
+          {/* 1 ── Merchant search ── primary input */}
+          <div style={{ position: 'relative', marginBottom: '10px' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.06)',
+              borderRadius: '14px',
+              padding: '13px 16px',
+              border: detectedMerchant
+                ? '1.5px solid rgba(48,201,138,0.45)'
+                : '1.5px solid rgba(255,255,255,0.1)',
+              transition: 'border-color 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}>
+              <span style={{ fontSize: '17px', flexShrink: 0, opacity: detectedMerchant ? 1 : 0.45 }}>
+                {detectedMerchant ? CAT_META[detectedMerchant.category]?.icon : '🔍'}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <input
+                  type="text"
+                  placeholder="Where are you? (Starbucks, Target…)"
+                  value={merchantQuery}
+                  onChange={e => {
+                    const q = e.target.value
+                    setMerchantQuery(q)
+                    setMerchantSuggestions(searchMerchants(q))
+                    if (!q) setDetectedMerchant(null)
+                  }}
+                  style={{
+                    width: '100%', background: 'transparent', border: 'none',
+                    fontSize: '15px', fontWeight: '600', color: '#f5f5f5',
+                    fontFamily: 'inherit', outline: 'none',
+                  }}
+                />
+                {detectedMerchant && (
+                  <div style={{ fontSize: '12px', color: '#30c98a', marginTop: '3px', fontWeight: '500' }}>
+                    {CAT_META[detectedMerchant.category]?.label} · auto-categorized
                   </div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.22)', letterSpacing: '0.08em' }}>
-                    {activeCard?.last_four ? `•••• ${activeCard.last_four}` : ''}
-                  </div>
-                </div>
+                )}
               </div>
-            )
-          })()}
-
-          <button className="btn-primary" onClick={simulateTap} disabled={!activeCard} style={{ marginBottom: '6px' }}>
-            ◉ &nbsp;Hold to Tap Clavis
-          </button>
-
-          {cards.length > 1 && (
-            <button onClick={() => setShowRankings(true)}
-              style={{ width: '100%', background: 'none', border: 'none', fontSize: '13px', color: 'rgba(255,255,255,0.28)', cursor: 'pointer', marginBottom: '16px', padding: '4px', transition: 'color 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.28)'}>
-              See card rankings
-            </button>
-          )}
-
-          {/* Merchant search */}
-          <div style={{ position: 'relative', marginBottom: '8px' }}>
-            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 14px', border: detectedMerchant ? '1px solid rgba(48,201,138,0.4)' : '1px solid rgba(255,255,255,0.08)', transition: 'border-color 0.2s' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255,255,255,0.28)', marginBottom: '5px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Where are you shopping?</div>
-              <input type="text" placeholder="e.g. Starbucks, Target, Shell..." value={merchantQuery}
-                onChange={e => { const q = e.target.value; setMerchantQuery(q); setMerchantSuggestions(searchMerchants(q)); if (!q) setDetectedMerchant(null) }}
-                style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '15px', fontWeight: '600', color: '#f5f5f5', fontFamily: 'inherit', outline: 'none' }} />
-              {detectedMerchant && (
-                <div style={{ fontSize: '12px', color: '#30c98a', marginTop: '5px' }}>
-                  → {detectedMerchant.category.charAt(0).toUpperCase() + detectedMerchant.category.slice(1)} category auto-selected
-                </div>
+              {merchantQuery && (
+                <button
+                  onClick={() => { setMerchantQuery(''); setDetectedMerchant(null); setMerchantSuggestions([]); setSelectedCardId(null) }}
+                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', fontSize: '12px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  ✕
+                </button>
               )}
             </div>
             {merchantSuggestions.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#2d2d2f', border: '1px solid rgba(255,255,255,0.1)', borderTop: 'none', borderRadius: '0 0 12px 12px', zIndex: 50, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#2d2d2f', border: '1px solid rgba(255,255,255,0.1)', borderTop: 'none', borderRadius: '0 0 14px 14px', zIndex: 50, overflow: 'hidden' }}>
                 {merchantSuggestions.map(m => (
-                  <div key={m.name} onClick={() => { setMerchantQuery(m.name); setDetectedMerchant(m); setSelectedCat(m.category); setSelectedCardId(null); setMerchantSuggestions([]) }}
-                    style={{ padding: '11px 14px', fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.1s' }}
+                  <div key={m.name}
+                    onClick={() => { setMerchantQuery(m.name); setDetectedMerchant(m); pickCategory(m.category); setMerchantSuggestions([]) }}
+                    style={{ padding: '12px 16px', fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.1s' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <span style={{ fontWeight: '600', color: '#f5f5f5' }}>{m.name}</span>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)', padding: '2px 8px', borderRadius: '6px' }}>{m.category}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '15px' }}>{CAT_META[m.category]?.icon}</span>
+                      <span style={{ fontWeight: '600', color: '#f5f5f5' }}>{m.name}</span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)', padding: '3px 8px', borderRadius: '6px', fontWeight: '600' }}>{CAT_META[m.category]?.label}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Category + Amount */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
-            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255,255,255,0.28)', marginBottom: '5px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Category</div>
-              <select value={selectedCat} onChange={e => { setSelectedCat(e.target.value); setSelectedCardId(null); setDetectedMerchant(null) }}
-                style={{ width: '100%', background: 'transparent', border: 'none', color: '#f5f5f5', fontSize: '15px', fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-              </select>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255,255,255,0.28)', marginBottom: '5px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Amount</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                <span style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(255,255,255,0.35)' }}>$</span>
-                <input type="number" min="0" placeholder="0" value={selectedAmt || ''}
-                  onChange={e => setSelectedAmt(parseFloat(e.target.value) || 0)}
-                  style={{ width: '100%', background: 'transparent', border: 'none', color: '#f5f5f5', fontSize: '15px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
-              </div>
-            </div>
+          {/* 2 ── Category pills ── secondary, one-tap switching */}
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '14px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+            {CATEGORIES.map(cat => (
+              <button key={cat} onClick={() => pickCategory(cat)}
+                style={{
+                  flexShrink: 0,
+                  padding: '7px 13px',
+                  borderRadius: '20px',
+                  border: selectedCat === cat ? '1.5px solid rgba(232,184,75,0.55)' : '1px solid rgba(255,255,255,0.1)',
+                  background: selectedCat === cat ? 'rgba(232,184,75,0.13)' : 'rgba(255,255,255,0.04)',
+                  color: selectedCat === cat ? '#e8b84b' : 'rgba(255,255,255,0.4)',
+                  fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  transition: 'all 0.15s',
+                }}>
+                <span style={{ fontSize: '14px' }}>{CAT_META[cat].icon}</span>
+                <span>{CAT_META[cat].label}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Card list */}
+          {/* 3 ── Hero answer ── the whole point */}
           {cards.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(255,255,255,0.3)', fontSize: '14px' }}>
-              No cards yet. Go to My Wallet to add your first card.
+              No cards yet — add one in My Wallet.
             </div>
-          ) : (
-            getRankedCards().map(({ card, dollarVal }, i) => {
-              const mult = getMultiplier(card)
-              const isGift = card.type === 'gift'
-              const hasGiftBalance = isGift && (card.balance || 0) > 0
-              const isBest = i === 0 && (mult > 0 || hasGiftBalance)
-              const isSelected = selectedCardId === card.id
-              const estimatedBack = !isGift && mult > 0 && selectedAmt > 0 ? dollarVal * selectedAmt : 0
-              return (
-                <div key={card.id} data-reveal onClick={() => setSelectedCardId(isSelected ? null : card.id)}
-                  style={{ borderRadius: '12px', border: isSelected ? '1.5px solid rgba(91,156,246,0.55)' : isBest ? '1.5px solid rgba(232,184,75,0.45)' : '1px solid rgba(255,255,255,0.08)', background: isSelected ? 'rgba(91,156,246,0.06)' : isBest ? 'rgba(232,184,75,0.05)' : 'rgba(255,255,255,0.04)', padding: '12px 14px', marginBottom: '7px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s' }}>
-                  <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
+          ) : (() => {
+            const mult = getMultiplier(activeCard)
+            const dollarVal = activeCard ? dollarValuePerDollar(activeCard, mult) : 0
+            const valuePer = activeCard ? formatValuePerDollar(activeCard, mult) : null
+            const estimatedOnAmt = selectedAmt > 0 && dollarVal > 0 ? dollarVal * selectedAmt : 0
+            const isGift = activeCard?.type === 'gift'
+
+            return (
+              <div data-reveal style={{
+                background: 'linear-gradient(150deg, #2c2c30 0%, #1e1e21 100%)',
+                border: '1px solid rgba(255,255,255,0.09)',
+                borderRadius: '20px',
+                padding: '22px 22px 18px',
+                marginBottom: '10px',
+              }}>
+                {/* Card identity row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
+                  <CardArt name={activeCard?.name || ''} style={{ width: '70px', height: '48px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    {isBest && <div style={{ display: 'inline-block', fontSize: '10px', fontWeight: '700', color: '#e8b84b', background: 'rgba(232,184,75,0.15)', borderRadius: '5px', padding: '1px 6px', marginBottom: '4px' }}>Best</div>}
-                    {isSelected && !isBest && <div style={{ display: 'inline-block', fontSize: '10px', fontWeight: '700', color: '#5b9cf6', background: 'rgba(91,156,246,0.15)', borderRadius: '5px', padding: '1px 6px', marginBottom: '4px' }}>Selected</div>}
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#f5f5f5', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>{card.type}{isGift ? '' : ` · ${card.balance_unit}`}</div>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    {isGift ? (
-                      <>
-                        <div style={{ fontSize: '16px', fontWeight: '700', color: hasGiftBalance ? '#30c98a' : 'rgba(255,255,255,0.25)' }}>${(card.balance || 0).toFixed(2)}</div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '1px' }}>{hasGiftBalance ? 'remaining' : 'empty'}</div>
-                      </>
-                    ) : (
-                      <>
-                        <div style={{ fontSize: '16px', fontWeight: '700', color: mult > 0 ? '#e8b84b' : 'rgba(255,255,255,0.22)' }}>{mult > 0 ? formatRate(card, mult) : '—'}</div>
-                        {mult > 0 && (
-                          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '1px' }}>
-                            {formatValuePerDollar(card, mult)}
-                            {estimatedBack > 0 && <span style={{ color: '#30c98a', marginLeft: '4px' }}>· ${estimatedBack.toFixed(2)}</span>}
-                          </div>
-                        )}
-                      </>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                      {selectedCardId ? 'Selected card' : 'Best card'}
+                    </div>
+                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#f5f5f5', letterSpacing: '-0.03em', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {activeCard?.name || '—'}
+                    </div>
+                    {activeCard?.last_four && (
+                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.22)', marginTop: '2px', letterSpacing: '0.06em' }}>
+                        •••• {activeCard.last_four}
+                      </div>
                     )}
                   </div>
+                  {selectedCardId && (
+                    <button onClick={() => setSelectedCardId(null)}
+                      style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: '8px', padding: '5px 9px', cursor: 'pointer', fontWeight: '600', flexShrink: 0 }}>
+                      auto
+                    </button>
+                  )}
                 </div>
-              )
-            })
+
+                {/* The big rate number */}
+                <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', marginBottom: '16px' }} />
+                {isGift ? (
+                  <div>
+                    <div style={{ fontSize: '46px', fontWeight: '900', color: '#30c98a', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                      ${(activeCard.balance || 0).toFixed(2)}
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginTop: '6px' }}>gift card balance remaining</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: '46px', fontWeight: '900', color: '#e8b84b', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                      {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1x pts'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '7px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.38)' }}>
+                        {valuePer && mult > 0 ? valuePer : 'per dollar'}
+                      </span>
+                      {estimatedOnAmt > 0 && (
+                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#30c98a' }}>
+                          ≈ ${estimatedOnAmt.toFixed(2)} back
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          {/* 4 ── Tap button */}
+          <button className="btn-primary" onClick={simulateTap} disabled={!activeCard} style={{ marginBottom: '8px' }}>
+            ◉ &nbsp;Tap Clavis
+          </button>
+
+          {/* 5 ── Amount input ── optional, secondary */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '10px 14px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
+            <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>$</span>
+            <input type="number" min="0" placeholder="0.00" value={selectedAmt || ''}
+              onChange={e => setSelectedAmt(parseFloat(e.target.value) || 0)}
+              style={{ flex: 1, background: 'transparent', border: 'none', color: '#f5f5f5', fontSize: '15px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
+            {selectedAmt > 0 && (
+              <button onClick={() => setSelectedAmt(0)}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}>✕</button>
+            )}
+          </div>
+
+          {/* 6 ── See all cards ── collapsed by default */}
+          {cards.length > 1 && (
+            <button onClick={() => setShowRankings(true)}
+              style={{ width: '100%', background: 'none', border: 'none', fontSize: '13px', color: 'rgba(255,255,255,0.28)', cursor: 'pointer', padding: '6px', transition: 'color 0.15s', fontFamily: 'inherit' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.28)'}>
+              See all {cards.length} cards ranked →
+            </button>
           )}
 
-          {tapConfirm && <div className="success" style={{ marginTop: '1rem', textAlign: 'center' }}>{tapConfirm}</div>}
+          {tapConfirm && <div className="success" style={{ marginTop: '10px', textAlign: 'center' }}>{tapConfirm}</div>}
         </div>
       )}
 
