@@ -9,6 +9,7 @@ import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
 import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar } from '../../lib/pointValues'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
+import { Onboarding } from '../onboarding'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
@@ -98,6 +99,7 @@ export default function Dashboard() {
   const [tapsLoading, setTapsLoading] = useState(false)
   const [expandedRoiId, setExpandedRoiId] = useState(null)
   const [missedInsight, setMissedInsight] = useState(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const [newCard, setNewCard] = useState({
     name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a',
@@ -123,7 +125,11 @@ export default function Dashboard() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      Promise.all([loadCards(), loadTaps()]).then(() => setLoading(false))
+      Promise.all([loadCards(), loadTaps()]).then(([c]) => {
+        setLoading(false)
+        const seen = typeof window !== 'undefined' && localStorage.getItem('clavis_onboarded')
+        if (!seen) setShowOnboarding(true)
+      })
     })
   }, [router, loadCards, loadTaps])
 
@@ -1180,6 +1186,13 @@ export default function Dashboard() {
             })}
           </div>
         </div>
+      )}
+
+      {showOnboarding && (
+        <Onboarding onComplete={() => {
+          setShowOnboarding(false)
+          loadCards()
+        }} />
       )}
 
       {editingCard && (
