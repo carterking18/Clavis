@@ -77,6 +77,7 @@ export default function Dashboard() {
   const [emailMsg, setEmailMsg] = useState('')
   const [taps, setTaps] = useState([])
   const [tapsLoading, setTapsLoading] = useState(false)
+  const [expandedRoiId, setExpandedRoiId] = useState(null)
 
   const [newCard, setNewCard] = useState({
     name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a',
@@ -510,53 +511,146 @@ export default function Dashboard() {
       {/* ── MY WALLET ─────────────────────────────────── */}
       {tab === 'wallet' && (
         <div>
-          <div data-reveal style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
-            {[
-              { label: 'Cards', value: cards.length },
-              { label: 'Gift value', value: '$' + cards.filter(c => c.type === 'gift').reduce((s, c) => s + (c.balance || 0), 0).toFixed(0) },
-              { label: 'Active perks', value: allPerks.filter(p => p.used_amount < p.total_amount).length }
-            ].map(m => (
-              <div key={m.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px 10px', textAlign: 'center' }}>
-                <div style={{ fontSize: '22px', fontWeight: '700', color: '#f5f5f5', marginBottom: '4px' }}>{m.value}</div>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', fontWeight: '500' }}>{m.label}</div>
+          {(() => {
+            const totalFees = cards.reduce((s, c) => s + (c.annual_fee || 0), 0)
+            const totalPerksVal = cards.flatMap(c => c.perks || []).reduce((s, p) => s + (p.used_amount || 0), 0)
+            const totalTapVal = taps.reduce((s, t) => s + (t.estimated_value || 0), 0)
+            const netValue = totalPerksVal + totalTapVal - totalFees
+            return (
+              <div data-reveal style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
+                {[
+                  { label: 'Cards', value: cards.length, color: '#f5f5f5' },
+                  { label: 'Annual fees', value: totalFees > 0 ? `$${totalFees.toFixed(0)}` : '$0', color: totalFees > 0 ? '#e05c5c' : 'rgba(255,255,255,0.3)' },
+                  { label: 'Net value', value: `${netValue >= 0 ? '+' : ''}$${netValue.toFixed(0)}`, color: netValue >= 0 ? '#30c98a' : '#e05c5c' },
+                ].map(m => (
+                  <div key={m.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px 10px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '22px', fontWeight: '700', color: m.color, marginBottom: '4px' }}>{m.value}</div>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', fontWeight: '500' }}>{m.label}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )
+          })()}
 
           {cards.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.3)', fontSize: '14px', marginBottom: '1rem' }}>No cards yet. Add your first one below.</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
               {cards.map(card => {
                 // Annual fee ROI calculation
                 const fee = card.annual_fee || 0
                 const perksValue = (card.perks || []).reduce((s, p) => s + (p.used_amount || 0), 0)
-                const tapValue = taps.filter(t => t.card_id === card.id).reduce((s, t) => s + (t.estimated_value || 0), 0)
+                const cardTaps = taps.filter(t => t.card_id === card.id)
+                const tapValue = cardTaps.reduce((s, t) => s + (t.estimated_value || 0), 0)
                 const totalValue = perksValue + tapValue
                 const roiPct = fee > 0 ? Math.min((totalValue / fee) * 100, 100) : 0
+                const remaining = fee > 0 ? Math.max(fee - totalValue, 0) : 0
+                const isExpanded = expandedRoiId === card.id
+
+                // Break-even pace projection
+                let breakEvenLabel = null
+                if (fee > 0 && remaining > 0 && (tapValue > 0 || perksValue > 0)) {
+                  const oldestTap = cardTaps.length > 0 ? new Date(cardTaps[cardTaps.length - 1].tapped_at) : null
+                  if (oldestTap) {
+                    const daysSinceFirst = Math.max(1, Math.ceil((new Date() - oldestTap) / (1000 * 60 * 60 * 24)))
+                    const dailyRate = totalValue / daysSinceFirst
+                    if (dailyRate > 0) {
+                      const daysToBreakEven = Math.ceil(remaining / dailyRate)
+                      if (daysToBreakEven <= 365) breakEvenLabel = `Break-even in ~${daysToBreakEven}d at current pace`
+                    }
+                  }
+                }
+                const isPaidOff = fee > 0 && roiPct >= 100
 
                 return (
-                  <div key={card.id} data-reveal className="card">
-                    <CardArt name={card.name} style={{ height: '56px', marginBottom: '10px' }} />
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginBottom: '3px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{card.type}</div>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#f5f5f5', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginBottom: fee > 0 ? '8px' : '10px' }}>
-                      {card.balance} {card.balance_unit}
+                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '14px', border: isPaidOff ? '1.5px solid rgba(48,201,138,0.3)' : '1px solid rgba(255,255,255,0.08)', background: isPaidOff ? 'rgba(48,201,138,0.04)' : 'rgba(255,255,255,0.03)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
+                    {/* Card header row */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px', cursor: fee > 0 ? 'pointer' : 'default' }}
+                      onClick={() => fee > 0 && setExpandedRoiId(isExpanded ? null : card.id)}>
+                      <CardArt name={card.name} style={{ width: '48px', height: '32px', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#f5f5f5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '1px' }}>
+                          {card.type}{fee > 0 ? ` · $${fee}/yr fee` : ''}
+                        </div>
+                      </div>
+                      {fee > 0 ? (
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          {isPaidOff ? (
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#30c98a', background: 'rgba(48,201,138,0.15)', borderRadius: '6px', padding: '3px 8px' }}>✓ Paid off</div>
+                          ) : (
+                            <>
+                              <div style={{ fontSize: '16px', fontWeight: '800', color: '#e8b84b', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
+                              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.22)', padding: '0 4px' }}>no fee</div>
+                      )}
                     </div>
 
+                    {/* ROI bar (only for fee cards) */}
                     {fee > 0 && (
-                      <div style={{ marginBottom: '10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', fontWeight: '600' }}>ROI · ${totalValue.toFixed(0)} / ${fee}</span>
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: roiPct >= 100 ? '#30c98a' : '#e8b84b' }}>{roiPct.toFixed(0)}%</span>
+                      <div style={{ padding: '0 14px', marginBottom: isExpanded ? '0' : '12px' }}>
+                        <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? '#30c98a' : roiPct > 60 ? '#e8b84b' : 'rgba(232,184,75,0.6)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
                         </div>
-                        <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px' }}>
-                          <div style={{ height: '3px', borderRadius: '2px', width: roiPct + '%', background: roiPct >= 100 ? '#30c98a' : '#e8b84b', transition: 'width 0.4s' }} />
-                        </div>
+                        {!isExpanded && breakEvenLabel && (
+                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '5px', marginBottom: '2px' }}>{breakEvenLabel}</div>
+                        )}
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '5px' }}>
+                    {/* Expanded ROI breakdown */}
+                    {fee > 0 && isExpanded && (
+                      <div style={{ margin: '0 14px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        {/* Breakdown rows */}
+                        {[
+                          { label: 'Perks captured', value: perksValue, color: '#5b9cf6' },
+                          { label: 'Tap rewards', value: tapValue, color: '#30c98a' },
+                        ].map(row => (
+                          <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                              <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: row.color, flexShrink: 0 }} />
+                              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{row.label}</span>
+                            </div>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: row.value > 0 ? row.color : 'rgba(255,255,255,0.22)' }}>
+                              {row.value > 0 ? `+$${row.value.toFixed(2)}` : '—'}
+                            </span>
+                          </div>
+                        ))}
+                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '8px 0' }} />
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
+                          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Annual fee</span>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#e05c5c' }}>−${fee.toFixed(2)}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'rgba(255,255,255,0.6)' }}>Net value</span>
+                          <span style={{ fontSize: '14px', fontWeight: '800', color: totalValue >= fee ? '#30c98a' : '#e8b84b', letterSpacing: '-0.02em' }}>
+                            {totalValue >= fee ? '+' : ''}${(totalValue - fee).toFixed(2)}
+                          </span>
+                        </div>
+                        {breakEvenLabel && (
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(232,184,75,0.08)', border: '1px solid rgba(232,184,75,0.2)', borderRadius: '7px', fontSize: '11px', color: '#e8b84b', fontWeight: '500' }}>
+                            ⏱ {breakEvenLabel}
+                          </div>
+                        )}
+                        {isPaidOff && (
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(48,201,138,0.1)', border: '1px solid rgba(48,201,138,0.25)', borderRadius: '7px', fontSize: '11px', color: '#30c98a', fontWeight: '600' }}>
+                            ✓ This card has fully paid for its annual fee
+                          </div>
+                        )}
+                        {!isPaidOff && tapValue === 0 && perksValue === 0 && (
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(224,92,92,0.08)', border: '1px solid rgba(224,92,92,0.2)', borderRadius: '7px', fontSize: '11px', color: '#e05c5c', fontWeight: '500' }}>
+                            No value captured yet — use Smart Tap or mark perks used
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div style={{ display: 'flex', gap: '5px', padding: fee > 0 ? '0 14px 14px' : '0 14px 14px' }}>
                       <button onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}
                         style={{ flex: 1, padding: '6px 4px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '7px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#f5f5f5' }}
