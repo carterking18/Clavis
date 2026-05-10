@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2c2c2e"/>
+      <stop offset="100%" stop-color="#1a1a1b"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="28%" cy="22%" r="52%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.07)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#f5cb6a"/>
+      <stop offset="100%" stop-color="#d49530"/>
+    </linearGradient>
+    <mask id="key">
+      <circle cx="187" cy="254" r="107" fill="white"/>
+      <circle cx="187" cy="254" r="61"  fill="black"/>
+      <rect x="246" y="232" width="200" height="44" rx="22" fill="white"/>
+      <rect x="354" y="276" width="42"  height="58" rx="11" fill="white"/>
+      <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
+    </mask>
+  </defs>
+  <rect width="512" height="512" rx="114" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="114" fill="url(#shine)"/>
+  <rect width="512" height="512" fill="url(#gold)" mask="url(#key)"/>
+</svg>

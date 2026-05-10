@@ -31,8 +31,31 @@ export default function Auth() {
   return (
     <div className="app" style={{ maxWidth: '420px', paddingTop: '5rem' }}>
       <div style={{ marginBottom: '2.5rem' }}>
-        <div style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '-0.03em', marginBottom: '6px', color: '#f5f5f5' }}>
-          Cla<span style={{ color: '#e8b84b' }}>vis</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+          <svg width="38" height="38" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="abg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#2c2c2e"/>
+                <stop offset="100%" stopColor="#1a1a1b"/>
+              </linearGradient>
+              <linearGradient id="agold" x1="20%" y1="0%" x2="80%" y2="100%">
+                <stop offset="0%" stopColor="#f5cb6a"/>
+                <stop offset="100%" stopColor="#d49530"/>
+              </linearGradient>
+              <mask id="akey">
+                <circle cx="187" cy="254" r="107" fill="white"/>
+                <circle cx="187" cy="254" r="61"  fill="black"/>
+                <rect x="246" y="232" width="200" height="44" rx="22" fill="white"/>
+                <rect x="354" y="276" width="42"  height="58" rx="11" fill="white"/>
+                <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
+              </mask>
+            </defs>
+            <rect width="512" height="512" rx="114" fill="url(#abg)"/>
+            <rect width="512" height="512" fill="url(#agold)" mask="url(#akey)"/>
+          </svg>
+          <span style={{ fontSize: '26px', fontWeight: '800', letterSpacing: '-0.03em', color: '#f5f5f5' }}>
+            Cla<span style={{ color: '#e8b84b' }}>vis</span>
+          </span>
         </div>
         <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.35)', fontWeight: '500' }}>
           One card. Every reward.
