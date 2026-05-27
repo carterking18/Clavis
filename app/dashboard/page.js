@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 import { getUserCards, addCard, deleteCard, updateCardBalance, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
@@ -9,19 +9,20 @@ import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
 import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar } from '../../lib/pointValues'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
+import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { Onboarding } from '../onboarding'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
 const CAT_META = {
-  dining:    { icon: '🍽', label: 'Dining' },
-  travel:    { icon: '✈', label: 'Travel' },
-  hotel:     { icon: '🏨', label: 'Hotel' },
-  grocery:   { icon: '🛒', label: 'Grocery' },
-  gas:       { icon: '⛽', label: 'Gas' },
-  streaming: { icon: '📺', label: 'Stream' },
-  retail:    { icon: '🛍', label: 'Retail' },
-  other:     { icon: '···', label: 'Other' },
+  dining:    { label: 'Dining' },
+  travel:    { label: 'Travel' },
+  hotel:     { label: 'Hotel' },
+  grocery:   { label: 'Grocery' },
+  gas:       { label: 'Gas' },
+  streaming: { label: 'Stream' },
+  retail:    { label: 'Retail' },
+  other:     { label: 'Other' },
 }
 
 function getSavedCategory() {
@@ -36,7 +37,7 @@ function CardArt({ name, style = {} }) {
   const design = getCardDesign(name)
   return (
     <div style={{
-      borderRadius: '8px',
+      borderRadius: '4px',
       background: `linear-gradient(135deg, ${design.gradient[0]}, ${design.gradient[1]})`,
       padding: '8px 10px',
       display: 'flex',
@@ -48,7 +49,7 @@ function CardArt({ name, style = {} }) {
         <div style={{ width: '20px', height: '14px', borderRadius: '3px', background: 'rgba(255,255,255,0.25)', border: '0.5px solid rgba(255,255,255,0.15)' }} />
       )}
       {design.network && (
-        <div style={{ alignSelf: 'flex-end', fontSize: '9px', fontWeight: '700', color: 'rgba(255,255,255,0.65)', letterSpacing: '0.04em', marginTop: 'auto' }}>
+        <div style={{ alignSelf: 'flex-end', fontSize: '9px', fontWeight: '700', color: 'rgba(221,221,228,0.65)', letterSpacing: '0.04em', marginTop: 'auto' }}>
           {design.network}
         </div>
       )}
@@ -67,6 +68,11 @@ function TimeAgo({ dateStr }) {
   const days = Math.floor(hrs / 24)
   if (days < 7) return <span>{days}d ago</span>
   return <span>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+}
+
+function formatResetDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 export default function Dashboard() {
@@ -101,11 +107,14 @@ export default function Dashboard() {
   const [missedInsight, setMissedInsight] = useState(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
 
+  // Add-card form state
   const [newCard, setNewCard] = useState({
     name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a',
     balance: '', balance_unit: 'points', annual_fee: '',
     multipliers: { dining: '', travel: '', hotel: '', grocery: '', gas: '', streaming: '', retail: '', other: '' }
   })
+  const [fetchingCardData, setFetchingCardData] = useState(false)
+  const cardFetchTimer = useRef(null)
 
   const [newPerk, setNewPerk] = useState({
     name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: ''
@@ -125,7 +134,7 @@ export default function Dashboard() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
-      Promise.all([loadCards(), loadTaps()]).then(([c]) => {
+      Promise.all([loadCards(), loadTaps()]).then(() => {
         setLoading(false)
         const seen = typeof window !== 'undefined' && localStorage.getItem('clavis_onboarded')
         if (!seen) setShowOnboarding(true)
@@ -154,6 +163,13 @@ export default function Dashboard() {
     return () => obs.disconnect()
   }, [tab, cards, showAddCard, showAddPerk, taps])
 
+  useEffect(() => () => { if (cardFetchTimer.current) clearTimeout(cardFetchTimer.current) }, [])
+
+  // Insights computed from current wallet + history
+  const perkInsights = useMemo(() => generateInsights(cards, taps), [cards, taps])
+  const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards])
+  const totalMissed = useMemo(() => retroactiveMissed.reduce((s, m) => s + m.missedTotal, 0), [retroactiveMissed])
+
   function pickCategory(cat) {
     setSelectedCat(cat)
     setSelectedCardId(null)
@@ -173,10 +189,7 @@ export default function Dashboard() {
 
   function scoreCard(card) {
     const mult = getMultiplier(card)
-    // Normalize to dollar value per dollar spent for fair comparison
-    const dollarVal = isCashBack(card)
-      ? mult / 100
-      : dollarValuePerDollar(card, mult)
+    const dollarVal = isCashBack(card) ? mult / 100 : dollarValuePerDollar(card, mult)
 
     const perks = card.perks || []
     const activePerks = perks.filter(p => p.used_amount < p.total_amount)
@@ -187,7 +200,7 @@ export default function Dashboard() {
     })
     const isGiftWithBalance = card.type === 'gift' && (card.balance || 0) > 0
 
-    let score = dollarVal * 100 // convert to cents for scoring clarity
+    let score = dollarVal * 100
     score += activePerks.length * 0.5
     score += expiringPerks.length * 1.5
     if (isGiftWithBalance) score += 5
@@ -204,11 +217,24 @@ export default function Dashboard() {
     return { card, score, dollarVal, reasons }
   }
 
-  function getRankedCards() { return [...cards].map(scoreCard).sort((a, b) => b.score - a.score) }
+  function getRankedCards() {
+    return [...cards].map(scoreCard).sort((a, b) => {
+      const d = b.score - a.score
+      if (Math.abs(d) > 0.001) return d
+      // Tiebreaker: higher annual fee wins (get more value from it)
+      return (b.card.annual_fee || 0) - (a.card.annual_fee || 0)
+    })
+  }
   function getBestCard() { if (!cards.length) return null; return getRankedCards()[0].card }
   function getActiveCard() {
     if (selectedCardId) return cards.find(c => c.id === selectedCardId) || getBestCard()
     return getBestCard()
+  }
+  function isBestTied() {
+    if (cards.length < 2 || selectedCardId) return false
+    const ranked = getRankedCards()
+    return Math.abs(ranked[0].score - ranked[1].score) <= 0.001 &&
+           (ranked[0].card.annual_fee || 0) === (ranked[1].card.annual_fee || 0)
   }
 
   async function simulateTap() {
@@ -232,7 +258,6 @@ export default function Dashboard() {
       confirmMsg = `Tapped as ${card.name} · ${rate ? `${rate} on $${selectedAmt}` : 'card charged'} · Transaction complete`
     }
 
-    // Log the tap
     await logTap({
       card_id: card.id,
       card_name: card.name,
@@ -246,7 +271,6 @@ export default function Dashboard() {
     setTapConfirm(confirmMsg)
     setMissedInsight(null)
 
-    // "Leaving money on the table" — only for non-gift taps
     if (card.type !== 'gift' && selectedCardId) {
       const ranked = getRankedCards()
       const best = ranked[0]
@@ -267,6 +291,50 @@ export default function Dashboard() {
     setTimeout(() => { setTapConfirm(''); setMissedInsight(null) }, 5000)
   }
 
+  // Debounced card-data fetch for unknown cards in the Add Card form
+  function handleNewCardNameChange(name) {
+    const suggestion = getSuggestedMultipliers(name)
+    if (suggestion) {
+      const mults = {}
+      CATEGORIES.forEach(cat => { mults[cat] = String(suggestion.multipliers[cat] ?? '') })
+      setNewCard(prev => ({ ...prev, name, multipliers: mults, _suggestion: suggestion.note, _aiSuggestion: false }))
+      setFetchingCardData(false)
+      if (cardFetchTimer.current) clearTimeout(cardFetchTimer.current)
+      return
+    }
+    setNewCard(prev => ({ ...prev, name, _suggestion: null, _aiSuggestion: false }))
+
+    if (cardFetchTimer.current) clearTimeout(cardFetchTimer.current)
+    if (name.trim().length < 4) { setFetchingCardData(false); return }
+
+    cardFetchTimer.current = setTimeout(async () => {
+      setFetchingCardData(true)
+      try {
+        const res = await fetch('/api/card-perks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim() }),
+        })
+        const data = await res.json()
+        if (data.multipliers || data.note) {
+          const mults = {}
+          if (data.multipliers) {
+            CATEGORIES.forEach(cat => { mults[cat] = String(data.multipliers[cat] ?? '') })
+          }
+          const noteText = data.note + (data.source === 'claude' ? ' · AI-generated, verify with issuer' : '')
+          setNewCard(prev => ({
+            ...prev,
+            multipliers: data.multipliers ? mults : prev.multipliers,
+            _suggestion: noteText,
+            _aiSuggestion: data.source === 'claude',
+            _aiPerks: data.perks || [],
+          }))
+        }
+      } catch (e) { /* silent */ }
+      setFetchingCardData(false)
+    }, 900)
+  }
+
   async function handleAddCard() {
     if (!newCard.name) return
     try {
@@ -281,9 +349,18 @@ export default function Dashboard() {
       if (Object.keys(mults).length) await addMultipliers(created.id, mults)
       await loadCards()
       setShowAddCard(false)
-      const perks = getSuggestedPerks(newCard.name)
+
+      // Perk suggestions: prefer internal DB, fall back to AI perks from the async fetch
+      const dbPerks = getSuggestedPerks(newCard.name)
+      const perksToSuggest = dbPerks && dbPerks.length > 0 ? dbPerks : (newCard._aiPerks || [])
+
       setNewCard({ name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a', balance: '', balance_unit: 'points', annual_fee: '', multipliers: { dining: '', travel: '', hotel: '', grocery: '', gas: '', streaming: '', retail: '', other: '' } })
-      if (perks && perks.length > 0) { setSuggestedPerks(perks); setPendingCardId(created.id); setSelectedPerkIndices(perks.map((_, i) => i)) }
+
+      if (perksToSuggest.length > 0) {
+        setSuggestedPerks(perksToSuggest)
+        setPendingCardId(created.id)
+        setSelectedPerkIndices(perksToSuggest.map((_, i) => i))
+      }
     } catch (e) { console.error(e) }
   }
 
@@ -343,7 +420,6 @@ export default function Dashboard() {
     return days <= 14 && days > 0
   })
 
-  // History stats
   const totalEarned = taps.reduce((s, t) => s + (t.estimated_value || 0), 0)
   const thisMonthTaps = taps.filter(t => {
     const d = new Date(t.tapped_at)
@@ -354,32 +430,26 @@ export default function Dashboard() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '14px' }}>Loading your wallet...</p>
+      <p style={{ color: 'rgba(221,221,228,0.35)', fontSize: '14px' }}>Loading your wallet...</p>
     </div>
   )
 
   const sheetStyle = {
-    background: '#2a2a2e', borderRadius: '20px 20px 0 0', padding: '1.5rem',
+    background: '#0f0f13', borderRadius: '8px 8px 0 0', padding: '1.5rem',
     width: '100%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto',
-    border: '1px solid rgba(255,255,255,0.08)', borderBottom: 'none',
+    border: '1px solid rgba(255,255,255,0.06)', borderBottom: 'none',
   }
+
+  const insightCount = perkInsights.length + retroactiveMissed.length
 
   return (
     <div className="app">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+          <svg width="22" height="22" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="hbg" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#2c2c2e"/>
-                <stop offset="100%" stopColor="#1a1a1b"/>
-              </linearGradient>
-              <linearGradient id="hgold" x1="20%" y1="0%" x2="80%" y2="100%">
-                <stop offset="0%" stopColor="#f5cb6a"/>
-                <stop offset="100%" stopColor="#d49530"/>
-              </linearGradient>
               <mask id="hkey">
                 <circle cx="187" cy="254" r="107" fill="white"/>
                 <circle cx="187" cy="254" r="61"  fill="black"/>
@@ -388,31 +458,35 @@ export default function Dashboard() {
                 <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
               </mask>
             </defs>
-            <rect width="512" height="512" rx="114" fill="url(#hbg)"/>
-            <rect width="512" height="512" fill="url(#hgold)" mask="url(#hkey)"/>
+            <rect width="512" height="512" fill="#c9a227" mask="url(#hkey)"/>
           </svg>
-          <span style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '-0.03em', color: '#f5f5f5' }}>
-            Cla<span style={{ color: '#e8b84b' }}>vis</span>
+          <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.02em', color: '#dddde4' }}>
+            CLAVIS
           </span>
         </div>
         <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-          style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.65)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.3)'}>
+          style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.22)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
+          onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.55)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.22)'}>
           Sign out
         </button>
       </div>
 
-      {/* Segmented tab bar */}
+      {/* Tab bar */}
       <div className="tab-bar">
         {[
-          { key: 'tap', label: 'Smart Tap' },
-          { key: 'wallet', label: 'My Wallet' },
-          { key: 'perks', label: 'Perks' },
-          { key: 'history', label: 'History' },
+          { key: 'tap',      label: 'Tap' },
+          { key: 'wallet',   label: 'Wallet' },
+          { key: 'perks',    label: 'Perks' },
+          { key: 'history',  label: 'History' },
+          { key: 'insights', label: 'Insights' },
         ].map(({ key, label }) => (
-          <button key={key} className={`tab-btn${tab === key ? ' active' : ''}`} onClick={() => setTab(key)}>
+          <button key={key} className={`tab-btn${tab === key ? ' active' : ''}`} onClick={() => setTab(key)}
+            style={key === 'insights' && insightCount > 0 && tab !== key ? { color: '#c9a227' } : {}}>
             {label}
+            {key === 'insights' && insightCount > 0 && tab !== key && (
+              <span style={{ display: 'inline-block', width: '5px', height: '5px', background: '#c9a227', borderRadius: '50%', marginLeft: '4px', verticalAlign: 'middle', marginBottom: '2px' }} />
+            )}
           </button>
         ))}
       </div>
@@ -421,27 +495,27 @@ export default function Dashboard() {
       {tab === 'tap' && (
         <div>
 
-          {/* 1 ── Merchant search ── primary input */}
-          <div style={{ position: 'relative', marginBottom: '10px' }}>
+          {/* 1 ── Merchant search */}
+          <div style={{ position: 'relative', marginBottom: '12px' }}>
             <div style={{
-              background: 'rgba(255,255,255,0.06)',
-              borderRadius: '14px',
-              padding: '13px 16px',
+              background: 'transparent',
+              borderRadius: '4px',
+              padding: '11px 14px',
               border: detectedMerchant
-                ? '1.5px solid rgba(48,201,138,0.45)'
-                : '1.5px solid rgba(255,255,255,0.1)',
+                ? '1px solid rgba(29,184,122,0.4)'
+                : '1px solid rgba(255,255,255,0.08)',
               transition: 'border-color 0.2s',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
             }}>
-              <span style={{ fontSize: '17px', flexShrink: 0, opacity: detectedMerchant ? 1 : 0.45 }}>
-                {detectedMerchant ? CAT_META[detectedMerchant.category]?.icon : '🔍'}
+              <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'rgba(221,221,228,0.22)', flexShrink: 0, textTransform: 'uppercase' }}>
+                {detectedMerchant ? CAT_META[detectedMerchant.category]?.label : 'Merchant'}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <input
                   type="text"
-                  placeholder="Where are you? (Starbucks, Target…)"
+                  placeholder="Starbucks, Target, Delta…"
                   value={merchantQuery}
                   onChange={e => {
                     const q = e.target.value
@@ -449,70 +523,55 @@ export default function Dashboard() {
                     setMerchantSuggestions(searchMerchants(q))
                     if (!q) setDetectedMerchant(null)
                   }}
-                  style={{
-                    width: '100%', background: 'transparent', border: 'none',
-                    fontSize: '15px', fontWeight: '600', color: '#f5f5f5',
-                    fontFamily: 'inherit', outline: 'none',
-                  }}
+                  style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '14px', fontWeight: '500', color: '#dddde4', fontFamily: 'inherit', outline: 'none' }}
                 />
-                {detectedMerchant && (
-                  <div style={{ fontSize: '12px', color: '#30c98a', marginTop: '3px', fontWeight: '500' }}>
-                    {CAT_META[detectedMerchant.category]?.label} · auto-categorized
-                  </div>
-                )}
               </div>
               {merchantQuery && (
                 <button
                   onClick={() => { setMerchantQuery(''); setDetectedMerchant(null); setMerchantSuggestions([]); setSelectedCardId(null) }}
-                  style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', color: 'rgba(255,255,255,0.55)', fontSize: '12px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  ✕
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(221,221,228,0.3)', fontSize: '14px', flexShrink: 0, lineHeight: 1, padding: '0 2px' }}>
+                  ×
                 </button>
               )}
             </div>
             {merchantSuggestions.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#2d2d2f', border: '1px solid rgba(255,255,255,0.1)', borderTop: 'none', borderRadius: '0 0 14px 14px', zIndex: 50, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#141419', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 50, overflow: 'hidden' }}>
                 {merchantSuggestions.map(m => (
                   <div key={m.name}
                     onClick={() => { setMerchantQuery(m.name); setDetectedMerchant(m); pickCategory(m.category); setMerchantSuggestions([]) }}
-                    style={{ padding: '12px 16px', fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.1s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    style={{ padding: '11px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.1s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '15px' }}>{CAT_META[m.category]?.icon}</span>
-                      <span style={{ fontWeight: '600', color: '#f5f5f5' }}>{m.name}</span>
-                    </div>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)', padding: '3px 8px', borderRadius: '6px', fontWeight: '600' }}>{CAT_META[m.category]?.label}</span>
+                    <span style={{ fontWeight: '500', color: '#dddde4' }}>{m.name}</span>
+                    <span style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.35)', border: '1px solid rgba(255,255,255,0.06)', padding: '2px 7px', borderRadius: '2px' }}>{CAT_META[m.category]?.label}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* 2 ── Category pills ── secondary, one-tap switching */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '14px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+          {/* 2 ── Category selector */}
+          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', marginBottom: '18px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
             {CATEGORIES.map(cat => (
               <button key={cat} onClick={() => pickCategory(cat)}
                 style={{
-                  flexShrink: 0,
-                  padding: '7px 13px',
-                  borderRadius: '20px',
-                  border: selectedCat === cat ? '1.5px solid rgba(232,184,75,0.55)' : '1px solid rgba(255,255,255,0.1)',
-                  background: selectedCat === cat ? 'rgba(232,184,75,0.13)' : 'rgba(255,255,255,0.04)',
-                  color: selectedCat === cat ? '#e8b84b' : 'rgba(255,255,255,0.4)',
-                  fontSize: '13px', fontWeight: '600', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  transition: 'all 0.15s',
+                  flexShrink: 0, padding: '6px 12px',
+                  borderRadius: '2px',
+                  border: selectedCat === cat ? '1px solid rgba(201,162,39,0.5)' : '1px solid rgba(255,255,255,0.06)',
+                  background: selectedCat === cat ? 'rgba(201,162,39,0.08)' : 'transparent',
+                  color: selectedCat === cat ? '#c9a227' : 'rgba(221,221,228,0.35)',
+                  fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase',
+                  cursor: 'pointer', transition: 'all 0.15s',
                 }}>
-                <span style={{ fontSize: '14px' }}>{CAT_META[cat].icon}</span>
-                <span>{CAT_META[cat].label}</span>
+                {CAT_META[cat].label}
               </button>
             ))}
           </div>
 
-          {/* 3 ── Hero answer ── the whole point */}
+          {/* 3 ── Hero card */}
           {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(255,255,255,0.3)', fontSize: '14px' }}>
-              No cards yet — add one in My Wallet.
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(221,221,228,0.25)', fontSize: '13px', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '4px' }}>
+              No cards yet — add one in Wallet.
             </div>
           ) : (() => {
             const mult = getMultiplier(activeCard)
@@ -520,65 +579,60 @@ export default function Dashboard() {
             const valuePer = activeCard ? formatValuePerDollar(activeCard, mult) : null
             const estimatedOnAmt = selectedAmt > 0 && dollarVal > 0 ? dollarVal * selectedAmt : 0
             const isGift = activeCard?.type === 'gift'
+            const label = selectedCardId ? 'Selected' : isBestTied() ? 'Tied' : 'Recommended'
 
             return (
-              <div data-reveal style={{
-                background: 'linear-gradient(150deg, #2c2c30 0%, #1e1e21 100%)',
-                border: '1px solid rgba(255,255,255,0.09)',
-                borderRadius: '20px',
-                padding: '22px 22px 18px',
-                marginBottom: '10px',
-              }}>
-                {/* Card identity row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
-                  <CardArt name={activeCard?.name || ''} style={{ width: '70px', height: '48px', flexShrink: 0 }} />
+              <div data-reveal style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
+                {/* Card header row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <CardArt name={activeCard?.name || ''} style={{ width: '52px', height: '35px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
-                      {selectedCardId ? 'Selected card' : 'Best card'}
+                    <div style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.3)', marginBottom: '3px' }}>
+                      {label}
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: '800', color: '#f5f5f5', letterSpacing: '-0.03em', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#dddde4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {activeCard?.name || '—'}
                     </div>
                     {activeCard?.last_four && (
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.22)', marginTop: '2px', letterSpacing: '0.06em' }}>
+                      <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)', marginTop: '1px', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
                         •••• {activeCard.last_four}
                       </div>
                     )}
                   </div>
                   {selectedCardId && (
                     <button onClick={() => setSelectedCardId(null)}
-                      style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: '8px', padding: '5px 9px', cursor: 'pointer', fontWeight: '600', flexShrink: 0 }}>
-                      auto
+                      style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.3)', background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '2px', padding: '4px 8px', cursor: 'pointer' }}>
+                      Auto
                     </button>
                   )}
                 </div>
-
-                {/* The big rate number */}
-                <div style={{ height: '1px', background: 'rgba(255,255,255,0.07)', marginBottom: '16px' }} />
-                {isGift ? (
-                  <div>
-                    <div style={{ fontSize: '46px', fontWeight: '900', color: '#30c98a', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                      ${(activeCard.balance || 0).toFixed(2)}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginTop: '6px' }}>gift card balance remaining</div>
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{ fontSize: '46px', fontWeight: '900', color: '#e8b84b', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                      {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1x pts'}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '7px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.38)' }}>
-                        {valuePer && mult > 0 ? valuePer : 'per dollar'}
+                {/* Rate row */}
+                <div style={{ padding: '16px 16px 18px', background: 'rgba(255,255,255,0.015)' }}>
+                  {isGift ? (
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                      <span style={{ fontSize: '40px', fontWeight: '700', color: '#1db87a', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                        ${(activeCard.balance || 0).toFixed(2)}
                       </span>
+                      <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', fontWeight: '500' }}>remaining</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                        <span style={{ fontSize: '40px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                          {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1×'}
+                        </span>
+                        {valuePer && mult > 0 && (
+                          <span style={{ fontSize: '13px', color: 'rgba(221,221,228,0.35)', fontWeight: '500' }}>{valuePer}</span>
+                        )}
+                      </div>
                       {estimatedOnAmt > 0 && (
-                        <span style={{ fontSize: '15px', fontWeight: '700', color: '#30c98a' }}>
-                          ≈ ${estimatedOnAmt.toFixed(2)} back
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#1db87a', fontVariantNumeric: 'tabular-nums' }}>
+                          +${estimatedOnAmt.toFixed(2)}
                         </span>
                       )}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             )
           })()}
@@ -588,49 +642,37 @@ export default function Dashboard() {
             ◉ &nbsp;Tap Clavis
           </button>
 
-          {/* 5 ── Amount input ── optional, secondary */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '12px', padding: '10px 14px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.3)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
-            <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.3)', fontWeight: '600' }}>$</span>
+          {/* 5 ── Amount input */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '10px 14px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '13px', color: 'rgba(221,221,228,0.3)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
+            <span style={{ fontSize: '14px', color: 'rgba(221,221,228,0.3)', fontWeight: '600' }}>$</span>
             <input type="number" min="0" placeholder="0.00" value={selectedAmt || ''}
               onChange={e => setSelectedAmt(parseFloat(e.target.value) || 0)}
-              style={{ flex: 1, background: 'transparent', border: 'none', color: '#f5f5f5', fontSize: '15px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
+              style={{ flex: 1, background: 'transparent', border: 'none', color: '#dddde4', fontSize: '15px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
             {selectedAmt > 0 && (
-              <button onClick={() => setSelectedAmt(0)}
-                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}>✕</button>
+              <button onClick={() => setSelectedAmt(0)} style={{ background: 'none', border: 'none', color: 'rgba(221,221,228,0.3)', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}>✕</button>
             )}
           </div>
 
-          {/* 6 ── See all cards ── collapsed by default */}
+          {/* 6 ── See all cards */}
           {cards.length > 1 && (
             <button onClick={() => setShowRankings(true)}
-              style={{ width: '100%', background: 'none', border: 'none', fontSize: '13px', color: 'rgba(255,255,255,0.28)', cursor: 'pointer', padding: '6px', transition: 'color 0.15s', fontFamily: 'inherit' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.28)'}>
-              See all {cards.length} cards ranked →
+              style={{ width: '100%', background: 'none', border: 'none', fontSize: '10px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.22)', cursor: 'pointer', padding: '8px', transition: 'color 0.15s', fontFamily: 'inherit' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.55)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.22)'}>
+              View all {cards.length} cards →
             </button>
           )}
 
           {tapConfirm && (
-            <div className="success" style={{ marginTop: '10px', textAlign: 'center' }}>
-              {tapConfirm}
-            </div>
+            <div className="success" style={{ marginTop: '10px', textAlign: 'center' }}>{tapConfirm}</div>
           )}
 
           {missedInsight && (
-            <div style={{
-              marginTop: '8px',
-              background: 'rgba(224,154,58,0.1)',
-              border: '1px solid rgba(224,154,58,0.28)',
-              borderRadius: '12px',
-              padding: '12px 14px',
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '10px',
-            }}>
+            <div style={{ marginTop: '8px', background: 'rgba(196,124,42,0.1)', border: '1px solid rgba(196,124,42,0.28)', borderRadius: '4px', padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
               <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#e09a3a', marginBottom: '2px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#c47c2a', marginBottom: '2px' }}>
                   {missedInsight.missedOnAmt
                     ? `$${missedInsight.missedOnAmt.toFixed(2)} more with ${missedInsight.cardName}`
                     : `${missedInsight.missedPerDollar}¢/$ more with ${missedInsight.cardName}`}
@@ -640,11 +682,7 @@ export default function Dashboard() {
                   {missedInsight.missedOnAmt ? ` · ${missedInsight.missedPerDollar}¢ more per dollar` : ''}
                 </div>
               </div>
-              <button
-                onClick={() => setMissedInsight(null)}
-                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', fontSize: '14px', padding: '0', flexShrink: 0 }}>
-                ✕
-              </button>
+              <button onClick={() => setMissedInsight(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', fontSize: '14px', padding: '0', flexShrink: 0 }}>✕</button>
             </div>
           )}
         </div>
@@ -661,13 +699,13 @@ export default function Dashboard() {
             return (
               <div data-reveal style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
                 {[
-                  { label: 'Cards', value: cards.length, color: '#f5f5f5' },
-                  { label: 'Annual fees', value: totalFees > 0 ? `$${totalFees.toFixed(0)}` : '$0', color: totalFees > 0 ? '#e05c5c' : 'rgba(255,255,255,0.3)' },
-                  { label: 'Net value', value: `${netValue >= 0 ? '+' : ''}$${netValue.toFixed(0)}`, color: netValue >= 0 ? '#30c98a' : '#e05c5c' },
+                  { label: 'Cards', value: cards.length, color: '#dddde4' },
+                  { label: 'Annual fees', value: totalFees > 0 ? `$${totalFees.toFixed(0)}` : '$0', color: totalFees > 0 ? '#d95252' : 'rgba(221,221,228,0.3)' },
+                  { label: 'Net value', value: `${netValue >= 0 ? '+' : ''}$${netValue.toFixed(0)}`, color: netValue >= 0 ? '#1db87a' : '#d95252' },
                 ].map(m => (
-                  <div key={m.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px 10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '22px', fontWeight: '700', color: m.color, marginBottom: '4px' }}>{m.value}</div>
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', fontWeight: '500' }}>{m.label}</div>
+                  <div key={m.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '14px 10px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '20px', fontWeight: '700', color: m.color, marginBottom: '4px' }}>{m.value}</div>
+                    <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', fontWeight: '500' }}>{m.label}</div>
                   </div>
                 ))}
               </div>
@@ -675,11 +713,10 @@ export default function Dashboard() {
           })()}
 
           {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.3)', fontSize: '14px', marginBottom: '1rem' }}>No cards yet. Add your first one below.</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px', marginBottom: '1rem' }}>No cards yet. Add your first one below.</div>
           ) : (
             <div style={{ marginBottom: '1.5rem' }}>
               {cards.map(card => {
-                // Annual fee ROI calculation
                 const fee = card.annual_fee || 0
                 const perksValue = (card.perks || []).reduce((s, p) => s + (p.used_amount || 0), 0)
                 const cardTaps = taps.filter(t => t.card_id === card.id)
@@ -689,7 +726,6 @@ export default function Dashboard() {
                 const remaining = fee > 0 ? Math.max(fee - totalValue, 0) : 0
                 const isExpanded = expandedRoiId === card.id
 
-                // Break-even pace projection
                 let breakEvenLabel = null
                 if (fee > 0 && remaining > 0 && (tapValue > 0 || perksValue > 0)) {
                   const oldestTap = cardTaps.length > 0 ? new Date(cardTaps[cardTaps.length - 1].tapped_at) : null
@@ -705,25 +741,24 @@ export default function Dashboard() {
                 const isPaidOff = fee > 0 && roiPct >= 100
 
                 return (
-                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '14px', border: isPaidOff ? '1.5px solid rgba(48,201,138,0.3)' : '1px solid rgba(255,255,255,0.08)', background: isPaidOff ? 'rgba(48,201,138,0.04)' : 'rgba(255,255,255,0.03)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
-                    {/* Card header row */}
+                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '4px', border: isPaidOff ? '1.5px solid rgba(29,184,122,0.3)' : '1px solid rgba(255,255,255,0.06)', background: isPaidOff ? 'rgba(29,184,122,0.04)' : 'rgba(255,255,255,0.03)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px', cursor: fee > 0 ? 'pointer' : 'default' }}
                       onClick={() => fee > 0 && setExpandedRoiId(isExpanded ? null : card.id)}>
                       <CardArt name={card.name} style={{ width: '48px', height: '32px', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#f5f5f5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '1px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                        <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '1px' }}>
                           {card.type}{fee > 0 ? ` · $${fee}/yr fee` : ''}
                         </div>
                       </div>
                       {fee > 0 ? (
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {isPaidOff ? (
-                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#30c98a', background: 'rgba(48,201,138,0.15)', borderRadius: '6px', padding: '3px 8px' }}>✓ Paid off</div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1db87a', background: 'rgba(29,184,122,0.15)', borderRadius: '6px', padding: '3px 8px' }}>✓ Paid off</div>
                           ) : (
                             <>
-                              <div style={{ fontSize: '16px', fontWeight: '800', color: '#e8b84b', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
-                              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
+                              <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.3)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
                             </>
                           )}
                         </div>
@@ -732,11 +767,10 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* ROI bar (only for fee cards) */}
                     {fee > 0 && (
                       <div style={{ padding: '0 14px', marginBottom: isExpanded ? '0' : '12px' }}>
-                        <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? '#30c98a' : roiPct > 60 ? '#e8b84b' : 'rgba(232,184,75,0.6)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
+                        <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? '#1db87a' : roiPct > 60 ? '#c9a227' : 'rgba(201,162,39,0.6)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
                         </div>
                         {!isExpanded && breakEvenLabel && (
                           <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '5px', marginBottom: '2px' }}>{breakEvenLabel}</div>
@@ -744,71 +778,68 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    {/* Expanded ROI breakdown */}
                     {fee > 0 && isExpanded && (
-                      <div style={{ margin: '0 14px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(255,255,255,0.07)' }}>
-                        {/* Breakdown rows */}
+                      <div style={{ margin: '0 14px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', padding: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
                         {[
-                          { label: 'Perks captured', value: perksValue, color: '#5b9cf6' },
-                          { label: 'Tap rewards', value: tapValue, color: '#30c98a' },
+                          { label: 'Perks captured', value: perksValue, color: '#4d8ef0' },
+                          { label: 'Tap rewards', value: tapValue, color: '#1db87a' },
                         ].map(row => (
                           <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                               <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: row.color, flexShrink: 0 }} />
-                              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{row.label}</span>
+                              <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.5)' }}>{row.label}</span>
                             </div>
                             <span style={{ fontSize: '13px', fontWeight: '600', color: row.value > 0 ? row.color : 'rgba(255,255,255,0.22)' }}>
                               {row.value > 0 ? `+$${row.value.toFixed(2)}` : '—'}
                             </span>
                           </div>
                         ))}
-                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '8px 0' }} />
+                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
-                          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Annual fee</span>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#e05c5c' }}>−${fee.toFixed(2)}</span>
+                          <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.5)' }}>Annual fee</span>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#d95252' }}>−${fee.toFixed(2)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
                           <span style={{ fontSize: '12px', fontWeight: '600', color: 'rgba(255,255,255,0.6)' }}>Net value</span>
-                          <span style={{ fontSize: '14px', fontWeight: '800', color: totalValue >= fee ? '#30c98a' : '#e8b84b', letterSpacing: '-0.02em' }}>
+                          <span style={{ fontSize: '14px', fontWeight: '700', color: totalValue >= fee ? '#1db87a' : '#c9a227', letterSpacing: '-0.02em' }}>
                             {totalValue >= fee ? '+' : ''}${(totalValue - fee).toFixed(2)}
                           </span>
                         </div>
                         {breakEvenLabel && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(232,184,75,0.08)', border: '1px solid rgba(232,184,75,0.2)', borderRadius: '7px', fontSize: '11px', color: '#e8b84b', fontWeight: '500' }}>
-                            ⏱ {breakEvenLabel}
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '3px', fontSize: '11px', color: '#c9a227', fontWeight: '500' }}>
+                            — {breakEvenLabel}
                           </div>
                         )}
                         {isPaidOff && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(48,201,138,0.1)', border: '1px solid rgba(48,201,138,0.25)', borderRadius: '7px', fontSize: '11px', color: '#30c98a', fontWeight: '600' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(29,184,122,0.1)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '3px', fontSize: '11px', color: '#1db87a', fontWeight: '600' }}>
                             ✓ This card has fully paid for its annual fee
                           </div>
                         )}
                         {!isPaidOff && tapValue === 0 && perksValue === 0 && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(224,92,92,0.08)', border: '1px solid rgba(224,92,92,0.2)', borderRadius: '7px', fontSize: '11px', color: '#e05c5c', fontWeight: '500' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(217,82,82,0.08)', border: '1px solid rgba(217,82,82,0.2)', borderRadius: '3px', fontSize: '11px', color: '#d95252', fontWeight: '500' }}>
                             No value captured yet — use Smart Tap or mark perks used
                           </div>
                         )}
                       </div>
                     )}
 
-                    {/* Action buttons */}
-                    <div style={{ display: 'flex', gap: '5px', padding: fee > 0 ? '0 14px 14px' : '0 14px 14px' }}>
+                    <div style={{ display: 'flex', gap: '5px', padding: '0 14px 14px' }}>
                       <button onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}
-                        style={{ flex: 1, padding: '6px 4px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '7px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#f5f5f5' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
+                        style={{ flex: 1, padding: '6px 4px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '3px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#dddde4' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
                         + perk
                       </button>
                       <button onClick={() => openEditCard(card)}
-                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '7px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#f5f5f5' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
+                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '3px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#dddde4' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
                         edit
                       </button>
                       <button onClick={() => deleteCard(card.id).then(loadCards)}
-                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(224,92,92,0.3)', borderRadius: '7px', background: 'transparent', cursor: 'pointer', color: '#e05c5c', fontWeight: '600', transition: 'border-color 0.15s' }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(224,92,92,0.6)'}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(224,92,92,0.3)'}>
+                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '3px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
                         ×
                       </button>
                     </div>
@@ -821,20 +852,20 @@ export default function Dashboard() {
           <button className="btn-primary" onClick={() => setShowAddCard(true)}>+ Add card</button>
 
           {showAddCard && (
-            <div data-reveal style={{ marginTop: '14px', background: '#2a2a2e', borderRadius: '14px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#f5f5f5', marginBottom: '1.125rem' }}>Add a card</div>
+            <div data-reveal style={{ marginTop: '14px', background: '#0f0f13', borderRadius: '4px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '1.125rem' }}>Add a card</div>
 
               <div style={{ marginBottom: '12px' }}>
                 <label className="label">Card name</label>
-                <input className="input" placeholder="e.g. Amex Gold" value={newCard.name} onChange={e => {
-                  const name = e.target.value
-                  const suggestion = getSuggestedMultipliers(name)
-                  if (suggestion) {
-                    const mults = {}
-                    CATEGORIES.forEach(cat => { mults[cat] = String(suggestion.multipliers[cat] ?? '') })
-                    setNewCard(prev => ({ ...prev, name, multipliers: mults, _suggestion: suggestion.note }))
-                  } else { setNewCard(prev => ({ ...prev, name, _suggestion: null })) }
-                }} />
+                <div style={{ position: 'relative' }}>
+                  <input className="input" placeholder="e.g. Amex Gold" value={newCard.name}
+                    onChange={e => handleNewCardNameChange(e.target.value)} />
+                  {fetchingCardData && (
+                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
+                      Looking up...
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div style={{ marginBottom: '12px' }}>
@@ -897,16 +928,16 @@ export default function Dashboard() {
 
                   <div style={{ marginBottom: '16px' }}>
                     <label className="label">Rewards rate</label>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginBottom: '10px', lineHeight: '1.5' }}>
+                    <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginBottom: '10px', lineHeight: '1.5' }}>
                       Cash back: enter % (e.g. 1.5). Points: enter multiplier (e.g. 3 for 3x).
                     </div>
                     {newCard._suggestion && (
-                      <div style={{ marginBottom: '10px', fontSize: '12px', color: '#5b9cf6', background: 'rgba(91,156,246,0.1)', border: '1px solid rgba(91,156,246,0.2)', borderRadius: '8px', padding: '8px 12px' }}>
-                        ✦ Rates auto-filled — {newCard._suggestion}
+                      <div style={{ marginBottom: '10px', fontSize: '12px', color: newCard._aiSuggestion ? '#c9a227' : '#4d8ef0', background: newCard._aiSuggestion ? 'rgba(201,162,39,0.1)' : 'rgba(77,142,240,0.1)', border: `1px solid ${newCard._aiSuggestion ? 'rgba(201,162,39,0.2)' : 'rgba(77,142,240,0.2)'}`, borderRadius: '4px', padding: '8px 12px' }}>
+                        {newCard._aiSuggestion ? '✦ AI-populated' : '✦ Rates auto-filled'} — {newCard._suggestion}
                       </div>
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '10px 12px' }}>
-                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>Apply to all categories</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '10px 12px' }}>
+                      <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', flexShrink: 0 }}>Apply to all categories</span>
                       <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '5px 8px', fontSize: '13px', flex: 1 }}
                         onChange={e => { const val = e.target.value; const filled = {}; CATEGORIES.forEach(cat => { filled[cat] = val }); setNewCard({ ...newCard, multipliers: filled }) }} />
                     </div>
@@ -914,7 +945,7 @@ export default function Dashboard() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                       {CATEGORIES.map(cat => (
                         <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.38)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                          <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
                           <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 8px', fontSize: '13px' }}
                             value={newCard.multipliers[cat]} onChange={e => setNewCard({ ...newCard, multipliers: { ...newCard.multipliers, [cat]: e.target.value } })} />
                         </div>
@@ -932,11 +963,11 @@ export default function Dashboard() {
           )}
 
           {showAddPerk && (
-            <div data-reveal style={{ marginTop: '14px', background: '#2a2a2e', borderRadius: '14px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#f5f5f5', marginBottom: '4px' }}>Add a perk</div>
+            <div data-reveal style={{ marginTop: '14px', background: '#0f0f13', borderRadius: '4px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '4px' }}>Add a perk</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.125rem' }}>
                 <CardArt name={cards.find(c => c.id === addingToCardId)?.name || ''} style={{ width: '28px', height: '20px', flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', fontWeight: '500' }}>{cards.find(c => c.id === addingToCardId)?.name}</span>
+                <span style={{ fontSize: '13px', color: 'rgba(221,221,228,0.55)', fontWeight: '500' }}>{cards.find(c => c.id === addingToCardId)?.name}</span>
               </div>
               <div style={{ marginBottom: '12px' }}>
                 <label className="label">Perk name</label>
@@ -980,24 +1011,48 @@ export default function Dashboard() {
       {tab === 'perks' && (
         <div>
           {expiringPerks.length > 0 && (
-            <div data-reveal style={{ background: 'rgba(224,154,58,0.1)', border: '1px solid rgba(224,154,58,0.3)', borderRadius: '10px', padding: '10px 14px', marginBottom: '1rem', fontSize: '13px', color: '#e09a3a', fontWeight: '500' }}>
-              ⚠ {expiringPerks.length} credit{expiringPerks.length > 1 ? 's' : ''} expiring within 14 days — use them now.
+            <div data-reveal style={{ background: 'rgba(196,124,42,0.1)', border: '1px solid rgba(196,124,42,0.3)', borderRadius: '4px', padding: '10px 14px', marginBottom: '1rem', fontSize: '13px', color: '#c47c2a', fontWeight: '500' }}>
+              — {expiringPerks.length} credit{expiringPerks.length > 1 ? 's' : ''} expiring within 14 days — use them now.
             </div>
           )}
+
+          {/* Total remaining perks value */}
+          {allPerks.length > 0 && (() => {
+            const totalRemaining = allPerks.reduce((s, p) => s + Math.max(p.total_amount - (p.used_amount || 0), 0), 0)
+            const totalAll = allPerks.reduce((s, p) => s + p.total_amount, 0)
+            const usedPct = totalAll > 0 ? Math.round(((totalAll - totalRemaining) / totalAll) * 100) : 0
+            return totalRemaining > 0 ? (
+              <div data-reveal style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '14px 16px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>Uncaptured value</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#1db87a', letterSpacing: '-0.03em' }}>${totalRemaining.toFixed(0)}</div>
+                  <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', marginTop: '8px' }}>
+                    <div style={{ height: '3px', borderRadius: '2px', width: usedPct + '%', background: '#1db87a', transition: 'width 0.5s' }} />
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: '18px', fontWeight: '700', color: 'rgba(255,255,255,0.4)', letterSpacing: '-0.02em' }}>{usedPct}%</div>
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', marginTop: '2px' }}>used</div>
+                </div>
+              </div>
+            ) : null
+          })()}
+
           <div style={{ marginBottom: '1.25rem' }}>
             <button className="btn-primary" onClick={sendEmail} disabled={emailSending}>
               {emailSending ? 'Sending...' : 'Email me my perk summary'}
             </button>
           </div>
           {emailMsg && <div className="success">{emailMsg}</div>}
+
           {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(255,255,255,0.3)', fontSize: '14px' }}>No cards yet. Add cards in My Wallet to track perks.</div>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
           ) : cards.map(card => {
             const cardPerks = card.perks || []
             if (cardPerks.length === 0) return null
             return (
               <div key={card.id} data-reveal style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#f5f5f5', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CardArt name={card.name} style={{ width: '32px', height: '22px', flexShrink: 0 }} />
                   {card.name}
                 </div>
@@ -1007,16 +1062,18 @@ export default function Dashboard() {
                     const pct = Math.min((perk.used_amount / perk.total_amount) * 100, 100)
                     const daysLeft = perk.resets_at ? Math.ceil((new Date(perk.resets_at) - new Date()) / (1000 * 60 * 60 * 24)) : null
                     const isExpiring = daysLeft !== null && daysLeft <= 14 && daysLeft > 0
+                    const isUrgent = daysLeft !== null && daysLeft <= 7 && daysLeft > 0
                     const isUsed = remaining <= 0
-                    const accent = isUsed ? '#e05c5c' : isExpiring ? '#e09a3a' : '#30c98a'
+                    const accent = isUsed ? '#d95252' : isUrgent ? '#d95252' : isExpiring ? '#c47c2a' : '#1db87a'
                     return (
-                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: pi < cardPerks.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: pi < cardPerks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#f5f5f5', marginBottom: '3px' }}>{perk.name}</div>
-                          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
-                            {perk.period}{daysLeft !== null ? ` · ${isExpiring ? `⚠ ${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '3px' }}>{perk.name}</div>
+                          <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginBottom: '8px' }}>
+                            {perk.period}
+                            {daysLeft !== null ? ` · ${isUrgent ? `${daysLeft}d left` : isExpiring ? `${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
                           </div>
-                          <div style={{ height: '3px', background: 'rgba(255,255,255,0.08)', borderRadius: '2px' }}>
+                          <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px' }}>
                             <div style={{ height: '3px', borderRadius: '2px', width: pct + '%', background: accent, transition: 'width 0.4s' }} />
                           </div>
                         </div>
@@ -1027,16 +1084,16 @@ export default function Dashboard() {
                           <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
                             {!isUsed && (
                               <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
-                                style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontWeight: '600', transition: 'border-color 0.15s' }}
+                                style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontWeight: '600', transition: 'border-color 0.15s' }}
                                 onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'}
-                                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'}>
+                                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}>
                                 mark used
                               </button>
                             )}
                             <button onClick={() => deletePerk(perk.id).then(loadCards)}
-                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(224,92,92,0.3)', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: '#e05c5c', fontWeight: '600', transition: 'border-color 0.15s' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(224,92,92,0.6)'}
-                              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(224,92,92,0.3)'}>
+                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s' }}
+                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
+                              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
                               remove
                             </button>
                           </div>
@@ -1054,46 +1111,45 @@ export default function Dashboard() {
       {/* ── HISTORY ───────────────────────────────────── */}
       {tab === 'history' && (
         <div>
-          {/* Summary stats */}
           <div data-reveal style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>This month</div>
-              <div style={{ fontSize: '26px', fontWeight: '800', color: '#30c98a', letterSpacing: '-0.03em' }}>${thisMonthEarned.toFixed(2)}</div>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '3px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>This month</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: '#1db87a', letterSpacing: '-0.03em' }}>${thisMonthEarned.toFixed(2)}</div>
+              <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '3px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>All time</div>
-              <div style={{ fontSize: '26px', fontWeight: '800', color: '#e8b84b', letterSpacing: '-0.03em' }}>${totalEarned.toFixed(2)}</div>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '3px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>All time</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em' }}>${totalEarned.toFixed(2)}</div>
+              <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '3px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
 
           {tapsLoading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.3)', fontSize: '14px' }}>Loading...</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px' }}>Loading...</div>
           ) : taps.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(255,255,255,0.3)', fontSize: '14px' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px' }}>
               No taps yet. Use Smart Tap to start tracking your rewards.
             </div>
           ) : (
             <div className="card" style={{ padding: '0 1.125rem' }}>
               {taps.map((tap, i) => (
-                <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < taps.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < taps.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                   <CardArt name={tap.card_name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#f5f5f5', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tap.merchant || tap.card_name}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>
+                    <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
                       {tap.card_name}{tap.category ? ` · ${tap.category}` : ''}
                       {' · '}<TimeAgo dateStr={tap.tapped_at} />
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     {tap.amount > 0 && (
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#f5f5f5', marginBottom: '1px' }}>${tap.amount.toFixed(2)}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '1px' }}>${tap.amount.toFixed(2)}</div>
                     )}
                     {tap.estimated_value > 0 ? (
-                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#30c98a' }}>+${tap.estimated_value.toFixed(2)}</div>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#1db87a' }}>+${tap.estimated_value.toFixed(2)}</div>
                     ) : (
                       <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)' }}>{tap.rewards_rate || '—'}</div>
                     )}
@@ -1105,16 +1161,136 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ── INSIGHTS ──────────────────────────────────── */}
+      {tab === 'insights' && (
+        <div>
+          {perkInsights.length === 0 && retroactiveMissed.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+              
+              <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(221,221,228,0.5)', marginBottom: '8px' }}>No insights yet</div>
+              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.28)', lineHeight: '1.6' }}>
+                Add cards with perks and use Smart Tap to start seeing personalized optimization tips.
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* ── Proactive recommendations ── */}
+              {perkInsights.length > 0 && (
+                <div style={{ marginBottom: '1.75rem' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                    Use before they expire
+                  </div>
+                  {perkInsights.map(insight => {
+                    const urgentColor = insight.days <= 7 ? '#d95252' : insight.days <= 14 ? '#c47c2a' : '#1db87a'
+                    const urgentBg = insight.days <= 7 ? 'rgba(217,82,82,0.08)' : insight.days <= 14 ? 'rgba(196,124,42,0.08)' : 'rgba(29,184,122,0.06)'
+                    const urgentBorder = insight.days <= 7 ? 'rgba(217,82,82,0.25)' : insight.days <= 14 ? 'rgba(196,124,42,0.25)' : 'rgba(29,184,122,0.2)'
+                    return (
+                      <div key={insight.id} data-reveal style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: '4px', padding: '14px 14px 14px 12px', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                          <CardArt name={insight.card.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', fontWeight: '500', marginBottom: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#dddde4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: '22px', fontWeight: '700', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                              ${insight.remaining.toFixed(0)}
+                            </div>
+                            <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>{insight.days}d left</div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.55)', lineHeight: '1.55' }}>
+                          {'You have '}
+                          <span style={{ color: '#dddde4', fontWeight: '600' }}>${insight.remaining.toFixed(0)}</span>
+                          {' in '}
+                          <span style={{ color: '#dddde4', fontWeight: '600' }}>{insight.perk.name}</span>
+                          {' until '}
+                          <span style={{ color: urgentColor, fontWeight: '600' }}>{formatResetDate(insight.resetDate)}</span>
+                          {insight.suggestion && (
+                            <> — based on your history, <span style={{ color: '#c9a227', fontWeight: '600' }}>{insight.suggestion}</span> would use this optimally</>
+                          )}
+                          {!insight.suggestion && '.'}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* ── Retroactive optimization feed ── */}
+              {retroactiveMissed.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                    Missed rewards
+                  </div>
+
+                  {/* Summary banner */}
+                  <div data-reveal style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(196,124,42,0.2)', borderRadius: '4px', padding: '14px 16px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '11px', fontWeight: '600', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                        Left on the table
+                      </div>
+                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#c47c2a', letterSpacing: '-0.03em' }}>
+                        ${totalMissed.toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '3px' }}>
+                        across {retroactiveMissed.length} transaction{retroactiveMissed.length !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    
+                  </div>
+
+                  {/* Per-transaction breakdown */}
+                  <div className="card" style={{ padding: '0 1.125rem' }}>
+                    {retroactiveMissed.slice(0, 15).map((item, i) => (
+                      <div key={item.tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < Math.min(retroactiveMissed.length, 15) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                        <CardArt name={item.bestCard.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.tap.merchant || item.tap.card_name}
+                            {item.tap.amount > 0 && <span style={{ color: 'rgba(221,221,228,0.3)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
+                          </div>
+                          <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
+                            <span style={{ color: '#d95252' }}>{item.usedCard.name}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.2)' }}> → </span>
+                            <span style={{ color: '#1db87a' }}>{item.bestCard.name}</span>
+                            {item.tap.category && <span style={{ color: 'rgba(255,255,255,0.25)' }}> · {item.tap.category}</span>}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#c47c2a' }}>
+                            +${item.missedTotal.toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '1px' }}>
+                            {(item.missedPerDollar * 100).toFixed(1)}¢/$
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {retroactiveMissed.length > 15 && (
+                    <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.25)', marginTop: '10px' }}>
+                      +{retroactiveMissed.length - 15} more transactions
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── MODALS ────────────────────────────────────── */}
 
       {emptyGiftCards.length > 0 && emptyGiftCards[emptyGiftCardIndex] && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div style={{ background: '#2a2a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
+          <div style={{ background: '#0f0f13', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
             <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '64px', marginBottom: '1rem' }} />
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#f5f5f5', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.38)', marginBottom: '1.25rem', lineHeight: '1.6' }}>This gift card has a $0 balance. Would you like to remove it from your wallet?</div>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
+            <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.38)', marginBottom: '1.25rem', lineHeight: '1.6' }}>This gift card has a $0 balance. Would you like to remove it from your wallet?</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-primary" style={{ background: '#e05c5c' }} onClick={async () => {
+              <button className="btn-primary" style={{ background: '#d95252' }} onClick={async () => {
                 await deleteCard(emptyGiftCards[emptyGiftCardIndex].id); await loadCards()
                 const remaining = emptyGiftCards.filter((_, i) => i !== emptyGiftCardIndex)
                 setEmptyGiftCards(remaining); setEmptyGiftCardIndex(0)
@@ -1131,17 +1307,17 @@ export default function Dashboard() {
       {suggestedPerks && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div style={sheetStyle}>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#f5f5f5', marginBottom: '4px' }}>Known perks found</div>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.38)', marginBottom: '1.25rem' }}>Select the perks you have on this card. You can edit amounts later.</div>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4', marginBottom: '4px' }}>Known perks found</div>
+            <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.38)', marginBottom: '1.25rem' }}>Select the perks you have on this card. You can edit amounts later.</div>
             {suggestedPerks.map((perk, i) => (
               <div key={i} onClick={() => setSelectedPerkIndices(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i])}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}>
-                <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: selectedPerkIndices.includes(i) ? '2px solid #30c98a' : '1.5px solid rgba(255,255,255,0.2)', background: selectedPerkIndices.includes(i) ? '#30c98a' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: selectedPerkIndices.includes(i) ? '2px solid #30c98a' : '1.5px solid rgba(255,255,255,0.2)', background: selectedPerkIndices.includes(i) ? '#1db87a' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                   {selectedPerkIndices.includes(i) && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#f5f5f5' }}>{perk.name}</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>{perk.period}{perk.total_amount > 0 ? ` · $${perk.total_amount}` : ''}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4' }}>{perk.name}</div>
+                  <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>{perk.period}{perk.total_amount > 0 ? ` · $${perk.total_amount}` : ''}</div>
                 </div>
               </div>
             ))}
@@ -1158,32 +1334,46 @@ export default function Dashboard() {
           <div onClick={e => e.stopPropagation()} style={{ ...sheetStyle, maxHeight: '70vh' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#f5f5f5' }}>Card rankings</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4' }}>Card rankings</div>
+                <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.35)', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
               </div>
-              <button onClick={() => setShowRankings(false)} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setShowRankings(false)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'rgba(221,221,228,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-            {getRankedCards().map(({ card, reasons, dollarVal }, i) => {
-              const mult = getMultiplier(card)
-              return (
-                <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                  <div style={{ fontSize: '13px', fontWeight: '700', color: i === 0 ? '#e8b84b' : 'rgba(255,255,255,0.22)', width: '22px', flexShrink: 0 }}>#{i + 1}</div>
-                  <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#f5f5f5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>{reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}</div>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: i === 0 ? '#e8b84b' : 'rgba(255,255,255,0.35)' }}>
-                      {mult > 0 ? formatRate(card, mult) : '—'}
+            {(() => {
+              const ranked = getRankedCards()
+              return ranked.map(({ card, reasons, dollarVal, score }, i) => {
+                const mult = getMultiplier(card)
+                const tiedWithPrev = i > 0 && Math.abs(ranked[i - 1].score - score) <= 0.001
+                const tiedWithNext = i < ranked.length - 1 && Math.abs(ranked[i + 1].score - score) <= 0.001
+                const isTop = i === 0 || tiedWithPrev
+                const accentColor = isTop ? '#c9a227' : 'rgba(255,255,255,0.22)'
+                return (
+                  <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: accentColor, width: '22px', flexShrink: 0, textAlign: 'center' }}>
+                      {tiedWithPrev ? '=' : `#${i + 1}`}
                     </div>
-                    {dollarVal > 0 && (
-                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '1px' }}>{formatValuePerDollar(card, mult)}</div>
-                    )}
+                    <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                      <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>
+                        {reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}
+                        {tiedWithNext && !tiedWithPrev && (card.annual_fee || 0) > 0 && (
+                          <span style={{ color: 'rgba(201,162,39,0.55)' }}> · higher fee</span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: isTop ? '#c9a227' : 'rgba(221,221,228,0.35)' }}>
+                        {mult > 0 ? formatRate(card, mult) : '—'}
+                      </div>
+                      {dollarVal > 0 && (
+                        <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '1px' }}>{formatValuePerDollar(card, mult)}</div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })
+            })()}
           </div>
         </div>
       )}
@@ -1199,15 +1389,15 @@ export default function Dashboard() {
         <div onClick={() => setEditingCard(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={sheetStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: '#f5f5f5' }}>Edit {editingCard.name}</div>
-              <button onClick={() => setEditingCard(null)} style={{ background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4' }}>Edit {editingCard.name}</div>
+              <button onClick={() => setEditingCard(null)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'rgba(221,221,228,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             <CardArt name={editingCard.name} style={{ height: '56px', marginBottom: '1rem' }} />
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginBottom: '10px', lineHeight: '1.5' }}>
+            <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginBottom: '10px', lineHeight: '1.5' }}>
               Cash back: enter % (e.g. 1.5). Points/miles: enter multiplier (e.g. 3 for 3x).
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '10px 12px' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.38)', flexShrink: 0 }}>Apply to all categories</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '10px 12px' }}>
+              <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', flexShrink: 0 }}>Apply to all categories</span>
               <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '5px 8px', fontSize: '13px', flex: 1 }}
                 onChange={e => { const val = e.target.value; const filled = {}; CATEGORIES.forEach(cat => { filled[cat] = val }); setEditMultipliers(filled) }} />
             </div>
@@ -1215,7 +1405,7 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.25rem' }}>
               {CATEGORIES.map(cat => (
                 <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.38)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                  <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
                   <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 8px', fontSize: '13px' }}
                     value={editMultipliers[cat] || ''} onChange={e => setEditMultipliers({ ...editMultipliers, [cat]: e.target.value })} />
                 </div>

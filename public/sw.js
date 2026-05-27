@@ -1,14 +1,13 @@
-const CACHE = 'clavis-v1'
+const CACHE = 'clavis-v2'
 
 const PRECACHE = [
-  '/dashboard',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
   '/logo.svg',
 ]
 
-// Install: pre-cache the app shell
+// Install: pre-cache static assets only (not HTML pages)
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE).then(c => c.addAll(PRECACHE))
@@ -26,7 +25,7 @@ self.addEventListener('activate', e => {
   self.clients.claim()
 })
 
-// Fetch: cache-first for static assets, network-first for everything else
+// Fetch: network-first for HTML navigation, cache-first for static assets
 self.addEventListener('fetch', e => {
   const { request } = e
   const url = new URL(request.url)
@@ -36,6 +35,15 @@ self.addEventListener('fetch', e => {
   if (url.hostname !== self.location.hostname) return
   if (url.pathname.startsWith('/_next/')) return
 
+  // HTML navigation: always go to network first so page updates are picked up immediately
+  if (request.mode === 'navigate') {
+    e.respondWith(
+      fetch(request).catch(() => caches.match(request))
+    )
+    return
+  }
+
+  // Static assets: cache-first
   e.respondWith(
     caches.match(request).then(cached => {
       const fresh = fetch(request).then(res => {
@@ -44,7 +52,6 @@ self.addEventListener('fetch', e => {
         }
         return res
       }).catch(() => cached)
-      // Return cache immediately if available, update in background
       return cached || fresh
     })
   )
