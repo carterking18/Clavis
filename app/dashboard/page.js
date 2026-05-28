@@ -543,7 +543,7 @@ export default function Dashboard() {
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <span style={{ fontWeight: '500', color: '#dddde4' }}>{m.name}</span>
-                    <span style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.35)', border: '1px solid rgba(255,255,255,0.06)', padding: '2px 7px', borderRadius: '2px' }}>{CAT_META[m.category]?.label}</span>
+                    <span style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.35)', border: '1px solid rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '9999px' }}>{CAT_META[m.category]?.label}</span>
                   </div>
                 ))}
               </div>
@@ -555,13 +555,13 @@ export default function Dashboard() {
             {CATEGORIES.map(cat => (
               <button key={cat} onClick={() => pickCategory(cat)}
                 style={{
-                  flexShrink: 0, padding: '6px 12px',
-                  borderRadius: '2px',
+                  flexShrink: 0, padding: '6px 14px',
+                  borderRadius: '9999px',
                   border: selectedCat === cat ? '1px solid rgba(201,162,39,0.5)' : '1px solid rgba(255,255,255,0.06)',
-                  background: selectedCat === cat ? 'rgba(201,162,39,0.08)' : 'transparent',
+                  background: selectedCat === cat ? 'rgba(201,162,39,0.1)' : 'transparent',
                   color: selectedCat === cat ? '#c9a227' : 'rgba(221,221,228,0.35)',
                   fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase',
-                  cursor: 'pointer', transition: 'all 0.15s',
+                  cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
                 }}>
                 {CAT_META[cat].label}
               </button>
@@ -601,7 +601,7 @@ export default function Dashboard() {
                   </div>
                   {selectedCardId && (
                     <button onClick={() => setSelectedCardId(null)}
-                      style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.3)', background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '2px', padding: '4px 8px', cursor: 'pointer' }}>
+                      style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.3)', background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>
                       Auto
                     </button>
                   )}
@@ -754,7 +754,7 @@ export default function Dashboard() {
                       {fee > 0 ? (
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {isPaidOff ? (
-                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1db87a', background: 'rgba(29,184,122,0.15)', borderRadius: '6px', padding: '3px 8px' }}>✓ Paid off</div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1db87a', background: 'rgba(29,184,122,0.15)', borderRadius: '9999px', padding: '3px 10px' }}>✓ Paid off</div>
                           ) : (
                             <>
                               <div style={{ fontSize: '15px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
@@ -806,17 +806,17 @@ export default function Dashboard() {
                           </span>
                         </div>
                         {breakEvenLabel && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '3px', fontSize: '11px', color: '#c9a227', fontWeight: '500' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '4px', fontSize: '11px', color: '#c9a227', fontWeight: '500' }}>
                             — {breakEvenLabel}
                           </div>
                         )}
                         {isPaidOff && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(29,184,122,0.1)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '3px', fontSize: '11px', color: '#1db87a', fontWeight: '600' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(29,184,122,0.1)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '4px', fontSize: '11px', color: '#1db87a', fontWeight: '600' }}>
                             ✓ This card has fully paid for its annual fee
                           </div>
                         )}
                         {!isPaidOff && tapValue === 0 && perksValue === 0 && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(217,82,82,0.08)', border: '1px solid rgba(217,82,82,0.2)', borderRadius: '3px', fontSize: '11px', color: '#d95252', fontWeight: '500' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(217,82,82,0.08)', border: '1px solid rgba(217,82,82,0.2)', borderRadius: '4px', fontSize: '11px', color: '#d95252', fontWeight: '500' }}>
                             No value captured yet — use Smart Tap or mark perks used
                           </div>
                         )}
@@ -825,19 +825,19 @@ export default function Dashboard() {
 
                     <div style={{ display: 'flex', gap: '5px', padding: '0 14px 14px' }}>
                       <button onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}
-                        style={{ flex: 1, padding: '6px 4px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '3px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s' }}
+                        style={{ flex: 1, padding: '6px 4px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#dddde4' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
                         + perk
                       </button>
                       <button onClick={() => openEditCard(card)}
-                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '3px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s' }}
+                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#dddde4' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
                         edit
                       </button>
                       <button onClick={() => deleteCard(card.id).then(loadCards)}
-                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '3px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s' }}
+                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
                         onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
                         ×
@@ -1084,14 +1084,14 @@ export default function Dashboard() {
                           <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
                             {!isUsed && (
                               <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
-                                style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontWeight: '600', transition: 'border-color 0.15s' }}
+                                style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
                                 onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'}
                                 onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}>
                                 mark used
                               </button>
                             )}
                             <button onClick={() => deletePerk(perk.id).then(loadCards)}
-                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '6px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s' }}
+                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
                               onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
                               onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
                               remove

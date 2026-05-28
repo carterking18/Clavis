@@ -1,5 +1,13 @@
 import './globals.css'
 import { SWRegister } from './sw-register'
+import { DM_Sans } from 'next/font/google'
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+})
 
 export const metadata = {
   title: 'Clavis',
@@ -13,12 +21,12 @@ export const metadata = {
 }
 
 export const viewport = {
-  themeColor: '#1c1c1e',
+  themeColor: '#09090c',
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" className={dmSans.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/logo.svg" type="image/svg+xml" />
