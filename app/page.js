@@ -2,282 +2,8 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { KeySVG, MarketingBody, marketingStyles } from './marketing-sections'
 
-// ── Key logo ──────────────────────────────────────────────
-function KeySVG({ size = 20, id = 'pgk' }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <mask id={id}>
-          <circle cx="187" cy="254" r="107" fill="white"/>
-          <circle cx="187" cy="254" r="61"  fill="black"/>
-          <rect x="246" y="232" width="200" height="44" rx="22" fill="white"/>
-          <rect x="354" y="276" width="42"  height="58" rx="11" fill="white"/>
-          <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
-        </mask>
-      </defs>
-      <rect width="512" height="512" fill="#c9a227" mask={`url(#${id})`}/>
-    </svg>
-  )
-}
-
-// ── Hero illustration ─────────────────────────────────────
-function HeroArt() {
-  const bars = [12, 20, 16, 28, 14, 18]
-  const groups = [0, 1, 2, 3]
-  const dots   = [0, 1, 2, 3]
-
-  return (
-    <svg
-      viewBox="0 0 520 420"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      style={{ width: '100%', maxWidth: '520px', display: 'block' }}
-    >
-      <defs>
-        <linearGradient id="gGold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"   stopColor="#c9a227"/>
-          <stop offset="100%" stopColor="#e4c040"/>
-        </linearGradient>
-        <pattern id="bgDots" width="28" height="28" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.05)"/>
-        </pattern>
-      </defs>
-
-      {/* Dot grid */}
-      <rect width="520" height="420" fill="url(#bgDots)"/>
-
-      {/* Card C — back */}
-      <g transform="rotate(-14 240 215)">
-        <rect x="60" y="108" width="300" height="188" rx="10" fill="#0a0a0e" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
-      </g>
-
-      {/* Card B — middle */}
-      <g transform="rotate(-6 240 215)">
-        <rect x="60" y="108" width="300" height="188" rx="10" fill="#141419" stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
-        <rect x="84" y="132" width="26" height="20" rx="3" fill="#1a1a20"/>
-      </g>
-
-      {/* Card A — front, gold-bordered */}
-      <rect x="60" y="108" width="300" height="188" rx="10" fill="#181820" stroke="rgba(201,162,39,0.48)" strokeWidth="1.5"/>
-      {/* Left accent strip */}
-      <rect x="60" y="108" width="5" height="188" rx="2.5" fill="url(#gGold)"/>
-
-      {/* Chip */}
-      <rect x="83" y="131" width="28" height="22" rx="4" fill="#23232e" stroke="rgba(201,162,39,0.28)" strokeWidth="1"/>
-      <line x1="83"  y1="139" x2="111" y2="139" stroke="rgba(201,162,39,0.16)" strokeWidth="0.8"/>
-      <line x1="83"  y1="145" x2="111" y2="145" stroke="rgba(201,162,39,0.16)" strokeWidth="0.8"/>
-      <line x1="97"  y1="131" x2="97"  y2="153" stroke="rgba(201,162,39,0.10)" strokeWidth="0.8"/>
-
-      {/* PAN dot groups */}
-      {groups.map(g => dots.map(d => (
-        <circle key={`${g}-${d}`}
-          cx={83 + g * 30 + d * 6} cy={186}
-          r="2.4" fill="rgba(221,221,228,0.2)"/>
-      )))}
-
-      {/* Cardholder name bars */}
-      <rect x="83" y="204" width="78" height="6" rx="2" fill="rgba(221,221,228,0.09)"/>
-      <rect x="83" y="214" width="55" height="5" rx="2" fill="rgba(221,221,228,0.05)"/>
-
-      {/* Network overlapping circles */}
-      <circle cx="330" cy="134" r="17" fill="rgba(201,162,39,0.07)" stroke="rgba(201,162,39,0.2)"  strokeWidth="1"/>
-      <circle cx="318" cy="134" r="11" fill="rgba(201,162,39,0.05)" stroke="rgba(201,162,39,0.16)" strokeWidth="1"/>
-
-      {/* Rate badge — floating top right */}
-      <rect x="374" y="90" width="100" height="66" rx="4" fill="#0f0f13" stroke="rgba(201,162,39,0.38)" strokeWidth="1"/>
-      <rect x="385" y="100" width="44" height="5"  rx="2" fill="rgba(221,221,228,0.08)"/>
-      <rect x="385" y="114" width="76" height="4"  rx="2" fill="rgba(201,162,39,0.11)"/>
-      <text x="385" y="148" fontSize="30" fontWeight="700" fill="#c9a227" fontFamily="system-ui,sans-serif">4×</text>
-      <text x="416" y="148" fontSize="11"              fill="rgba(221,221,228,0.38)" fontFamily="system-ui,sans-serif"> pts</text>
-
-      {/* Dashed connector from card to badge */}
-      <line x1="360" y1="133" x2="375" y2="124" stroke="rgba(201,162,39,0.2)" strokeWidth="1" strokeDasharray="3 3"/>
-      <circle cx="360" cy="134" r="2.5" fill="rgba(201,162,39,0.5)"/>
-
-      {/* Recommended pill badge */}
-      <rect x="374" y="172" width="116" height="34" rx="17" fill="rgba(201,162,39,0.08)" stroke="rgba(201,162,39,0.3)" strokeWidth="1"/>
-      <circle cx="393" cy="189" r="7" fill="#c9a227"/>
-      <path d="M390 189 L392.5 191.5 L397 186" stroke="#09090c" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <rect x="406" y="185" width="52" height="4"  rx="2" fill="rgba(201,162,39,0.55)"/>
-      <rect x="406" y="193" width="36" height="3"  rx="1.5" fill="rgba(201,162,39,0.25)"/>
-
-      {/* Bottom stats panel */}
-      <rect x="60" y="318" width="300" height="74" rx="4" fill="#0c0c11" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
-      <rect x="76" y="330" width="54" height="5"   rx="2" fill="rgba(221,221,228,0.07)"/>
-
-      {/* Bar chart */}
-      {bars.map((h, i) => (
-        <rect key={i}
-          x={76 + i * 28} y={374 - h}
-          width="16" height={h} rx="2"
-          fill={i === 3 ? '#c9a227' : 'rgba(201,162,39,0.15)'}/>
-      ))}
-
-      {/* Right stat */}
-      <text x="294" y="356" fontSize="19" fontWeight="700" fill="rgba(201,162,39,0.8)" fontFamily="system-ui,sans-serif">7.2¢</text>
-      <rect x="294" y="362" width="50" height="4"  rx="2" fill="rgba(221,221,228,0.05)"/>
-      <text x="294" y="378" fontSize="9"             fill="rgba(221,221,228,0.22)" fontFamily="system-ui,sans-serif">per dollar</text>
-    </svg>
-  )
-}
-
-// ── Section visual: Card comparison table ─────────────────
-function ComparisonArt() {
-  const rows = [
-    { name: 'Chase Sapphire Reserve', rate: '4×', val: '7.2¢', highlight: true },
-    { name: 'Amex Gold Card',         rate: '4×', val: '7.2¢', highlight: false },
-    { name: 'Capital One Venture X',  rate: '2×', val: '3.7¢', highlight: false },
-    { name: 'Freedom Unlimited',      rate: '1.5×', val: '1.5¢', highlight: false },
-  ]
-  return (
-    <div style={{
-      background: '#0c0c11',
-      border: '1px solid rgba(255,255,255,0.06)',
-      borderRadius: '4px',
-      overflow: 'hidden',
-      width: '100%',
-      maxWidth: '440px',
-    }}>
-      {/* Header */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', gap: '0', padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.25)' }}>Card</span>
-        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.25)', textAlign: 'right' }}>Rate</span>
-        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.25)', textAlign: 'right' }}>Value</span>
-      </div>
-      {rows.map((row, i) => (
-        <div key={i} style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 56px 56px',
-          gap: '0',
-          padding: '13px 16px',
-          borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
-          background: row.highlight ? 'rgba(201,162,39,0.06)' : 'transparent',
-          transition: 'background 0.15s',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {row.highlight && (
-              <div style={{ width: '3px', height: '16px', borderRadius: '2px', background: '#c9a227', flexShrink: 0 }}/>
-            )}
-            {!row.highlight && (
-              <div style={{ width: '3px', height: '16px', flexShrink: 0 }}/>
-            )}
-            <span style={{ fontSize: '12px', fontWeight: row.highlight ? '600' : '400', color: row.highlight ? '#dddde4' : 'rgba(221,221,228,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {row.name}
-            </span>
-          </div>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: row.highlight ? '#c9a227' : 'rgba(221,221,228,0.35)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-            {row.rate}
-          </span>
-          <span style={{ fontSize: '12px', fontWeight: '500', color: row.highlight ? 'rgba(201,162,39,0.7)' : 'rgba(221,221,228,0.2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-            {row.val}
-          </span>
-        </div>
-      ))}
-      <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(201,162,39,0.04)' }}>
-        <span style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.05em', color: '#c9a227' }}>
-          ◉ &nbsp;Recommended · Chase Sapphire Reserve
-        </span>
-      </div>
-    </div>
-  )
-}
-
-// ── Section visual: Perk tracker ─────────────────────────
-function PerkArt() {
-  const perks = [
-    { name: 'Travel Credit',  total: 300, used: 240, period: 'annual',  warn: false, done: false },
-    { name: 'Dining Credit',  total: 120, used: 120, period: 'monthly', warn: false, done: true  },
-    { name: 'Streaming',      total: 15,  used: 8,   period: 'monthly', warn: true,  done: false },
-    { name: 'Global Entry',   total: 100, used: 100, period: 'once',    warn: false, done: true  },
-  ]
-  return (
-    <div style={{
-      background: '#0c0c11',
-      border: '1px solid rgba(255,255,255,0.06)',
-      borderRadius: '4px',
-      overflow: 'hidden',
-      width: '100%',
-      maxWidth: '440px',
-    }}>
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.25)' }}>Perk Tracker</span>
-        <span style={{ fontSize: '10px', fontWeight: '600', color: '#c9a227' }}>4 active</span>
-      </div>
-      {perks.map((p, i) => {
-        const pct = Math.min(100, (p.used / p.total) * 100)
-        return (
-          <div key={i} style={{ padding: '14px 16px', borderBottom: i < perks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {p.warn && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#c47c2a', flexShrink: 0, display: 'inline-block' }}/>}
-                <span style={{ fontSize: '12px', fontWeight: '500', color: p.warn ? '#dddde4' : 'rgba(221,221,228,0.65)' }}>{p.name}</span>
-                {p.warn && <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#c47c2a', background: 'rgba(196,124,42,0.12)', padding: '1px 6px', borderRadius: '9999px' }}>3d left</span>}
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: '600', color: p.done ? '#1db87a' : 'rgba(221,221,228,0.35)', fontVariantNumeric: 'tabular-nums' }}>
-                ${p.used}/${p.total}
-              </span>
-            </div>
-            <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${pct}%`, borderRadius: '2px', background: p.done ? '#1db87a' : p.warn ? '#c47c2a' : '#c9a227', transition: 'width 0.3s' }}/>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ── Section visual: Rewards chart ─────────────────────────
-function ChartArt() {
-  const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D']
-  const vals   = [42, 58, 67, 71, 89, 94, 78, 112, 98, 103, 88, 64]
-  const max    = Math.max(...vals)
-
-  return (
-    <div style={{
-      background: '#0c0c11',
-      border: '1px solid rgba(255,255,255,0.06)',
-      borderRadius: '4px',
-      padding: '20px',
-      width: '100%',
-      maxWidth: '440px',
-    }}>
-      <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <div>
-          <div style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.25)', marginBottom: '4px' }}>Earned this year</div>
-          <div style={{ fontSize: '28px', fontWeight: '700', color: '#dddde4', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>$847<span style={{ fontSize: '18px', color: 'rgba(221,221,228,0.4)' }}>.20</span></div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(29,184,122,0.1)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '9999px', padding: '4px 10px' }}>
-          <span style={{ fontSize: '10px', fontWeight: '700', color: '#1db87a' }}>↑ 23%</span>
-        </div>
-      </div>
-
-      {/* Bar chart */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '72px', marginTop: '16px', marginBottom: '6px' }}>
-        {vals.map((v, i) => (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', height: '100%', justifyContent: 'flex-end' }}>
-            <div style={{
-              width: '100%',
-              height: `${(v / max) * 100}%`,
-              borderRadius: '2px 2px 0 0',
-              background: i === 7 ? '#c9a227' : 'rgba(201,162,39,0.18)',
-              transition: 'height 0.3s',
-            }}/>
-          </div>
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: '4px' }}>
-        {months.map((m, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '8px', fontWeight: '600', color: i === 7 ? '#c9a227' : 'rgba(221,221,228,0.2)', fontVariantNumeric: 'tabular-nums' }}>{m}</div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── Main page ─────────────────────────────────────────────
 export default function Home() {
   const router = useRouter()
 
@@ -289,67 +15,11 @@ export default function Home() {
 
   return (
     <>
-      <style>{`
-        .mkt-nav-link {
-          font-size: 13px;
-          font-weight: 500;
-          color: rgba(221,221,228,0.5);
-          text-decoration: none;
-          transition: color 0.15s;
-          letter-spacing: 0.01em;
-        }
-        .mkt-nav-link:hover { color: #dddde4; }
-
-        .mkt-section {
-          padding: 96px 24px;
-          max-width: 1100px;
-          margin: 0 auto;
-        }
-
-        .mkt-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 80px;
-          align-items: center;
-        }
-
-        .mkt-label {
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          color: #c9a227;
-          margin-bottom: 16px;
-        }
-
-        .mkt-body {
-          font-size: 16px;
-          line-height: 1.65;
-          color: rgba(221,221,228,0.55);
-          font-weight: 400;
-          margin-top: 16px;
-        }
-
-        .mkt-divider {
-          border: none;
-          border-top: 1px solid rgba(255,255,255,0.05);
-          margin: 0;
-        }
-
-        @media (max-width: 768px) {
-          .mkt-grid { grid-template-columns: 1fr; gap: 48px; }
-          .mkt-grid-reverse { direction: ltr; }
-          .mkt-section { padding: 64px 20px; }
-          .display-xl { font-size: 2.2rem !important; }
-          .display-lg { font-size: 1.65rem !important; }
-          .hero-ctas { flex-direction: column !important; align-items: flex-start !important; }
-          .nav-links { display: none !important; }
-        }
-      `}</style>
+      <style>{marketingStyles}</style>
 
       <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
 
-        {/* ── Sticky nav ────────────────────────────────── */}
+        {/* ── Sticky nav ── */}
         <nav style={{
           position: 'sticky', top: 0, zIndex: 100,
           background: 'rgba(9,9,12,0.85)',
@@ -358,198 +28,72 @@ export default function Home() {
           borderBottom: '1px solid rgba(255,255,255,0.05)',
         }}>
           <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {/* Logo */}
             <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
               <KeySVG size={18} id="navkey"/>
               <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
             </a>
-
-            {/* Center links */}
             <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
               <a href="#how-it-works" className="mkt-nav-link">How it works</a>
               <a href="#features"     className="mkt-nav-link">Features</a>
               <a href="#insights"     className="mkt-nav-link">Insights</a>
             </div>
-
-            {/* Right CTA */}
             <a href="/auth" className="pill-dark" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
               Sign in
             </a>
           </div>
         </nav>
 
-        {/* ── Hero ──────────────────────────────────────── */}
-        <section style={{ padding: '80px 24px 96px', maxWidth: '1100px', margin: '0 auto' }}>
-          <div className="mkt-grid" style={{ gap: '60px' }}>
-            {/* Left — copy */}
-            <div>
-              <div className="mkt-label">Card intelligence</div>
-              <h1 className="display-xl">
-                Always earn<br/>
-                <span className="gradient-text">the most.</span>
-              </h1>
-              <p className="mkt-body" style={{ maxWidth: '420px' }}>
-                Tell Clavis what you&apos;re buying. It scores every card in your wallet and picks the one that earns the highest reward — every single time.
-              </p>
-              <div className="hero-ctas" style={{ display: 'flex', gap: '12px', marginTop: '36px', flexWrap: 'wrap' }}>
-                <a href="/auth" className="pill-dark">Get started free</a>
-                <a href="#how-it-works" className="pill-outline">See how it works</a>
-              </div>
-              <p style={{ marginTop: '20px', fontSize: '11px', color: 'rgba(221,221,228,0.2)', fontWeight: '500', letterSpacing: '0.03em' }}>
-                Free · No credit card required
-              </p>
+        {/* ── Hero CTA pair (only on homepage) ── */}
+        <div style={{ padding: '80px 24px 0', maxWidth: '1100px', margin: '0 auto' }}>
+          <div style={{ maxWidth: '560px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.16em', textTransform: 'uppercase', color: '#c9a227', marginBottom: '16px' }}>Card intelligence</div>
+            <h1 className="display-xl">
+              Always earn<br/>
+              <span className="gradient-text">the most.</span>
+            </h1>
+            <p style={{ fontSize: '16px', lineHeight: '1.65', color: 'rgba(221,221,228,0.55)', marginTop: '16px', maxWidth: '420px' }}>
+              Tell Clavis what you&apos;re buying. It scores every card in your wallet and picks the one that earns the highest reward — every single time.
+            </p>
+            <div className="hero-ctas" style={{ display: 'flex', gap: '12px', marginTop: '36px', flexWrap: 'wrap' }}>
+              <a href="/auth" className="pill-dark">Get started free</a>
+              <a href="#how-it-works" className="pill-outline">See how it works</a>
             </div>
-
-            {/* Right — illustration */}
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <HeroArt/>
-            </div>
+            <p style={{ marginTop: '20px', fontSize: '11px', color: 'rgba(221,221,228,0.2)', fontWeight: '500', letterSpacing: '0.03em' }}>
+              Free · No credit card required
+            </p>
           </div>
-        </section>
+        </div>
 
-        <hr className="mkt-divider"/>
+        {/* ── Shared marketing sections ── */}
+        <MarketingBody/>
 
-        {/* ── How it works ──────────────────────────────── */}
-        <section id="how-it-works" className="mkt-section">
-          <div style={{ textAlign: 'center', maxWidth: '560px', margin: '0 auto 64px' }}>
-            <div className="mkt-label">How it works</div>
-            <h2 className="display-lg">Three steps to smarter spending.</h2>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
-            {[
-              { step: '01', title: 'Add your cards',       body: 'Import every card in your wallet. Clavis maps out each card\'s earn rates, perks, and annual credits automatically.' },
-              { step: '02', title: 'Select a category',    body: 'Tap a purchase type — dining, travel, grocery, gas. Or type a merchant name and Clavis detects the category.' },
-              { step: '03', title: 'Tap the right card',   body: 'Clavis scores every card and surfaces the best one in real time. One tap logs the transaction and tracks your rewards.' },
-            ].map((item, i) => (
-              <div key={i} style={{ padding: '32px 28px', background: '#0c0c11' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.16em', color: 'rgba(201,162,39,0.4)', marginBottom: '16px' }}>{item.step}</div>
-                <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '10px', lineHeight: '1.3' }}>{item.title}</div>
-                <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'rgba(221,221,228,0.42)', fontWeight: '400' }}>{item.body}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <hr className="mkt-divider"/>
-
-        {/* ── Feature 1: Smart selection ────────────────── */}
-        <section id="features" className="mkt-section">
-          <div className="mkt-grid">
-            <div>
-              <div className="mkt-label">Smart selection</div>
-              <h2 className="display-lg">
-                The right card,<br/>
-                <span className="gradient-text">every time.</span>
-              </h2>
-              <p className="mkt-body">
-                Clavis weighs earn rates, active perks, expiring credits, and gift card balances simultaneously — then ranks every card by actual dollar value per spend.
-              </p>
-              <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {['Real dollar value, not just reward points', 'Expiring perk bonuses factored in', 'Manual override with automatic fallback'].map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(221,221,228,0.55)', fontWeight: '500' }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#c9a227', flexShrink: 0 }}/>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <ComparisonArt/>
-            </div>
-          </div>
-        </section>
-
-        <hr className="mkt-divider"/>
-
-        {/* ── Feature 2: Perk tracking (flipped) ───────── */}
-        <section id="features-perks" className="mkt-section">
-          <div className="mkt-grid mkt-grid-reverse" style={{ direction: 'rtl' }}>
-            <div style={{ direction: 'ltr' }}>
-              <div className="mkt-label">Perk tracking</div>
-              <h2 className="display-lg">
-                No more<br/>
-                <span className="gradient-text">forgotten credits.</span>
-              </h2>
-              <p className="mkt-body">
-                $300 travel credit. $15 streaming. $10 dining monthly. Clavis tracks every card benefit, surfaces expiring perks with three-day alerts, and shows your annual utilization at a glance.
-              </p>
-              <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {['Expiry alerts 14 days in advance', 'Per-card and wallet-wide perk view', 'Email digest of upcoming expirations'].map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(221,221,228,0.55)', fontWeight: '500' }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#c9a227', flexShrink: 0 }}/>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div style={{ direction: 'ltr', display: 'flex', justifyContent: 'center' }}>
-              <PerkArt/>
-            </div>
-          </div>
-        </section>
-
-        <hr className="mkt-divider"/>
-
-        {/* ── Feature 3: Insights ───────────────────────── */}
-        <section id="insights" className="mkt-section">
-          <div className="mkt-grid">
-            <div>
-              <div className="mkt-label">Intelligent insights</div>
-              <h2 className="display-lg">
-                See where every<br/>
-                <span className="gradient-text">reward goes.</span>
-              </h2>
-              <p className="mkt-body">
-                Your complete transaction history across every card. Retroactive analysis shows which card you should have used — and exactly how much you left on the table.
-              </p>
-              <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {['Total rewards earned, month by month', 'Retroactive missed-value analysis', 'Category-level optimization hints'].map((item, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(221,221,228,0.55)', fontWeight: '500' }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#c9a227', flexShrink: 0 }}/>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <ChartArt/>
-            </div>
-          </div>
-        </section>
-
-        <hr className="mkt-divider"/>
-
-        {/* ── CTA section ───────────────────────────────── */}
-        <section className="mkt-section" style={{ textAlign: 'center' }}>
+        {/* ── CTA section ── */}
+        <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', margin: 0 }}/>
+        <section style={{ padding: '96px 24px', textAlign: 'center' }}>
           <div style={{ maxWidth: '560px', margin: '0 auto' }}>
-            <div className="mkt-label">Get started</div>
-            <h2 className="display-lg">
-              Stop leaving money<br/>
-              <span className="gradient-text">on the table.</span>
-            </h2>
-            <p className="mkt-body" style={{ maxWidth: '400px', margin: '16px auto 0' }}>
-              The average card holder misses $200–400 in rewards each year from choosing the wrong card. Clavis fixes that.
+            <div style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.16em', textTransform: 'uppercase', color: '#c9a227', marginBottom: '16px' }}>Get started</div>
+            <h2 className="display-lg">Stop leaving money<br/><span className="gradient-text">on the table.</span></h2>
+            <p style={{ fontSize: '16px', lineHeight: '1.65', color: 'rgba(221,221,228,0.55)', maxWidth: '400px', margin: '16px auto 0' }}>
+              The average cardholder misses $200–400 in rewards each year from choosing the wrong card. Clavis fixes that.
             </p>
             <div style={{ display: 'flex', gap: '12px', marginTop: '36px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a href="/auth" className="pill-dark" style={{ fontSize: '13px' }}>Create free account</a>
-              <a href="/auth" className="pill-outline" style={{ fontSize: '13px' }}>Sign in</a>
+              <a href="/auth" className="pill-dark">Create free account</a>
+              <a href="/auth" className="pill-outline">Sign in</a>
             </div>
           </div>
         </section>
 
-        {/* ── Footer ────────────────────────────────────── */}
-        <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '32px 24px' }}>
+        {/* ── Footer ── */}
+        <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', margin: 0 }}/>
+        <footer style={{ padding: '32px 24px' }}>
           <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <KeySVG size={16} id="ftkey"/>
               <span style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '0.08em', color: 'rgba(221,221,228,0.35)' }}>CLAVIS</span>
             </div>
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)', fontWeight: '400' }}>
-                © {new Date().getFullYear()} Clavis · One card. Every reward.
-              </span>
-            </div>
+            <span style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)' }}>
+              © {new Date().getFullYear()} Clavis · One card. Every reward.
+            </span>
           </div>
         </footer>
 

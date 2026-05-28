@@ -464,12 +464,20 @@ export default function Dashboard() {
             CLAVIS
           </span>
         </div>
-        <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-          style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.22)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.55)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.22)'}>
-          Sign out
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <a href="/about"
+            style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.22)', textDecoration: 'none', transition: 'color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.55)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.22)'}>
+            About
+          </a>
+          <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
+            style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.22)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', fontFamily: 'inherit' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.55)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.22)'}>
+            Sign out
+          </button>
+        </div>
       </div>
 
       {/* Tab bar */}
