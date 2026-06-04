@@ -10,7 +10,9 @@ import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar } from '../../lib/pointValues'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
+import { generateRecommendations } from '../../lib/recommendations'
 import { Onboarding } from '../onboarding'
+import { InstallPrompt } from '../install-prompt'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
@@ -106,6 +108,7 @@ export default function Dashboard() {
   const [expandedRoiId, setExpandedRoiId] = useState(null)
   const [missedInsight, setMissedInsight] = useState(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState(null)
 
   // Add-card form state
   const [newCard, setNewCard] = useState({
@@ -169,6 +172,20 @@ export default function Dashboard() {
   const perkInsights = useMemo(() => generateInsights(cards, taps), [cards, taps])
   const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards])
   const totalMissed = useMemo(() => retroactiveMissed.reduce((s, m) => s + m.missedTotal, 0), [retroactiveMissed])
+  const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps])
+
+  // Monthly missed breakdown
+  const missedByMonth = useMemo(() => {
+    const map = {}
+    for (const item of retroactiveMissed) {
+      const d = new Date(item.tap.tapped_at)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      if (!map[key]) map[key] = { key, total: 0, count: 0 }
+      map[key].total += item.missedTotal
+      map[key].count++
+    }
+    return Object.values(map).sort((a, b) => b.key.localeCompare(a.key))
+  }, [retroactiveMissed])
 
   function pickCategory(cat) {
     setSelectedCat(cat)
@@ -218,12 +235,13 @@ export default function Dashboard() {
   }
 
   function getRankedCards() {
-    return [...cards].map(scoreCard).sort((a, b) => {
-      const d = b.score - a.score
-      if (Math.abs(d) > 0.001) return d
-      // Tiebreaker: higher annual fee wins (get more value from it)
-      return (b.card.annual_fee || 0) - (a.card.annual_fee || 0)
-    })
+    return [...cards]
+      .filter(c => !(c.type === 'gift' && (c.balance || 0) <= 0))
+      .map(scoreCard).sort((a, b) => {
+        const d = b.score - a.score
+        if (Math.abs(d) > 0.001) return d
+        return (b.card.annual_fee || 0) - (a.card.annual_fee || 0)
+      })
   }
   function getBestCard() { if (!cards.length) return null; return getRankedCards()[0].card }
   function getActiveCard() {
@@ -440,7 +458,7 @@ export default function Dashboard() {
     border: '1px solid rgba(255,255,255,0.06)', borderBottom: 'none',
   }
 
-  const insightCount = perkInsights.length + retroactiveMissed.length
+  const insightCount = perkInsights.length + retroactiveMissed.length + cardRecs.length
 
   return (
     <div className="app">
@@ -1227,61 +1245,135 @@ export default function Dashboard() {
 
               {/* ── Retroactive optimization feed ── */}
               {retroactiveMissed.length > 0 && (
-                <div>
+                <div style={{ marginBottom: '1.75rem' }}>
                   <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
-                    Missed rewards
+                    Left on the table
                   </div>
 
-                  {/* Summary banner */}
-                  <div data-reveal style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(196,124,42,0.2)', borderRadius: '4px', padding: '14px 16px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '11px', fontWeight: '600', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>
-                        Left on the table
-                      </div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: '#c47c2a', letterSpacing: '-0.03em' }}>
-                        ${totalMissed.toFixed(2)}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '3px' }}>
-                        across {retroactiveMissed.length} transaction{retroactiveMissed.length !== 1 ? 's' : ''}
-                      </div>
+                  {/* Monthly picker */}
+                  {missedByMonth.length > 1 && (
+                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '2px' }}>
+                      <button
+                        onClick={() => setSelectedMonth(null)}
+                        style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', background: selectedMonth === null ? '#c47c2a' : 'transparent', borderColor: selectedMonth === null ? '#c47c2a' : 'rgba(255,255,255,0.12)', color: selectedMonth === null ? '#fff' : 'rgba(221,221,228,0.5)' }}
+                      >
+                        All time
+                      </button>
+                      {missedByMonth.map(m => {
+                        const [yr, mo] = m.key.split('-')
+                        const label = new Date(+yr, +mo - 1).toLocaleString('default', { month: 'short', year: '2-digit' })
+                        const active = selectedMonth === m.key
+                        return (
+                          <button key={m.key} onClick={() => setSelectedMonth(m.key)}
+                            style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', background: active ? '#c47c2a' : 'transparent', borderColor: active ? '#c47c2a' : 'rgba(255,255,255,0.12)', color: active ? '#fff' : 'rgba(221,221,228,0.5)' }}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
                     </div>
-                    
-                  </div>
+                  )}
 
-                  {/* Per-transaction breakdown */}
-                  <div className="card" style={{ padding: '0 1.125rem' }}>
-                    {retroactiveMissed.slice(0, 15).map((item, i) => (
-                      <div key={item.tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < Math.min(retroactiveMissed.length, 15) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                        <CardArt name={item.bestCard.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item.tap.merchant || item.tap.card_name}
-                            {item.tap.amount > 0 && <span style={{ color: 'rgba(221,221,228,0.3)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
+                  {/* Summary hero */}
+                  {(() => {
+                    const filtered = selectedMonth
+                      ? retroactiveMissed.filter(m => {
+                          const d = new Date(m.tap.tapped_at)
+                          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                          return key === selectedMonth
+                        })
+                      : retroactiveMissed
+                    const filteredTotal = filtered.reduce((s, m) => s + m.missedTotal, 0)
+                    const [yr, mo] = (selectedMonth || '').split('-')
+                    const monthLabel = selectedMonth
+                      ? new Date(+yr, +mo - 1).toLocaleString('default', { month: 'long', year: 'numeric' })
+                      : 'all time'
+
+                    return (
+                      <>
+                        <div data-reveal style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(196,124,42,0.2)', borderRadius: '12px', padding: '16px 18px', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.4)', marginBottom: '6px' }}>
+                            {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
                           </div>
-                          <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
-                            <span style={{ color: '#d95252' }}>{item.usedCard.name}</span>
-                            <span style={{ color: 'rgba(255,255,255,0.2)' }}> → </span>
-                            <span style={{ color: '#1db87a' }}>{item.bestCard.name}</span>
-                            {item.tap.category && <span style={{ color: 'rgba(255,255,255,0.25)' }}> · {item.tap.category}</span>}
+                          <div style={{ fontSize: '36px', fontWeight: '800', color: '#c47c2a', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                            ${filteredTotal.toFixed(2)}
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.35)', marginTop: '6px' }}>
+                            on the table across {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
+                            {!selectedMonth && ' in your history'}
+                          </div>
+                        </div>
+
+                        {/* Per-transaction breakdown */}
+                        {filtered.length > 0 && (
+                          <div className="card" style={{ padding: '0 1.125rem' }}>
+                            {filtered.slice(0, 15).map((item, i) => (
+                              <div key={item.tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                <CardArt name={item.bestCard.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {item.tap.merchant || item.tap.card_name}
+                                    {item.tap.amount > 0 && <span style={{ color: 'rgba(221,221,228,0.3)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
+                                    <span style={{ color: '#d95252' }}>{item.usedCard.name}</span>
+                                    <span style={{ color: 'rgba(255,255,255,0.2)' }}> → </span>
+                                    <span style={{ color: '#1db87a' }}>{item.bestCard.name}</span>
+                                    {item.tap.category && <span style={{ color: 'rgba(255,255,255,0.25)' }}> · {item.tap.category}</span>}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#c47c2a' }}>+${item.missedTotal.toFixed(2)}</div>
+                                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '1px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {filtered.length > 15 && (
+                          <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.25)', marginTop: '10px' }}>
+                            +{filtered.length - 15} more transactions
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
+
+              {/* ── Card recommendations ── */}
+              {cardRecs.length > 0 && (
+                <div style={{ marginBottom: '1.75rem' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                    Cards worth adding
+                  </div>
+                  {cardRecs.map(({ rec, netAnnualGain, improvements }) => (
+                    <div key={rec.name} data-reveal style={{ background: 'rgba(91,79,255,0.07)', border: '1px solid rgba(91,79,255,0.2)', borderLeft: '3px solid #5b4fff', borderRadius: '4px', padding: '14px 14px 14px 12px', marginBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '2px' }}>{rec.name}</div>
+                          <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.35)' }}>
+                            {rec.annualFee === 0 ? 'No annual fee' : `$${rec.annualFee}/yr`}
+                            {rec.studentFriendly && <span style={{ marginLeft: '6px', color: '#5b8fff' }}>· Student-friendly</span>}
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '700', color: '#c47c2a' }}>
-                            +${item.missedTotal.toFixed(2)}
+                          <div style={{ fontSize: '20px', fontWeight: '800', color: '#5b8fff', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                            +${Math.round(netAnnualGain)}/yr
                           </div>
-                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '1px' }}>
-                            {(item.missedPerDollar * 100).toFixed(1)}¢/$
-                          </div>
+                          <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>est. gain</div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {retroactiveMissed.length > 15 && (
-                    <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.25)', marginTop: '10px' }}>
-                      +{retroactiveMissed.length - 15} more transactions
+                      <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.45)', lineHeight: '1.5', marginBottom: '8px' }}>{rec.why}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                        {improvements.slice(0, 4).map(imp => (
+                          <span key={imp.category} style={{ fontSize: '11px', fontWeight: '600', color: '#5b8fff', background: 'rgba(91,79,255,0.12)', borderRadius: '4px', padding: '3px 7px' }}>
+                            {imp.category} +{(imp.gainPerDollar * 100).toFixed(1)}¢/$
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
             </>
@@ -1427,6 +1519,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      <InstallPrompt />
     </div>
   )
 }
