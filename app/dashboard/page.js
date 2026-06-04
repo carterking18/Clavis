@@ -172,10 +172,7 @@ export default function Dashboard() {
   const perkInsights = useMemo(() => generateInsights(cards, taps), [cards, taps])
   const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards])
   const totalMissed = useMemo(() => retroactiveMissed.reduce((s, m) => s + m.missedTotal, 0), [retroactiveMissed])
-  const cardRecs = useMemo(() => {
-    try { return generateRecommendations(cards, taps) }
-    catch(e) { console.error('[cardRecs]', e); return [{ _error: e.message }] }
-  }, [cards, taps])
+  const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps])
 
   // Monthly missed breakdown
   const missedByMonth = useMemo(() => {
@@ -1193,10 +1190,6 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginBottom: '8px', fontFamily: 'monospace', wordBreak: 'break-all', lineHeight: 1.7 }}>
-            recs={cardRecs.length} err={cardRecs[0]?._error || 'none'}<br/>
-            {cards.filter(c=>c.type!=='gift').map(c=>`${c.name}|mults=${c.multipliers?.length??'null'}|bu=${c.balance_unit}`).join(' / ')}
-          </div>
           {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
               
