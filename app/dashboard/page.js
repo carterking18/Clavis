@@ -10,7 +10,7 @@ import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar } from '../../lib/pointValues'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
-import { generateRecommendations } from '../../lib/recommendations'
+import { generateRecommendations, debugRecommendations } from '../../lib/recommendations'
 import { Onboarding } from '../onboarding'
 import { InstallPrompt } from '../install-prompt'
 
@@ -1191,6 +1191,7 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
+          <pre style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', marginBottom: '8px' }}>{debugRecommendations(cards, taps)}</pre>
           {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 && debugRecs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
               
