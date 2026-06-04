@@ -1193,8 +1193,9 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginBottom: '8px', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-            recs={cardRecs.length} err={cardRecs[0]?._error || 'none'}
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginBottom: '8px', fontFamily: 'monospace', wordBreak: 'break-all', lineHeight: 1.7 }}>
+            recs={cardRecs.length} err={cardRecs[0]?._error || 'none'}<br/>
+            {cards.filter(c=>c.type!=='gift').map(c=>`${c.name}|mults=${c.multipliers?.length??'null'}|bu=${c.balance_unit}`).join(' / ')}
           </div>
           {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
