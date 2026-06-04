@@ -10,7 +10,7 @@ import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar } from '../../lib/pointValues'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
-import { generateRecommendations, debugRecommendations } from '../../lib/recommendations'
+import { generateRecommendations } from '../../lib/recommendations'
 import { Onboarding } from '../onboarding'
 import { InstallPrompt } from '../install-prompt'
 
@@ -173,7 +173,6 @@ export default function Dashboard() {
   const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards])
   const totalMissed = useMemo(() => retroactiveMissed.reduce((s, m) => s + m.missedTotal, 0), [retroactiveMissed])
   const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps])
-  const debugRecs = [{ rec: { name: 'TEST CARD', annualFee: 0, why: 'Debug test', studentFriendly: true }, netAnnualGain: 99, improvements: [{ category: 'gas', gainPerDollar: 0.01 }] }]
 
   // Monthly missed breakdown
   const missedByMonth = useMemo(() => {
@@ -1191,8 +1190,7 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
-          <pre style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', whiteSpace: 'pre-wrap', wordBreak: 'break-all', marginBottom: '8px' }}>{debugRecommendations(cards, taps)}</pre>
-          {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 && debugRecs.length === 0 ? (
+          {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
               
               <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(221,221,228,0.5)', marginBottom: '8px' }}>No insights yet</div>
@@ -1344,12 +1342,18 @@ export default function Dashboard() {
               )}
 
               {/* ── Card recommendations ── */}
-              {debugRecs.length > 0 && (
-                <div style={{ marginBottom: '1.75rem' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
-                    Cards worth adding
+              <div style={{ marginBottom: '1.75rem' }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                  Cards worth adding
+                </div>
+                {cardRecs.length === 0 && cards.length > 0 ? (
+                  <div style={{ background: 'rgba(29,184,122,0.06)', border: '1px solid rgba(29,184,122,0.15)', borderLeft: '3px solid #1db87a', borderRadius: '4px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#1db87a', marginBottom: '4px' }}>Your wallet is well-optimized</div>
+                    <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.45)', lineHeight: '1.5' }}>
+                      Based on your spending, no card on the market meaningfully outperforms what you already have. Nice setup.
+                    </div>
                   </div>
-                  {debugRecs.map(({ rec, netAnnualGain, improvements }) => (
+                ) : cardRecs.map(({ rec, netAnnualGain, improvements }) => (
                     <div key={rec.name} data-reveal style={{ background: 'rgba(91,79,255,0.07)', border: '1px solid rgba(91,79,255,0.2)', borderLeft: '3px solid #5b4fff', borderRadius: '4px', padding: '14px 14px 14px 12px', marginBottom: '8px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1376,8 +1380,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
+              </div>
             </>
           )}
         </div>
