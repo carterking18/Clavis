@@ -1190,7 +1190,7 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
-          {perkInsights.length === 0 && retroactiveMissed.length === 0 ? (
+          {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
               
               <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(221,221,228,0.5)', marginBottom: '8px' }}>No insights yet</div>
