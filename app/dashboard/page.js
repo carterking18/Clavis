@@ -1190,10 +1190,6 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginBottom: '8px', fontFamily: 'monospace', lineHeight: 1.6 }}>
-            debug: perkInsights={perkInsights.length} missed={retroactiveMissed.length} recs={cardRecs.length} cards={cards.length} taps={taps.length}<br/>
-            cards: {cards.map(c => c.name).join(', ')}
-          </div>
           {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
               
