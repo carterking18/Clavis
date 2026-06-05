@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { createClient } from '@supabase/supabase-js'
 import { getSuggestedPerks } from '../../../lib/cardPerks'
 import { getSuggestedMultipliers } from '../../../lib/cardRewards'
 
@@ -30,13 +31,46 @@ Rules:
 - If the card doesn't exist or you're not confident, return null (not JSON, literally the word null).
 - Do not include markdown, explanation, or any text outside the JSON.`
 
+async function getCatalogEntry(name) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+    const lower = name.toLowerCase()
+    const { data } = await supabase
+      .from('perk_catalog')
+      .select('perks, multipliers, note, refreshed_at')
+      .ilike('card_name', `%${lower}%`)
+      .order('refreshed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    return data || null
+  } catch {
+    return null
+  }
+}
+
 export async function POST(request) {
   const { name } = await request.json()
   if (!name || name.trim().length < 3) {
     return Response.json({ error: 'Card name too short' }, { status: 400 })
   }
 
-  // Check internal database first — faster and free
+  // 1. Check live catalog (refreshed daily by cron)
+  const catalog = await getCatalogEntry(name.trim())
+  if (catalog) {
+    return Response.json({
+      perks: catalog.perks || [],
+      multipliers: catalog.multipliers || null,
+      note: catalog.note || null,
+      source: 'catalog',
+      refreshed_at: catalog.refreshed_at,
+    })
+  }
+
+  // 2. Fall back to hardcoded internal database
   const knownPerks = getSuggestedPerks(name)
   const knownMults = getSuggestedMultipliers(name)
   if (knownPerks || knownMults) {
@@ -48,7 +82,7 @@ export async function POST(request) {
     })
   }
 
-  // Fall back to Claude for unknown cards
+  // 3. Fall back to Claude for unknown cards
   if (!process.env.ANTHROPIC_API_KEY) {
     return Response.json({ perks: null, multipliers: null, note: null, source: 'claude' })
   }

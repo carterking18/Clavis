@@ -109,13 +109,15 @@ export default function Dashboard() {
   const [missedInsight, setMissedInsight] = useState(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(null)
+  const [showFormula, setShowFormula] = useState(false)
 
   // Add-card form state
   const [newCard, setNewCard] = useState({
     name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a',
-    balance: '', balance_unit: 'points', annual_fee: '',
+    balance: '', balance_unit: 'points', annual_fee: '', merchant: '',
     multipliers: { dining: '', travel: '', hotel: '', grocery: '', gas: '', streaming: '', retail: '', other: '' }
   })
+  const [giftMerchantSuggestions, setGiftMerchantSuggestions] = useState([])
   const [fetchingCardData, setFetchingCardData] = useState(false)
   const cardFetchTimer = useRef(null)
 
@@ -217,10 +219,22 @@ export default function Dashboard() {
     })
     const isGiftWithBalance = card.type === 'gift' && (card.balance || 0) > 0
 
+    // Check if this gift card is linked to the merchant being typed
+    const tapMerchant = (detectedMerchant?.name || merchantQuery || '').toLowerCase().trim()
+    const giftMerchantLinked = isGiftWithBalance && tapMerchant && (() => {
+      const linked = (card.merchant || '').toLowerCase()
+      const cardName = card.name.toLowerCase()
+      // Match against the explicit merchant field, or infer from card name
+      return (linked && (linked.includes(tapMerchant) || tapMerchant.includes(linked))) ||
+             cardName.includes(tapMerchant) ||
+             tapMerchant.includes(cardName.replace(/\s*(gift\s*card|gc)\s*/gi, '').trim())
+    })()
+
     let score = dollarVal * 100
     score += activePerks.length * 0.5
     score += expiringPerks.length * 1.5
     if (isGiftWithBalance) score += 5
+    if (giftMerchantLinked) score = 9999
 
     const reasons = []
     if (mult > 0) {
@@ -230,6 +244,7 @@ export default function Dashboard() {
     if (expiringPerks.length > 0) reasons.push(`${expiringPerks.length} perk${expiringPerks.length > 1 ? 's' : ''} expiring soon`)
     else if (activePerks.length > 0) reasons.push(`${activePerks.length} active perk${activePerks.length > 1 ? 's' : ''}`)
     if (isGiftWithBalance) reasons.push(`$${card.balance} gift balance`)
+    if (giftMerchantLinked) reasons.unshift(`Use here`)
 
     return { card, score, dollarVal, reasons }
   }
@@ -361,6 +376,7 @@ export default function Dashboard() {
         last_four: newCard.last_four, color: newCard.color,
         balance: parseFloat(newCard.balance) || 0, balance_unit: newCard.balance_unit,
         annual_fee: parseFloat(newCard.annual_fee) || 0,
+        merchant: newCard.type === 'gift' && newCard.merchant ? newCard.merchant : null,
       })
       const mults = {}
       CATEGORIES.forEach(cat => { if (newCard.multipliers[cat]) mults[cat] = newCard.multipliers[cat] })
@@ -372,7 +388,8 @@ export default function Dashboard() {
       const dbPerks = getSuggestedPerks(newCard.name)
       const perksToSuggest = dbPerks && dbPerks.length > 0 ? dbPerks : (newCard._aiPerks || [])
 
-      setNewCard({ name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a', balance: '', balance_unit: 'points', annual_fee: '', multipliers: { dining: '', travel: '', hotel: '', grocery: '', gas: '', streaming: '', retail: '', other: '' } })
+      setNewCard({ name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a', balance: '', balance_unit: 'points', annual_fee: '', merchant: '', multipliers: { dining: '', travel: '', hotel: '', grocery: '', gas: '', streaming: '', retail: '', other: '' } })
+      setGiftMerchantSuggestions([])
 
       if (perksToSuggest.length > 0) {
         setSuggestedPerks(perksToSuggest)
@@ -907,10 +924,40 @@ export default function Dashboard() {
               {newCard.name && <div style={{ marginBottom: '12px' }}><CardArt name={newCard.name} style={{ height: '64px' }} /></div>}
 
               {newCard.type === 'gift' && (
-                <div style={{ marginBottom: '12px' }}>
-                  <label className="label">Remaining balance ($)</label>
-                  <input className="input" type="number" placeholder="0.00" value={newCard.balance} onChange={e => setNewCard({ ...newCard, balance: e.target.value, balance_unit: 'dollars' })} />
-                </div>
+                <>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label className="label">Remaining balance ($)</label>
+                    <input className="input" type="number" placeholder="0.00" value={newCard.balance} onChange={e => setNewCard({ ...newCard, balance: e.target.value, balance_unit: 'dollars' })} />
+                  </div>
+                  <div style={{ marginBottom: '12px', position: 'relative' }}>
+                    <label className="label">Linked merchant (optional)</label>
+                    <input
+                      className="input"
+                      type="text"
+                      placeholder="Target, Starbucks, Amazon…"
+                      value={newCard.merchant}
+                      onChange={e => {
+                        const q = e.target.value
+                        setNewCard({ ...newCard, merchant: q })
+                        setGiftMerchantSuggestions(q.length >= 2 ? searchMerchants(q) : [])
+                      }}
+                    />
+                    {giftMerchantSuggestions.length > 0 && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#141419', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 50, overflow: 'hidden' }}>
+                        {giftMerchantSuggestions.map(m => (
+                          <div key={m.name}
+                            onClick={() => { setNewCard(prev => ({ ...prev, merchant: m.name })); setGiftMerchantSuggestions([]) }}
+                            style={{ padding: '10px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.1s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <span style={{ fontWeight: '500', color: '#dddde4' }}>{m.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <p style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '5px' }}>When you type this merchant at checkout, the gift card will always be picked first.</p>
+                  </div>
+                </>
               )}
 
               {newCard.type === 'loyalty' && (
@@ -1479,6 +1526,77 @@ export default function Dashboard() {
                 )
               })
             })()}
+
+            {/* How we rank — collapsible formula */}
+            <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.75rem' }}>
+              <button
+                onClick={() => setShowFormula(f => !f)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', fontFamily: 'inherit' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.3)' }}>How we rank cards</span>
+                <span style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)', transition: 'transform 0.2s', display: 'inline-block', transform: showFormula ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+              </button>
+
+              {showFormula && (
+                <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+                  <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.35)', lineHeight: '1.6' }}>
+                    Every card gets a <strong style={{ color: 'rgba(221,221,228,0.6)' }}>score</strong> for the current category and amount. The highest score wins.
+                  </div>
+
+                  {[
+                    {
+                      label: 'Rewards value',
+                      formula: 'multiplier × cents-per-point × 100',
+                      detail: 'The base score. A 3x card at 1.8¢/pt scores 5.4. A 2% cash-back card scores 2.0. This is the dominant factor — everything else is a small nudge.',
+                      color: '#c9a227',
+                    },
+                    {
+                      label: 'Unused perks',
+                      formula: '+0.5 per active perk',
+                      detail: 'Cards with perks you haven\'t fully used yet get a small bump to remind you to use what you\'re paying for.',
+                      color: 'rgba(221,221,228,0.55)',
+                    },
+                    {
+                      label: 'Expiring perks',
+                      formula: '+1.5 per perk expiring within 14 days',
+                      detail: 'A perk about to reset is worth more urgency than one with months left. This nudges the card up so you don\'t leave money on the table.',
+                      color: 'rgba(221,221,228,0.55)',
+                    },
+                    {
+                      label: 'Gift card balance',
+                      formula: '+5 if gift card has remaining balance',
+                      detail: 'A gift card with money on it should be used before any rewards card — you\'ve already paid for it.',
+                      color: 'rgba(221,221,228,0.55)',
+                    },
+                    {
+                      label: 'Linked merchant override',
+                      formula: 'Score → 9999 (always #1)',
+                      detail: 'If you typed a merchant and a gift card is linked to that store, it locks to the top. No credit card rewards beat a gift card that only works here.',
+                      color: 'rgba(221,221,228,0.55)',
+                    },
+                    {
+                      label: 'Tie-breaker',
+                      formula: 'Higher annual fee ranks lower',
+                      detail: 'When two cards score identically, the one charging you less per year wins. Why pay more for the same result?',
+                      color: 'rgba(221,221,228,0.55)',
+                    },
+                  ].map(row => (
+                    <div key={row.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '6px', padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: row.color }}>{row.label}</span>
+                        <span style={{ fontSize: '11px', fontWeight: '600', fontFamily: 'monospace', color: 'rgba(221,221,228,0.25)', flexShrink: 0 }}>{row.formula}</span>
+                      </div>
+                      <p style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', margin: 0, lineHeight: '1.55' }}>{row.detail}</p>
+                    </div>
+                  ))}
+
+                  <p style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)', margin: '2px 0 0', lineHeight: '1.5' }}>
+                    Point valuations (cents per point) come from our internal table based on typical redemption rates — e.g. Chase UR at 1.8¢, Amex MR at 1.8¢, Capital One at 1.85¢.
+                  </p>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       )}
