@@ -29,28 +29,48 @@ Rules:
 
 // Canonical card names to refresh (one representative name per card)
 const CARDS_TO_REFRESH = [
+  // Amex
   'Amex Platinum Card',
   'Amex Gold Card',
   'Amex Green Card',
   'Amex Blue Cash Preferred',
+  'Amex Blue Cash Everyday',
+  'Amex Business Gold Card',
+  'Amex Business Platinum Card',
+  // Chase
   'Chase Sapphire Reserve',
   'Chase Sapphire Preferred',
+  'Chase Freedom Unlimited',
+  'Chase Ink Business Preferred',
+  'Amazon Prime Visa',
+  // Capital One
   'Capital One Venture X',
+  'Capital One Venture',
+  'Capital One SavorOne',
+  // Citi
   'Citi Strata Premier',
+  'Citi Double Cash',
+  'Citi Custom Cash',
+  // Wells Fargo
   'Wells Fargo Autograph Journey',
+  'Wells Fargo Autograph',
+  'Bilt Mastercard',
+  // Bank of America
+  'Bank of America Premium Rewards',
+  // Travel co-brands
   'Hilton Honors Aspire',
   'Hilton Honors Surpass',
   'Delta SkyMiles Reserve',
   'Delta SkyMiles Platinum',
+  'Delta SkyMiles Gold',
   'Marriott Bonvoy Brilliant',
   'Marriott Bonvoy Boundless',
   'World of Hyatt Card',
-  'United Explorer Card',
   'United Club Infinite Card',
+  'United Explorer Card',
   'Southwest Rapid Rewards Priority',
   'IHG One Rewards Premier',
-  'Chase Ink Business Preferred',
-  'Amazon Prime Visa',
+  'JetBlue Plus Card',
 ]
 
 export async function GET(request) {
