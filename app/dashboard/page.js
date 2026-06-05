@@ -147,7 +147,8 @@ export default function Dashboard() {
       // Check catalog for perk changes on cards that have perks tracked
       const dismissed = JSON.parse(localStorage.getItem('clavis_dismissed_perk_updates') || '{}')
       const updates = {}
-      const cardsWithPerks = data.filter(c => (c.perks || []).length > 0 && c.type !== 'gift')
+      // Check ALL credit/store cards — including those with zero perks tracked yet
+      const cardsWithPerks = data.filter(c => c.type !== 'gift' && c.type !== 'loyalty')
       await Promise.all(cardsWithPerks.map(async card => {
         if (dismissed[card.id]) return
         try {
@@ -1196,10 +1197,11 @@ export default function Dashboard() {
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
           ) : cards.map(card => {
             const cardPerks = card.perks || []
-            if (cardPerks.length === 0) return null
+            const update = perkUpdates[card.id]
+            // Hide cards with no perks AND no available catalog perks
+            if (cardPerks.length === 0 && !update) return null
             const activeCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) > 0)
             const usedCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) <= 0)
-            const update = perkUpdates[card.id]
             return (
               <div key={card.id} data-reveal style={{ marginBottom: '1.5rem' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1211,9 +1213,14 @@ export default function Dashboard() {
                 {update && (
                   <div style={{ background: 'rgba(29,184,122,0.08)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '6px', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
                     <div style={{ fontSize: '12px', color: '#1db87a', fontWeight: '600', lineHeight: '1.4' }}>
-                      {update.newPerks.length > 0 && `${update.newPerks.length} new perk${update.newPerks.length > 1 ? 's' : ''} found`}
-                      {update.newPerks.length > 0 && update.changedPerks.length > 0 && ' · '}
-                      {update.changedPerks.length > 0 && `${update.changedPerks.length} perk${update.changedPerks.length > 1 ? 's' : ''} updated`}
+                      {cardPerks.length === 0
+                        ? `${update.newPerks.length} perk${update.newPerks.length > 1 ? 's' : ''} available for this card`
+                        : <>
+                            {update.newPerks.length > 0 && `${update.newPerks.length} new perk${update.newPerks.length > 1 ? 's' : ''} found`}
+                            {update.newPerks.length > 0 && update.changedPerks.length > 0 && ' · '}
+                            {update.changedPerks.length > 0 && `${update.changedPerks.length} perk${update.changedPerks.length > 1 ? 's' : ''} updated`}
+                          </>
+                      }
                       <span style={{ color: 'rgba(29,184,122,0.6)', fontWeight: '400' }}> · from latest card data</span>
                     </div>
                     <button
@@ -1224,7 +1231,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                <div className="card" style={{ padding: '0 1.125rem' }}>
+                {cardPerks.length > 0 && <div className="card" style={{ padding: '0 1.125rem' }}>
                   {activeCardPerks.length === 0 && usedCardPerks.length > 0 && (
                     <div style={{ padding: '13px 0', fontSize: '13px', color: 'rgba(221,221,228,0.3)', textAlign: 'center' }}>All perks used this cycle ✓</div>
                   )}
@@ -1274,7 +1281,7 @@ export default function Dashboard() {
                       {usedCardPerks.length} perk{usedCardPerks.length > 1 ? 's' : ''} used this cycle ✓
                     </div>
                   )}
-                </div>
+                </div>}
               </div>
             )
           })}
