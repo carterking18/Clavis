@@ -110,6 +110,9 @@ export default function Dashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [showFormula, setShowFormula] = useState(false)
+  const [perkUpdates, setPerkUpdates] = useState({})       // { cardId: { newPerks, changedPerks } }
+  const [perkUpdateModal, setPerkUpdateModal] = useState(null) // { card, newPerks, changedPerks }
+  const [applyingPerkUpdate, setApplyingPerkUpdate] = useState(false)
 
   // Add-card form state
   const [newCard, setNewCard] = useState({
@@ -126,7 +129,52 @@ export default function Dashboard() {
   })
 
   const loadCards = useCallback(async () => {
-    try { const data = await getUserCards(); setCards(data) } catch (e) { console.error(e) }
+    try {
+      const data = await getUserCards()
+      setCards(data)
+
+      // Auto-reset perks whose period has rolled over (resets_at is in the past)
+      const today = new Date().toISOString().split('T')[0]
+      for (const card of data) {
+        for (const perk of card.perks || []) {
+          if (perk.resets_at && perk.resets_at < today && perk.used_amount > 0) {
+            const newResetsAt = calculateResetsAt(perk.period)
+            await updatePerk(perk.id, { used_amount: 0, resets_at: newResetsAt })
+          }
+        }
+      }
+
+      // Check catalog for perk changes on cards that have perks tracked
+      const dismissed = JSON.parse(localStorage.getItem('clavis_dismissed_perk_updates') || '{}')
+      const updates = {}
+      const cardsWithPerks = data.filter(c => (c.perks || []).length > 0 && c.type !== 'gift')
+      await Promise.all(cardsWithPerks.map(async card => {
+        if (dismissed[card.id]) return
+        try {
+          const res = await fetch('/api/card-perks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: card.name }),
+          })
+          const catalogData = await res.json()
+          if (!catalogData.perks || catalogData.perks.length === 0) return
+
+          const userPerkNames = (card.perks || []).map(p => p.name.toLowerCase())
+          const newPerks = catalogData.perks.filter(cp =>
+            cp.total_amount > 0 && !userPerkNames.some(n => n.includes(cp.name.toLowerCase()) || cp.name.toLowerCase().includes(n))
+          )
+          const changedPerks = catalogData.perks.filter(cp => {
+            const match = (card.perks || []).find(up => up.name.toLowerCase().includes(cp.name.toLowerCase()) || cp.name.toLowerCase().includes(up.name.toLowerCase()))
+            return match && Math.abs(match.total_amount - cp.total_amount) >= 1
+          })
+
+          if (newPerks.length > 0 || changedPerks.length > 0) {
+            updates[card.id] = { newPerks, changedPerks, catalogPerks: catalogData.perks }
+          }
+        } catch { /* silent */ }
+      }))
+      if (Object.keys(updates).length > 0) setPerkUpdates(updates)
+    } catch (e) { console.error(e) }
   }, [])
 
   const loadTaps = useCallback(async () => {
@@ -433,6 +481,32 @@ export default function Dashboard() {
 
   async function handleUpdatePerkUsed(perkId, usedAmount) {
     try { await updatePerk(perkId, { used_amount: parseFloat(usedAmount) }); await loadCards() } catch (e) { console.error(e) }
+  }
+
+  function dismissPerkUpdate(cardId) {
+    const dismissed = JSON.parse(localStorage.getItem('clavis_dismissed_perk_updates') || '{}')
+    dismissed[cardId] = true
+    localStorage.setItem('clavis_dismissed_perk_updates', JSON.stringify(dismissed))
+    setPerkUpdates(prev => { const next = { ...prev }; delete next[cardId]; return next })
+    setPerkUpdateModal(null)
+  }
+
+  async function applyPerkUpdate(card, newPerks, changedPerks) {
+    setApplyingPerkUpdate(true)
+    try {
+      // Add brand-new perks
+      for (const p of newPerks) {
+        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period), card_id: card.id })
+      }
+      // Update total_amount on changed perks (preserve used_amount)
+      for (const cp of changedPerks) {
+        const userPerk = card.perks.find(up => up.name.toLowerCase().includes(cp.name.toLowerCase()) || cp.name.toLowerCase().includes(up.name.toLowerCase()))
+        if (userPerk) await updatePerk(userPerk.id, { total_amount: cp.total_amount, period: cp.period })
+      }
+      dismissPerkUpdate(card.id)
+      await loadCards()
+    } catch (e) { console.error(e) }
+    setApplyingPerkUpdate(false)
   }
 
   async function sendEmail() {
@@ -1123,23 +1197,46 @@ export default function Dashboard() {
           ) : cards.map(card => {
             const cardPerks = card.perks || []
             if (cardPerks.length === 0) return null
+            const activeCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) > 0)
+            const usedCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) <= 0)
+            const update = perkUpdates[card.id]
             return (
               <div key={card.id} data-reveal style={{ marginBottom: '1.5rem' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CardArt name={card.name} style={{ width: '32px', height: '22px', flexShrink: 0 }} />
                   {card.name}
                 </div>
+
+                {/* Perk update nudge */}
+                {update && (
+                  <div style={{ background: 'rgba(29,184,122,0.08)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '6px', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ fontSize: '12px', color: '#1db87a', fontWeight: '600', lineHeight: '1.4' }}>
+                      {update.newPerks.length > 0 && `${update.newPerks.length} new perk${update.newPerks.length > 1 ? 's' : ''} found`}
+                      {update.newPerks.length > 0 && update.changedPerks.length > 0 && ' · '}
+                      {update.changedPerks.length > 0 && `${update.changedPerks.length} perk${update.changedPerks.length > 1 ? 's' : ''} updated`}
+                      <span style={{ color: 'rgba(29,184,122,0.6)', fontWeight: '400' }}> · from latest card data</span>
+                    </div>
+                    <button
+                      onClick={() => setPerkUpdateModal({ card, ...update })}
+                      style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(29,184,122,0.15)', border: '1px solid rgba(29,184,122,0.35)', borderRadius: '9999px', cursor: 'pointer', color: '#1db87a', fontWeight: '700', fontFamily: 'inherit', flexShrink: 0 }}>
+                      Review
+                    </button>
+                  </div>
+                )}
+
                 <div className="card" style={{ padding: '0 1.125rem' }}>
-                  {cardPerks.map((perk, pi) => {
+                  {activeCardPerks.length === 0 && usedCardPerks.length > 0 && (
+                    <div style={{ padding: '13px 0', fontSize: '13px', color: 'rgba(221,221,228,0.3)', textAlign: 'center' }}>All perks used this cycle ✓</div>
+                  )}
+                  {activeCardPerks.map((perk, pi) => {
                     const remaining = perk.total_amount - perk.used_amount
                     const pct = Math.min((perk.used_amount / perk.total_amount) * 100, 100)
                     const daysLeft = perk.resets_at ? Math.ceil((new Date(perk.resets_at) - new Date()) / (1000 * 60 * 60 * 24)) : null
                     const isExpiring = daysLeft !== null && daysLeft <= 14 && daysLeft > 0
                     const isUrgent = daysLeft !== null && daysLeft <= 7 && daysLeft > 0
-                    const isUsed = remaining <= 0
-                    const accent = isUsed ? '#d95252' : isUrgent ? '#d95252' : isExpiring ? '#c47c2a' : '#1db87a'
+                    const accent = isUrgent ? '#d95252' : isExpiring ? '#c47c2a' : '#1db87a'
                     return (
-                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: pi < cardPerks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '3px' }}>{perk.name}</div>
                           <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginBottom: '8px' }}>
@@ -1152,17 +1249,15 @@ export default function Dashboard() {
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: accent, marginBottom: '5px' }}>
-                            {isUsed ? 'Used' : `$${remaining.toFixed(0)} left`}
+                            {`$${remaining.toFixed(0)} left`}
                           </div>
                           <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
-                            {!isUsed && (
-                              <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
-                                style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'}
-                                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}>
-                                mark used
-                              </button>
-                            )}
+                            <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
+                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
+                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'}
+                              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}>
+                              mark used
+                            </button>
                             <button onClick={() => deletePerk(perk.id).then(loadCards)}
                               style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
                               onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
@@ -1174,6 +1269,11 @@ export default function Dashboard() {
                       </div>
                     )
                   })}
+                  {usedCardPerks.length > 0 && activeCardPerks.length > 0 && (
+                    <div style={{ padding: '8px 0', fontSize: '11px', color: 'rgba(221,221,228,0.2)', borderTop: '1px solid rgba(255,255,255,0.04)', marginTop: '4px' }}>
+                      {usedCardPerks.length} perk{usedCardPerks.length > 1 ? 's' : ''} used this cycle ✓
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -1597,6 +1697,74 @@ export default function Dashboard() {
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ── PERK UPDATE REVIEW MODAL ───────────────────── */}
+      {perkUpdateModal && (
+        <div onClick={() => setPerkUpdateModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ ...sheetStyle, maxHeight: '80vh' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4' }}>Perk changes found</div>
+                <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.35)', marginTop: '2px' }}>{perkUpdateModal.card.name}</div>
+              </div>
+              <button onClick={() => setPerkUpdateModal(null)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'rgba(221,221,228,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+            <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
+              Clavis found updated perk data for this card. Review and apply what looks right — your usage tracking won't be affected.
+            </div>
+
+            {perkUpdateModal.newPerks.length > 0 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: '#1db87a', marginBottom: '8px' }}>New perks</div>
+                {perkUpdateModal.newPerks.map((p, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(29,184,122,0.06)', border: '1px solid rgba(29,184,122,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4' }}>{p.name}</div>
+                      <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>{p.period}</div>
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#1db87a' }}>${p.total_amount}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {perkUpdateModal.changedPerks.length > 0 && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: '#c9a227', marginBottom: '8px' }}>Updated amounts</div>
+                {perkUpdateModal.changedPerks.map((cp, i) => {
+                  const userPerk = perkUpdateModal.card.perks.find(up => up.name.toLowerCase().includes(cp.name.toLowerCase()) || cp.name.toLowerCase().includes(up.name.toLowerCase()))
+                  return (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(201,162,39,0.06)', border: '1px solid rgba(201,162,39,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4' }}>{cp.name}</div>
+                        <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>{cp.period}</div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#c9a227' }}>${cp.total_amount}</div>
+                        {userPerk && <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.25)', textDecoration: 'line-through' }}>${userPerk.total_amount}</div>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <button
+                onClick={() => dismissPerkUpdate(perkUpdateModal.card.id)}
+                style={{ padding: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: 'rgba(221,221,228,0.45)', fontFamily: 'inherit' }}>
+                Dismiss
+              </button>
+              <button
+                onClick={() => applyPerkUpdate(perkUpdateModal.card, perkUpdateModal.newPerks, perkUpdateModal.changedPerks)}
+                disabled={applyingPerkUpdate}
+                style={{ padding: '12px', background: '#1db87a', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', color: '#0a0a0f', fontFamily: 'inherit', opacity: applyingPerkUpdate ? 0.6 : 1 }}>
+                {applyingPerkUpdate ? 'Applying…' : 'Apply updates'}
+              </button>
+            </div>
           </div>
         </div>
       )}
