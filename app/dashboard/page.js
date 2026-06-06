@@ -74,7 +74,9 @@ function TimeAgo({ dateStr }) {
 }
 
 function formatResetDate(dateStr) {
+  if (!dateStr) return 'end of period'
   const d = new Date(dateStr + 'T00:00:00')
+  if (isNaN(d.getTime())) return 'end of period'
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
