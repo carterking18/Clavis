@@ -13,7 +13,7 @@ export function KeySVG({ size = 20, id = 'mk1' }) {
           <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
         </mask>
       </defs>
-      <rect width="512" height="512" fill="#c9a227" mask={`url(#${id})`}/>
+      <rect width="512" height="512" fill="#C9A227" mask={`url(#${id})`}/>
     </svg>
   )
 }
@@ -34,11 +34,11 @@ export function HeroArt() {
     >
       <defs>
         <linearGradient id="msGold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"   stopColor="#c9a227"/>
-          <stop offset="100%" stopColor="#e4c040"/>
+          <stop offset="0%"   stopColor="#B8911F"/>
+          <stop offset="100%" stopColor="#C9A227"/>
         </linearGradient>
         <pattern id="msDots" width="28" height="28" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="rgba(255,255,255,0.05)"/>
+          <circle cx="1" cy="1" r="1" fill="rgba(0,0,0,0.04)"/>
         </pattern>
       </defs>
 
@@ -46,70 +46,70 @@ export function HeroArt() {
 
       {/* Card C — back */}
       <g transform="rotate(-14 240 215)">
-        <rect x="60" y="108" width="300" height="188" rx="10" fill="#0a0a0e" stroke="rgba(255,255,255,0.04)" strokeWidth="1"/>
+        <rect x="60" y="108" width="300" height="188" rx="10" fill="#F3F4F6" stroke="rgba(0,0,0,0.06)" strokeWidth="1"/>
       </g>
 
       {/* Card B — middle */}
       <g transform="rotate(-6 240 215)">
-        <rect x="60" y="108" width="300" height="188" rx="10" fill="#141419" stroke="rgba(255,255,255,0.06)" strokeWidth="1"/>
-        <rect x="84" y="132" width="26" height="20" rx="3" fill="#1a1a20"/>
+        <rect x="60" y="108" width="300" height="188" rx="10" fill="#F9FAFB" stroke="rgba(0,0,0,0.07)" strokeWidth="1"/>
+        <rect x="84" y="132" width="26" height="20" rx="3" fill="#E5E7EB"/>
       </g>
 
       {/* Card A — front, gold-bordered */}
-      <rect x="60" y="108" width="300" height="188" rx="10" fill="#181820" stroke="rgba(201,162,39,0.48)" strokeWidth="1.5"/>
+      <rect x="60" y="108" width="300" height="188" rx="10" fill="#FFFFFF" stroke="rgba(201,162,39,0.5)" strokeWidth="1.5"/>
       <rect x="60" y="108" width="5" height="188" rx="2.5" fill="url(#msGold)"/>
 
       {/* Chip */}
-      <rect x="83" y="131" width="28" height="22" rx="4" fill="#23232e" stroke="rgba(201,162,39,0.28)" strokeWidth="1"/>
-      <line x1="83"  y1="139" x2="111" y2="139" stroke="rgba(201,162,39,0.16)" strokeWidth="0.8"/>
-      <line x1="83"  y1="145" x2="111" y2="145" stroke="rgba(201,162,39,0.16)" strokeWidth="0.8"/>
-      <line x1="97"  y1="131" x2="97"  y2="153" stroke="rgba(201,162,39,0.10)" strokeWidth="0.8"/>
+      <rect x="83" y="131" width="28" height="22" rx="4" fill="#F3F4F6" stroke="rgba(201,162,39,0.3)" strokeWidth="1"/>
+      <line x1="83"  y1="139" x2="111" y2="139" stroke="rgba(201,162,39,0.18)" strokeWidth="0.8"/>
+      <line x1="83"  y1="145" x2="111" y2="145" stroke="rgba(201,162,39,0.18)" strokeWidth="0.8"/>
+      <line x1="97"  y1="131" x2="97"  y2="153" stroke="rgba(201,162,39,0.12)" strokeWidth="0.8"/>
 
       {/* PAN dots */}
       {groups.map(g => dots.map(d => (
-        <circle key={`${g}-${d}`} cx={83 + g * 30 + d * 6} cy={186} r="2.4" fill="rgba(221,221,228,0.2)"/>
+        <circle key={`${g}-${d}`} cx={83 + g * 30 + d * 6} cy={186} r="2.4" fill="rgba(17,24,39,0.15)"/>
       )))}
 
       {/* Cardholder bars */}
-      <rect x="83" y="204" width="78" height="6" rx="2" fill="rgba(221,221,228,0.09)"/>
-      <rect x="83" y="214" width="55" height="5" rx="2" fill="rgba(221,221,228,0.05)"/>
+      <rect x="83" y="204" width="78" height="6" rx="2" fill="rgba(17,24,39,0.07)"/>
+      <rect x="83" y="214" width="55" height="5" rx="2" fill="rgba(17,24,39,0.04)"/>
 
       {/* Network circles */}
-      <circle cx="330" cy="134" r="17" fill="rgba(201,162,39,0.07)" stroke="rgba(201,162,39,0.2)"  strokeWidth="1"/>
-      <circle cx="318" cy="134" r="11" fill="rgba(201,162,39,0.05)" stroke="rgba(201,162,39,0.16)" strokeWidth="1"/>
+      <circle cx="330" cy="134" r="17" fill="rgba(201,162,39,0.08)" stroke="rgba(201,162,39,0.25)"  strokeWidth="1"/>
+      <circle cx="318" cy="134" r="11" fill="rgba(201,162,39,0.05)" stroke="rgba(201,162,39,0.18)" strokeWidth="1"/>
 
       {/* Rate badge */}
-      <rect x="374" y="90" width="100" height="66" rx="4" fill="#0f0f13" stroke="rgba(201,162,39,0.38)" strokeWidth="1"/>
-      <rect x="385" y="100" width="44" height="5"  rx="2" fill="rgba(221,221,228,0.08)"/>
-      <rect x="385" y="114" width="76" height="4"  rx="2" fill="rgba(201,162,39,0.11)"/>
-      <text x="385" y="148" fontSize="30" fontWeight="700" fill="#c9a227" fontFamily="system-ui,sans-serif">4×</text>
-      <text x="416" y="148" fontSize="11"              fill="rgba(221,221,228,0.38)" fontFamily="system-ui,sans-serif"> pts</text>
+      <rect x="374" y="90" width="100" height="66" rx="6" fill="#FFFFFF" stroke="rgba(0,0,0,0.08)" strokeWidth="1"/>
+      <rect x="385" y="100" width="44" height="5"  rx="2" fill="rgba(17,24,39,0.06)"/>
+      <rect x="385" y="114" width="76" height="4"  rx="2" fill="rgba(201,162,39,0.12)"/>
+      <text x="385" y="148" fontSize="30" fontWeight="700" fill="#C9A227" fontFamily="system-ui,sans-serif">4×</text>
+      <text x="416" y="148" fontSize="11"              fill="rgba(17,24,39,0.35)" fontFamily="system-ui,sans-serif"> pts</text>
 
       {/* Dashed connector */}
-      <line x1="360" y1="133" x2="375" y2="124" stroke="rgba(201,162,39,0.2)" strokeWidth="1" strokeDasharray="3 3"/>
+      <line x1="360" y1="133" x2="375" y2="124" stroke="rgba(201,162,39,0.25)" strokeWidth="1" strokeDasharray="3 3"/>
       <circle cx="360" cy="134" r="2.5" fill="rgba(201,162,39,0.5)"/>
 
       {/* Recommended pill */}
-      <rect x="374" y="172" width="116" height="34" rx="17" fill="rgba(201,162,39,0.08)" stroke="rgba(201,162,39,0.3)" strokeWidth="1"/>
-      <circle cx="393" cy="189" r="7" fill="#c9a227"/>
-      <path d="M390 189 L392.5 191.5 L397 186" stroke="#09090c" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <rect x="406" y="185" width="52" height="4"  rx="2" fill="rgba(201,162,39,0.55)"/>
-      <rect x="406" y="193" width="36" height="3"  rx="1.5" fill="rgba(201,162,39,0.25)"/>
+      <rect x="374" y="172" width="116" height="34" rx="6" fill="rgba(201,162,39,0.06)" stroke="rgba(201,162,39,0.28)" strokeWidth="1"/>
+      <circle cx="393" cy="189" r="7" fill="#C9A227"/>
+      <path d="M390 189 L392.5 191.5 L397 186" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <rect x="406" y="185" width="52" height="4"  rx="2" fill="rgba(201,162,39,0.5)"/>
+      <rect x="406" y="193" width="36" height="3"  rx="1.5" fill="rgba(201,162,39,0.22)"/>
 
       {/* Stats panel */}
-      <rect x="60" y="318" width="300" height="74" rx="4" fill="#0c0c11" stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
-      <rect x="76" y="330" width="54" height="5"   rx="2" fill="rgba(221,221,228,0.07)"/>
+      <rect x="60" y="318" width="300" height="74" rx="6" fill="#FFFFFF" stroke="rgba(0,0,0,0.07)" strokeWidth="1"/>
+      <rect x="76" y="330" width="54" height="5"   rx="2" fill="rgba(17,24,39,0.06)"/>
 
       {/* Bar chart */}
       {bars.map((h, i) => (
         <rect key={i} x={76 + i * 28} y={374 - h} width="16" height={h} rx="2"
-          fill={i === 3 ? '#c9a227' : 'rgba(201,162,39,0.15)'}/>
+          fill={i === 3 ? '#C9A227' : 'rgba(201,162,39,0.15)'}/>
       ))}
 
       {/* Right stat */}
-      <text x="294" y="356" fontSize="19" fontWeight="700" fill="rgba(201,162,39,0.8)" fontFamily="system-ui,sans-serif">7.2¢</text>
-      <rect x="294" y="362" width="50" height="4" rx="2" fill="rgba(221,221,228,0.05)"/>
-      <text x="294" y="378" fontSize="9"            fill="rgba(221,221,228,0.22)" fontFamily="system-ui,sans-serif">per dollar</text>
+      <text x="294" y="356" fontSize="19" fontWeight="700" fill="rgba(201,162,39,0.9)" fontFamily="system-ui,sans-serif">7.2¢</text>
+      <rect x="294" y="362" width="50" height="4" rx="2" fill="rgba(17,24,39,0.05)"/>
+      <text x="294" y="378" fontSize="9"            fill="rgba(17,24,39,0.3)" fontFamily="system-ui,sans-serif">per dollar</text>
     </svg>
   )
 }
@@ -123,24 +123,24 @@ export function ComparisonArt() {
     { name: 'Freedom Unlimited',      rate: '1.5×', val: '1.5¢', highlight: false },
   ]
   return (
-    <div style={{ background: '#0c0c11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+    <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         {['Card','Rate','Value'].map(h => (
-          <span key={h} style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.25)', textAlign: h === 'Card' ? 'left' : 'right' }}>{h}</span>
+          <span key={h} style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: h === 'Card' ? 'left' : 'right' }}>{h}</span>
         ))}
       </div>
       {rows.map((row, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '13px 16px', borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', background: row.highlight ? 'rgba(201,162,39,0.06)' : 'transparent' }}>
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '13px 16px', borderBottom: i < rows.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none', background: row.highlight ? 'rgba(201,162,39,0.04)' : 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '3px', height: '16px', borderRadius: '2px', background: row.highlight ? '#c9a227' : 'transparent', flexShrink: 0 }}/>
-            <span style={{ fontSize: '12px', fontWeight: row.highlight ? '600' : '400', color: row.highlight ? '#dddde4' : 'rgba(221,221,228,0.45)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
+            <div style={{ width: '3px', height: '16px', borderRadius: '2px', background: row.highlight ? '#C9A227' : 'transparent', flexShrink: 0 }}/>
+            <span style={{ fontSize: '12px', fontWeight: row.highlight ? '600' : '400', color: row.highlight ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
           </div>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: row.highlight ? '#c9a227' : 'rgba(221,221,228,0.35)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.rate}</span>
-          <span style={{ fontSize: '12px', fontWeight: '500', color: row.highlight ? 'rgba(201,162,39,0.7)' : 'rgba(221,221,228,0.2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.val}</span>
+          <span style={{ fontSize: '13px', fontWeight: '700', color: row.highlight ? '#C9A227' : 'var(--text-faintest)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.rate}</span>
+          <span style={{ fontSize: '12px', fontWeight: '500', color: row.highlight ? 'rgba(201,162,39,0.8)' : 'var(--text-faintest)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.val}</span>
         </div>
       ))}
-      <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(255,255,255,0.04)', background: 'rgba(201,162,39,0.04)' }}>
-        <span style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.05em', color: '#c9a227' }}>◉ &nbsp;Recommended · Chase Sapphire Reserve</span>
+      <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', background: 'rgba(201,162,39,0.03)' }}>
+        <span style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.05em', color: '#C9A227' }}>◉ &nbsp;Recommended · Chase Sapphire Reserve</span>
       </div>
     </div>
   )
@@ -155,25 +155,25 @@ export function PerkArt() {
     { name: 'Global Entry',   total: 100, used: 100, warn: false, done: true  },
   ]
   return (
-    <div style={{ background: '#0c0c11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.25)' }}>Perk Tracker</span>
-        <span style={{ fontSize: '10px', fontWeight: '600', color: '#c9a227' }}>4 active</span>
+    <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Perk Tracker</span>
+        <span style={{ fontSize: '10px', fontWeight: '600', color: '#C9A227' }}>4 active</span>
       </div>
       {perks.map((p, i) => {
         const pct = Math.min(100, (p.used / p.total) * 100)
         return (
-          <div key={i} style={{ padding: '14px 16px', borderBottom: i < perks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+          <div key={i} style={{ padding: '14px 16px', borderBottom: i < perks.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {p.warn && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#c47c2a', display: 'inline-block', flexShrink: 0 }}/>}
-                <span style={{ fontSize: '12px', fontWeight: '500', color: p.warn ? '#dddde4' : 'rgba(221,221,228,0.65)' }}>{p.name}</span>
-                {p.warn && <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#c47c2a', background: 'rgba(196,124,42,0.12)', padding: '1px 6px', borderRadius: '9999px' }}>3d left</span>}
+                {p.warn && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#B45309', display: 'inline-block', flexShrink: 0 }}/>}
+                <span style={{ fontSize: '12px', fontWeight: '500', color: p.warn ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{p.name}</span>
+                {p.warn && <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#B45309', background: 'rgba(180,83,9,0.08)', padding: '1px 6px', borderRadius: '9999px' }}>3d left</span>}
               </div>
-              <span style={{ fontSize: '11px', fontWeight: '600', color: p.done ? '#1db87a' : 'rgba(221,221,228,0.35)', fontVariantNumeric: 'tabular-nums' }}>${p.used}/${p.total}</span>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: p.done ? '#0F9B65' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>${p.used}/${p.total}</span>
             </div>
-            <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${pct}%`, borderRadius: '2px', background: p.done ? '#1db87a' : p.warn ? '#c47c2a' : '#c9a227' }}/>
+            <div style={{ height: '3px', background: 'rgba(0,0,0,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${pct}%`, borderRadius: '2px', background: p.done ? '#0F9B65' : p.warn ? '#B45309' : '#C9A227' }}/>
             </div>
           </div>
         )
@@ -189,26 +189,26 @@ export function ChartArt() {
   const max    = Math.max(...vals)
 
   return (
-    <div style={{ background: '#0c0c11', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '20px', width: '100%', maxWidth: '440px' }}>
+    <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', padding: '20px', width: '100%', maxWidth: '440px' }}>
       <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div>
-          <div style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.25)', marginBottom: '4px' }}>Earned this year</div>
-          <div style={{ fontSize: '28px', fontWeight: '700', color: '#dddde4', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>$847<span style={{ fontSize: '18px', color: 'rgba(221,221,228,0.4)' }}>.20</span></div>
+          <div style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Earned this year</div>
+          <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>$847<span style={{ fontSize: '18px', color: 'var(--text-muted)' }}>.20</span></div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(29,184,122,0.1)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '9999px', padding: '4px 10px' }}>
-          <span style={{ fontSize: '10px', fontWeight: '700', color: '#1db87a' }}>↑ 23%</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(15,155,101,0.08)', border: '1px solid rgba(15,155,101,0.2)', borderRadius: '9999px', padding: '4px 10px' }}>
+          <span style={{ fontSize: '10px', fontWeight: '700', color: '#0F9B65' }}>↑ 23%</span>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '72px', marginTop: '16px', marginBottom: '6px' }}>
         {vals.map((v, i) => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-            <div style={{ width: '100%', height: `${(v / max) * 100}%`, borderRadius: '2px 2px 0 0', background: i === 7 ? '#c9a227' : 'rgba(201,162,39,0.18)' }}/>
+            <div style={{ width: '100%', height: `${(v / max) * 100}%`, borderRadius: '2px 2px 0 0', background: i === 7 ? '#C9A227' : 'rgba(201,162,39,0.15)' }}/>
           </div>
         ))}
       </div>
       <div style={{ display: 'flex', gap: '4px' }}>
         {months.map((m, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '8px', fontWeight: '600', color: i === 7 ? '#c9a227' : 'rgba(221,221,228,0.2)' }}>{m}</div>
+          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '8px', fontWeight: '600', color: i === 7 ? '#C9A227' : 'var(--text-faintest)' }}>{m}</div>
         ))}
       </div>
     </div>
@@ -220,12 +220,12 @@ export const marketingStyles = `
   .mkt-nav-link {
     font-size: 13px;
     font-weight: 500;
-    color: rgba(221,221,228,0.5);
+    color: var(--text-secondary);
     text-decoration: none;
     transition: color 0.15s;
     letter-spacing: 0.01em;
   }
-  .mkt-nav-link:hover { color: #dddde4; }
+  .mkt-nav-link:hover { color: var(--text-primary); }
 
   .mkt-section {
     padding: 96px 24px;
@@ -241,25 +241,25 @@ export const marketingStyles = `
   }
 
   .mkt-label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #c9a227;
+    color: var(--gold);
     margin-bottom: 16px;
   }
 
   .mkt-body {
     font-size: 16px;
     line-height: 1.65;
-    color: rgba(221,221,228,0.55);
+    color: var(--text-secondary);
     font-weight: 400;
     margin-top: 16px;
   }
 
   .mkt-divider {
     border: none;
-    border-top: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid var(--border);
     margin: 0;
   }
 
@@ -305,16 +305,16 @@ export function MarketingBody() {
           <div className="mkt-label">How it works</div>
           <h2 className="display-lg">Three steps to smarter spending.</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
           {[
             { step: '01', title: 'Add your cards',     body: "Import every card in your wallet. Clavis maps out each card's earn rates, perks, and annual credits automatically." },
             { step: '02', title: 'Select a category',  body: 'Tap a purchase type — dining, travel, grocery, gas. Or type a merchant name and Clavis detects the category.' },
             { step: '03', title: 'Tap the right card', body: 'Clavis scores every card and surfaces the best one in real time. One tap logs the transaction and tracks your rewards.' },
           ].map((item, i) => (
-            <div key={i} style={{ padding: '32px 28px', background: '#0c0c11' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.16em', color: 'rgba(201,162,39,0.4)', marginBottom: '16px' }}>{item.step}</div>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '10px', lineHeight: '1.3' }}>{item.title}</div>
-              <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'rgba(221,221,228,0.42)' }}>{item.body}</div>
+            <div key={i} style={{ padding: '32px 28px', background: 'var(--bg-card)' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.16em', color: 'rgba(201,162,39,0.5)', marginBottom: '16px' }}>{item.step}</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '10px', lineHeight: '1.3' }}>{item.title}</div>
+              <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>{item.body}</div>
             </div>
           ))}
         </div>
@@ -331,8 +331,8 @@ export function MarketingBody() {
             <p className="mkt-body">Clavis weighs earn rates, active perks, expiring credits, and gift card balances simultaneously — then ranks every card by actual dollar value per spend.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {['Real dollar value, not just reward points', 'Expiring perk bonuses factored in', 'Manual override with automatic fallback'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(221,221,228,0.55)', fontWeight: '500' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#c9a227', flexShrink: 0 }}/>
+                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
                 </li>
               ))}
@@ -353,8 +353,8 @@ export function MarketingBody() {
             <p className="mkt-body">$300 travel credit. $15 streaming. $10 dining monthly. Clavis tracks every card benefit, surfaces expiring perks with three-day alerts, and shows your annual utilization at a glance.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {['Expiry alerts 14 days in advance', 'Per-card and wallet-wide perk view', 'Email digest of upcoming expirations'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(221,221,228,0.55)', fontWeight: '500' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#c9a227', flexShrink: 0 }}/>
+                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
                 </li>
               ))}
@@ -375,8 +375,8 @@ export function MarketingBody() {
             <p className="mkt-body">Your complete transaction history across every card. Retroactive analysis shows which card you should have used — and exactly how much you left on the table.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {['Total rewards earned, month by month', 'Retroactive missed-value analysis', 'Category-level optimization hints'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'rgba(221,221,228,0.55)', fontWeight: '500' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#c9a227', flexShrink: 0 }}/>
+                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
                 </li>
               ))}

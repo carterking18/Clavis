@@ -45,9 +45,9 @@ export default function Auth() {
   }
 
   const heading = {
-    login:  <>Welcome<br/><span style={{ background: 'linear-gradient(135deg,#c9a227,#e4c040)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>back.</span></>,
-    signup: <>Start<br/><span style={{ background: 'linear-gradient(135deg,#c9a227,#e4c040)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>earning more.</span></>,
-    forgot: <>Reset your<br/><span style={{ background: 'linear-gradient(135deg,#c9a227,#e4c040)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>password.</span></>,
+    login:  <>Welcome<br/><span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>back.</span></>,
+    signup: <>Start<br/><span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>earning more.</span></>,
+    forgot: <>Reset your<br/><span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>password.</span></>,
   }
 
   const subtext = {
@@ -57,7 +57,7 @@ export default function Auth() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-page)' }}>
       <div style={{ width: '100%', maxWidth: '380px' }}>
 
         {/* Logo */}
@@ -73,15 +73,15 @@ export default function Auth() {
                   <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
                 </mask>
               </defs>
-              <rect width="512" height="512" fill="#c9a227" mask="url(#akey)"/>
+              <rect width="512" height="512" fill="#C9A227" mask="url(#akey)"/>
             </svg>
-            <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: 'rgba(221,221,228,0.5)' }}>CLAVIS</span>
+            <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>CLAVIS</span>
           </a>
 
-          <h1 style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '-0.02em', lineHeight: '1.1', color: '#dddde4', marginBottom: '8px' }}>
+          <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '32px', fontWeight: '400', letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)', marginBottom: '8px' }}>
             {heading[mode]}
           </h1>
-          <p style={{ fontSize: '13px', color: 'rgba(221,221,228,0.35)', fontWeight: '400', lineHeight: '1.5' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '400', lineHeight: '1.5' }}>
             {subtext[mode]}
           </p>
         </div>
@@ -112,9 +112,9 @@ export default function Auth() {
                 {mode === 'login' && (
                   <button
                     onClick={() => switchMode('forgot')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: 'rgba(221,221,228,0.35)', fontFamily: 'inherit', padding: 0, transition: 'color 0.15s' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.65)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.35)'}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'inherit', padding: 0, transition: 'color 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
                     Forgot password?
                   </button>
                 )}

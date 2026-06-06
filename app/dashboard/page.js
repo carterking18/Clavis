@@ -49,10 +49,10 @@ function CardArt({ name, style = {} }) {
       ...style
     }}>
       {design.chip && (
-        <div style={{ width: '20px', height: '14px', borderRadius: '3px', background: 'rgba(255,255,255,0.25)', border: '0.5px solid rgba(255,255,255,0.15)' }} />
+        <div style={{ width: '20px', height: '14px', borderRadius: '3px', background: 'rgba(0,0,0,0.06)', border: '0.5px solid rgba(255,255,255,0.25)' }} />
       )}
       {design.network && (
-        <div style={{ alignSelf: 'flex-end', fontSize: '9px', fontWeight: '700', color: 'rgba(221,221,228,0.65)', letterSpacing: '0.04em', marginTop: 'auto' }}>
+        <div style={{ alignSelf: 'flex-end', fontSize: '9px', fontWeight: '700', color: 'var(--text-secondary)', letterSpacing: '0.04em', marginTop: 'auto' }}>
           {design.network}
         </div>
       )}
@@ -543,14 +543,14 @@ export default function Dashboard() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <p style={{ color: 'rgba(221,221,228,0.35)', fontSize: '14px' }}>Loading your wallet...</p>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading your wallet...</p>
     </div>
   )
 
   const sheetStyle = {
-    background: '#0f0f13', borderRadius: '8px 8px 0 0', padding: '1.5rem',
+    background: 'var(--bg-card)', borderRadius: '8px 8px 0 0', padding: '1.5rem',
     width: '100%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto',
-    border: '1px solid rgba(255,255,255,0.06)', borderBottom: 'none',
+    border: '1px solid var(--border-subtle)', borderBottom: 'none',
   }
 
   const insightCount = perkInsights.length + retroactiveMissed.length + cardRecs.length
@@ -559,7 +559,7 @@ export default function Dashboard() {
     <div className="app">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
           <svg width="22" height="22" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -573,21 +573,21 @@ export default function Dashboard() {
             </defs>
             <rect width="512" height="512" fill="#c9a227" mask="url(#hkey)"/>
           </svg>
-          <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.02em', color: '#dddde4' }}>
+          <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
             CLAVIS
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <a href="/about"
-            style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.22)', textDecoration: 'none', transition: 'color 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.55)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.22)'}>
+            style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', textDecoration: 'none', transition: 'color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
             About
           </a>
           <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-            style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.22)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', fontFamily: 'inherit' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.55)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.22)'}>
+            style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', fontFamily: 'inherit' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
             Sign out
           </button>
         </div>
@@ -624,13 +624,13 @@ export default function Dashboard() {
               padding: '11px 14px',
               border: detectedMerchant
                 ? '1px solid rgba(29,184,122,0.4)'
-                : '1px solid rgba(255,255,255,0.08)',
+                : '1px solid var(--border)',
               transition: 'border-color 0.2s',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
             }}>
-              <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'rgba(221,221,228,0.22)', flexShrink: 0, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--text-faintest)', flexShrink: 0, textTransform: 'uppercase' }}>
                 {detectedMerchant ? CAT_META[detectedMerchant.category]?.label : 'Merchant'}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -644,27 +644,27 @@ export default function Dashboard() {
                     setMerchantSuggestions(searchMerchants(q))
                     if (!q) setDetectedMerchant(null)
                   }}
-                  style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '14px', fontWeight: '500', color: '#dddde4', fontFamily: 'inherit', outline: 'none' }}
+                  style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
                 />
               </div>
               {merchantQuery && (
                 <button
                   onClick={() => { setMerchantQuery(''); setDetectedMerchant(null); setMerchantSuggestions([]); setSelectedCardId(null) }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(221,221,228,0.3)', fontSize: '14px', flexShrink: 0, lineHeight: 1, padding: '0 2px' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0, lineHeight: 1, padding: '0 2px' }}>
                   ×
                 </button>
               )}
             </div>
             {merchantSuggestions.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#141419', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 50, overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 50, overflow: 'hidden' }}>
                 {merchantSuggestions.map(m => (
                   <div key={m.name}
                     onClick={() => { setMerchantQuery(m.name); setDetectedMerchant(m); pickCategory(m.category); setMerchantSuggestions([]) }}
-                    style={{ padding: '11px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.1s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                    style={{ padding: '11px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <span style={{ fontWeight: '500', color: '#dddde4' }}>{m.name}</span>
-                    <span style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.35)', border: '1px solid rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '9999px' }}>{CAT_META[m.category]?.label}</span>
+                    <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{m.name}</span>
+                    <span style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '9999px' }}>{CAT_META[m.category]?.label}</span>
                   </div>
                 ))}
               </div>
@@ -678,9 +678,9 @@ export default function Dashboard() {
                 style={{
                   flexShrink: 0, padding: '6px 14px',
                   borderRadius: '9999px',
-                  border: selectedCat === cat ? '1px solid rgba(201,162,39,0.5)' : '1px solid rgba(255,255,255,0.06)',
+                  border: selectedCat === cat ? '1px solid rgba(201,162,39,0.5)' : '1px solid var(--border-subtle)',
                   background: selectedCat === cat ? 'rgba(201,162,39,0.1)' : 'transparent',
-                  color: selectedCat === cat ? '#c9a227' : 'rgba(221,221,228,0.35)',
+                  color: selectedCat === cat ? '#c9a227' : 'var(--text-muted)',
                   fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase',
                   cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
                 }}>
@@ -691,7 +691,7 @@ export default function Dashboard() {
 
           {/* 3 ── Hero card */}
           {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(221,221,228,0.25)', fontSize: '13px', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '4px' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontSize: '13px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
               No cards yet — add one in Wallet.
             </div>
           ) : (() => {
@@ -703,38 +703,38 @@ export default function Dashboard() {
             const label = selectedCardId ? 'Selected' : isBestTied() ? 'Tied' : 'Recommended'
 
             return (
-              <div data-reveal style={{ border: '1px solid rgba(255,255,255,0.07)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
+              <div data-reveal style={{ border: '1px solid var(--border)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
                 {/* Card header row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
                   <CardArt name={activeCard?.name || ''} style={{ width: '52px', height: '35px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.3)', marginBottom: '3px' }}>
+                    <div style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '3px' }}>
                       {label}
                     </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#dddde4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {activeCard?.name || '—'}
                     </div>
                     {activeCard?.last_four && (
-                      <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)', marginTop: '1px', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
                         •••• {activeCard.last_four}
                       </div>
                     )}
                   </div>
                   {selectedCardId && (
                     <button onClick={() => setSelectedCardId(null)}
-                      style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.3)', background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: '9999px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>
                       Auto
                     </button>
                   )}
                 </div>
                 {/* Rate row */}
-                <div style={{ padding: '16px 16px 18px', background: 'rgba(255,255,255,0.015)' }}>
+                <div style={{ padding: '16px 16px 18px', background: 'var(--bg-elevated)' }}>
                   {isGift ? (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                      <span style={{ fontSize: '40px', fontWeight: '700', color: '#1db87a', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                      <span style={{ fontSize: '40px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                         ${(activeCard.balance || 0).toFixed(2)}
                       </span>
-                      <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', fontWeight: '500' }}>remaining</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>remaining</span>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
@@ -743,11 +743,11 @@ export default function Dashboard() {
                           {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1×'}
                         </span>
                         {valuePer && mult > 0 && (
-                          <span style={{ fontSize: '13px', color: 'rgba(221,221,228,0.35)', fontWeight: '500' }}>{valuePer}</span>
+                          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>{valuePer}</span>
                         )}
                       </div>
                       {estimatedOnAmt > 0 && (
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#1db87a', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
                           +${estimatedOnAmt.toFixed(2)}
                         </span>
                       )}
@@ -764,23 +764,23 @@ export default function Dashboard() {
           </button>
 
           {/* 5 ── Amount input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '10px 14px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', color: 'rgba(221,221,228,0.3)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
-            <span style={{ fontSize: '14px', color: 'rgba(221,221,228,0.3)', fontWeight: '600' }}>$</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '10px 14px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
+            <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>$</span>
             <input type="number" min="0" placeholder="0.00" value={selectedAmt || ''}
               onChange={e => setSelectedAmt(parseFloat(e.target.value) || 0)}
-              style={{ flex: 1, background: 'transparent', border: 'none', color: '#dddde4', fontSize: '15px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
+              style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '15px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
             {selectedAmt > 0 && (
-              <button onClick={() => setSelectedAmt(0)} style={{ background: 'none', border: 'none', color: 'rgba(221,221,228,0.3)', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}>✕</button>
+              <button onClick={() => setSelectedAmt(0)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}>✕</button>
             )}
           </div>
 
           {/* 6 ── See all cards */}
           {cards.length > 1 && (
             <button onClick={() => setShowRankings(true)}
-              style={{ width: '100%', background: 'none', border: 'none', fontSize: '10px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.22)', cursor: 'pointer', padding: '8px', transition: 'color 0.15s', fontFamily: 'inherit' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'rgba(221,221,228,0.55)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'rgba(221,221,228,0.22)'}>
+              style={{ width: '100%', background: 'none', border: 'none', fontSize: '10px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faintest)', cursor: 'pointer', padding: '8px', transition: 'color 0.15s', fontFamily: 'inherit' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
               View all {cards.length} cards →
             </button>
           )}
@@ -790,20 +790,20 @@ export default function Dashboard() {
           )}
 
           {missedInsight && (
-            <div style={{ marginTop: '8px', background: 'rgba(196,124,42,0.1)', border: '1px solid rgba(196,124,42,0.28)', borderRadius: '4px', padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ marginTop: '8px', background: 'rgba(180,83,9,0.08)', border: '1px solid rgba(180,83,9,0.28)', borderRadius: '4px', padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
               <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#c47c2a', marginBottom: '2px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--orange)', marginBottom: '2px' }}>
                   {missedInsight.missedOnAmt
                     ? `$${missedInsight.missedOnAmt.toFixed(2)} more with ${missedInsight.cardName}`
                     : `${missedInsight.missedPerDollar}¢/$ more with ${missedInsight.cardName}`}
                 </div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                   {missedInsight.cardName} earns {missedInsight.rate} here
                   {missedInsight.missedOnAmt ? ` · ${missedInsight.missedPerDollar}¢ more per dollar` : ''}
                 </div>
               </div>
-              <button onClick={() => setMissedInsight(null)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', fontSize: '14px', padding: '0', flexShrink: 0 }}>✕</button>
+              <button onClick={() => setMissedInsight(null)} style={{ background: 'none', border: 'none', color: 'var(--text-faintest)', cursor: 'pointer', fontSize: '14px', padding: '0', flexShrink: 0 }}>✕</button>
             </div>
           )}
         </div>
@@ -820,13 +820,13 @@ export default function Dashboard() {
             return (
               <div data-reveal style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
                 {[
-                  { label: 'Cards', value: cards.length, color: '#dddde4' },
-                  { label: 'Annual fees', value: totalFees > 0 ? `$${totalFees.toFixed(0)}` : '$0', color: totalFees > 0 ? '#d95252' : 'rgba(221,221,228,0.3)' },
-                  { label: 'Net value', value: `${netValue >= 0 ? '+' : ''}$${netValue.toFixed(0)}`, color: netValue >= 0 ? '#1db87a' : '#d95252' },
+                  { label: 'Cards', value: cards.length, color: 'var(--text-primary)' },
+                  { label: 'Annual fees', value: totalFees > 0 ? `$${totalFees.toFixed(0)}` : '$0', color: totalFees > 0 ? 'var(--red)' : 'var(--text-faintest)' },
+                  { label: 'Net value', value: `${netValue >= 0 ? '+' : ''}$${netValue.toFixed(0)}`, color: netValue >= 0 ? 'var(--green)' : 'var(--red)' },
                 ].map(m => (
-                  <div key={m.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '14px 10px', textAlign: 'center' }}>
+                  <div key={m.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '14px 10px', textAlign: 'center' }}>
                     <div style={{ fontSize: '20px', fontWeight: '700', color: m.color, marginBottom: '4px' }}>{m.value}</div>
-                    <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', fontWeight: '500' }}>{m.label}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>{m.label}</div>
                   </div>
                 ))}
               </div>
@@ -834,7 +834,7 @@ export default function Dashboard() {
           })()}
 
           {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px', marginBottom: '1rem' }}>No cards yet. Add your first one below.</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '14px', marginBottom: '1rem' }}>No cards yet. Add your first one below.</div>
           ) : (
             <div style={{ marginBottom: '1.5rem' }}>
               {cards.map(card => {
@@ -862,67 +862,67 @@ export default function Dashboard() {
                 const isPaidOff = fee > 0 && roiPct >= 100
 
                 return (
-                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '4px', border: isPaidOff ? '1.5px solid rgba(29,184,122,0.3)' : '1px solid rgba(255,255,255,0.06)', background: isPaidOff ? 'rgba(29,184,122,0.04)' : 'rgba(255,255,255,0.03)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
+                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '4px', border: isPaidOff ? '1.5px solid rgba(29,184,122,0.3)' : '1px solid var(--border-subtle)', background: isPaidOff ? 'rgba(15,155,101,0.04)' : 'var(--bg-card)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px', cursor: fee > 0 ? 'pointer' : 'default' }}
                       onClick={() => fee > 0 && setExpandedRoiId(isExpanded ? null : card.id)}>
                       <CardArt name={card.name} style={{ width: '48px', height: '32px', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                        <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '1px' }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
                           {card.type}{fee > 0 ? ` · $${fee}/yr fee` : ''}
                         </div>
                       </div>
                       {fee > 0 ? (
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {isPaidOff ? (
-                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#1db87a', background: 'rgba(29,184,122,0.15)', borderRadius: '9999px', padding: '3px 10px' }}>✓ Paid off</div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--green)', background: 'rgba(29,184,122,0.15)', borderRadius: '9999px', padding: '3px 10px' }}>✓ Paid off</div>
                           ) : (
                             <>
                               <div style={{ fontSize: '15px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
-                              <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.3)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
+                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
                             </>
                           )}
                         </div>
                       ) : (
-                        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.22)', padding: '0 4px' }}>no fee</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-faintest)', padding: '0 4px' }}>no fee</div>
                       )}
                     </div>
 
                     {fee > 0 && (
                       <div style={{ padding: '0 14px', marginBottom: isExpanded ? '0' : '12px' }}>
-                        <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? '#1db87a' : roiPct > 60 ? '#c9a227' : 'rgba(201,162,39,0.6)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
+                        <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? 'var(--green)' : roiPct > 60 ? 'var(--gold)' : 'rgba(201,162,39,0.45)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
                         </div>
                         {!isExpanded && breakEvenLabel && (
-                          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '5px', marginBottom: '2px' }}>{breakEvenLabel}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-faintest)', marginTop: '5px', marginBottom: '2px' }}>{breakEvenLabel}</div>
                         )}
                       </div>
                     )}
 
                     {fee > 0 && isExpanded && (
-                      <div style={{ margin: '0 14px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '4px', padding: '12px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ margin: '0 14px 14px', background: 'var(--bg-elevated)', borderRadius: '4px', padding: '12px', border: '1px solid var(--border-subtle)' }}>
                         {[
-                          { label: 'Perks captured', value: perksValue, color: '#4d8ef0' },
-                          { label: 'Tap rewards', value: tapValue, color: '#1db87a' },
+                          { label: 'Perks captured', value: perksValue, color: 'var(--blue)' },
+                          { label: 'Tap rewards', value: tapValue, color: 'var(--green)' },
                         ].map(row => (
                           <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                               <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: row.color, flexShrink: 0 }} />
-                              <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.5)' }}>{row.label}</span>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{row.label}</span>
                             </div>
-                            <span style={{ fontSize: '13px', fontWeight: '600', color: row.value > 0 ? row.color : 'rgba(255,255,255,0.22)' }}>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: row.value > 0 ? row.color : 'var(--text-faintest)' }}>
                               {row.value > 0 ? `+$${row.value.toFixed(2)}` : '—'}
                             </span>
                           </div>
                         ))}
-                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
+                        <div style={{ height: '1px', background: 'var(--bg-elevated)', margin: '8px 0' }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
-                          <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.5)' }}>Annual fee</span>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#d95252' }}>−${fee.toFixed(2)}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Annual fee</span>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--red)' }}>−${fee.toFixed(2)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
-                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'rgba(255,255,255,0.6)' }}>Net value</span>
-                          <span style={{ fontSize: '14px', fontWeight: '700', color: totalValue >= fee ? '#1db87a' : '#c9a227', letterSpacing: '-0.02em' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>Net value</span>
+                          <span style={{ fontSize: '14px', fontWeight: '700', color: totalValue >= fee ? 'var(--green)' : 'var(--gold)', letterSpacing: '-0.02em' }}>
                             {totalValue >= fee ? '+' : ''}${(totalValue - fee).toFixed(2)}
                           </span>
                         </div>
@@ -932,12 +932,12 @@ export default function Dashboard() {
                           </div>
                         )}
                         {isPaidOff && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(29,184,122,0.1)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '4px', fontSize: '11px', color: '#1db87a', fontWeight: '600' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(15,155,101,0.08)', border: '1px solid rgba(15,155,101,0.25)', borderRadius: '4px', fontSize: '11px', color: 'var(--green)', fontWeight: '600' }}>
                             ✓ This card has fully paid for its annual fee
                           </div>
                         )}
                         {!isPaidOff && tapValue === 0 && perksValue === 0 && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(217,82,82,0.08)', border: '1px solid rgba(217,82,82,0.2)', borderRadius: '4px', fontSize: '11px', color: '#d95252', fontWeight: '500' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(217,82,82,0.08)', border: '1px solid rgba(217,82,82,0.2)', borderRadius: '4px', fontSize: '11px', color: 'var(--red)', fontWeight: '500' }}>
                             No value captured yet — use Smart Tap or mark perks used
                           </div>
                         )}
@@ -946,19 +946,19 @@ export default function Dashboard() {
 
                     <div style={{ display: 'flex', gap: '5px', padding: '0 14px 14px' }}>
                       <button onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}
-                        style={{ flex: 1, padding: '6px 4px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#dddde4' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
+                        style={{ flex: 1, padding: '6px 4px', fontSize: '11px', border: '1px solid var(--border)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}>
                         + perk
                       </button>
                       <button onClick={() => openEditCard(card)}
-                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.45)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = '#dddde4' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'rgba(255,255,255,0.45)' }}>
+                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid var(--border)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}>
                         edit
                       </button>
                       <button onClick={() => deleteCard(card.id).then(loadCards)}
-                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
+                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--red)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
                         onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
                         onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
                         ×
@@ -973,8 +973,8 @@ export default function Dashboard() {
           <button className="btn-primary" onClick={() => setShowAddCard(true)}>+ Add card</button>
 
           {showAddCard && (
-            <div data-reveal style={{ marginTop: '14px', background: '#0f0f13', borderRadius: '4px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '1.125rem' }}>Add a card</div>
+            <div data-reveal style={{ marginTop: '14px', background: 'var(--bg-card)', borderRadius: '4px', padding: '1.25rem', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '1.125rem' }}>Add a card</div>
 
               <div style={{ marginBottom: '12px' }}>
                 <label className="label">Card name</label>
@@ -982,7 +982,7 @@ export default function Dashboard() {
                   <input className="input" placeholder="e.g. Amex Gold" value={newCard.name}
                     onChange={e => handleNewCardNameChange(e.target.value)} />
                   {fetchingCardData && (
-                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
+                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: 'var(--text-muted)' }}>
                       Looking up...
                     </div>
                   )}
@@ -1021,19 +1021,19 @@ export default function Dashboard() {
                       }}
                     />
                     {giftMerchantSuggestions.length > 0 && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#141419', border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 50, overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 50, overflow: 'hidden' }}>
                         {giftMerchantSuggestions.map(m => (
                           <div key={m.name}
                             onClick={() => { setNewCard(prev => ({ ...prev, merchant: m.name })); setGiftMerchantSuggestions([]) }}
-                            style={{ padding: '10px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.1s' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+                            style={{ padding: '10px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <span style={{ fontWeight: '500', color: '#dddde4' }}>{m.name}</span>
+                            <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{m.name}</span>
                           </div>
                         ))}
                       </div>
                     )}
-                    <p style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '5px' }}>When you type this merchant at checkout, the gift card will always be picked first.</p>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px' }}>When you type this merchant at checkout, the gift card will always be picked first.</p>
                   </div>
                 </>
               )}
@@ -1079,24 +1079,24 @@ export default function Dashboard() {
 
                   <div style={{ marginBottom: '16px' }}>
                     <label className="label">Rewards rate</label>
-                    <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginBottom: '10px', lineHeight: '1.5' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', lineHeight: '1.5' }}>
                       Cash back: enter % (e.g. 1.5). Points: enter multiplier (e.g. 3 for 3x).
                     </div>
                     {newCard._suggestion && (
-                      <div style={{ marginBottom: '10px', fontSize: '12px', color: newCard._aiSuggestion ? '#c9a227' : '#4d8ef0', background: newCard._aiSuggestion ? 'rgba(201,162,39,0.1)' : 'rgba(77,142,240,0.1)', border: `1px solid ${newCard._aiSuggestion ? 'rgba(201,162,39,0.2)' : 'rgba(77,142,240,0.2)'}`, borderRadius: '4px', padding: '8px 12px' }}>
+                      <div style={{ marginBottom: '10px', fontSize: '12px', color: newCard._aiSuggestion ? 'var(--gold)' : 'var(--blue)', background: newCard._aiSuggestion ? 'rgba(201,162,39,0.08)' : 'rgba(37,99,235,0.06)', border: `1px solid ${newCard._aiSuggestion ? 'rgba(201,162,39,0.2)' : 'rgba(37,99,235,0.15)'}`, borderRadius: '4px', padding: '8px 12px' }}>
                         {newCard._aiSuggestion ? '✦ AI-populated' : '✦ Rates auto-filled'} — {newCard._suggestion}
                       </div>
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '10px 12px' }}>
-                      <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', flexShrink: 0 }}>Apply to all categories</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '10px 12px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', flexShrink: 0 }}>Apply to all categories</span>
                       <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '5px 8px', fontSize: '13px', flex: 1 }}
                         onChange={e => { const val = e.target.value; const filled = {}; CATEGORIES.forEach(cat => { filled[cat] = val }); setNewCard({ ...newCard, multipliers: filled }) }} />
                     </div>
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginBottom: '8px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Or per category:</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginBottom: '8px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Or per category:</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                       {CATEGORIES.map(cat => (
                         <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
                           <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 8px', fontSize: '13px' }}
                             value={newCard.multipliers[cat]} onChange={e => setNewCard({ ...newCard, multipliers: { ...newCard.multipliers, [cat]: e.target.value } })} />
                         </div>
@@ -1114,11 +1114,11 @@ export default function Dashboard() {
           )}
 
           {showAddPerk && (
-            <div data-reveal style={{ marginTop: '14px', background: '#0f0f13', borderRadius: '4px', padding: '1.25rem', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '4px' }}>Add a perk</div>
+            <div data-reveal style={{ marginTop: '14px', background: 'var(--bg-card)', borderRadius: '4px', padding: '1.25rem', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>Add a perk</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.125rem' }}>
                 <CardArt name={cards.find(c => c.id === addingToCardId)?.name || ''} style={{ width: '28px', height: '20px', flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', color: 'rgba(221,221,228,0.55)', fontWeight: '500' }}>{cards.find(c => c.id === addingToCardId)?.name}</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>{cards.find(c => c.id === addingToCardId)?.name}</span>
               </div>
               <div style={{ marginBottom: '12px' }}>
                 <label className="label">Perk name</label>
@@ -1162,7 +1162,7 @@ export default function Dashboard() {
       {tab === 'perks' && (
         <div>
           {expiringPerks.length > 0 && (
-            <div data-reveal style={{ background: 'rgba(196,124,42,0.1)', border: '1px solid rgba(196,124,42,0.3)', borderRadius: '4px', padding: '10px 14px', marginBottom: '1rem', fontSize: '13px', color: '#c47c2a', fontWeight: '500' }}>
+            <div data-reveal style={{ background: 'rgba(180,83,9,0.08)', border: '1px solid rgba(180,83,9,0.3)', borderRadius: '4px', padding: '10px 14px', marginBottom: '1rem', fontSize: '13px', color: 'var(--orange)', fontWeight: '500' }}>
               — {expiringPerks.length} credit{expiringPerks.length > 1 ? 's' : ''} expiring within 14 days — use them now.
             </div>
           )}
@@ -1173,17 +1173,17 @@ export default function Dashboard() {
             const totalAll = allPerks.reduce((s, p) => s + p.total_amount, 0)
             const usedPct = totalAll > 0 ? Math.round(((totalAll - totalRemaining) / totalAll) * 100) : 0
             return totalRemaining > 0 ? (
-              <div data-reveal style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '14px 16px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div data-reveal style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '14px 16px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>Uncaptured value</div>
-                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#1db87a', letterSpacing: '-0.03em' }}>${totalRemaining.toFixed(0)}</div>
-                  <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', marginTop: '8px' }}>
-                    <div style={{ height: '3px', borderRadius: '2px', width: usedPct + '%', background: '#1db87a', transition: 'width 0.5s' }} />
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>Uncaptured value</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${totalRemaining.toFixed(0)}</div>
+                  <div style={{ height: '3px', background: 'var(--bg-elevated)', borderRadius: '2px', marginTop: '8px' }}>
+                    <div style={{ height: '3px', borderRadius: '2px', width: usedPct + '%', background: 'var(--green)', transition: 'width 0.5s' }} />
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '18px', fontWeight: '700', color: 'rgba(255,255,255,0.4)', letterSpacing: '-0.02em' }}>{usedPct}%</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)', marginTop: '2px' }}>used</div>
+                  <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '-0.02em' }}>{usedPct}%</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginTop: '2px' }}>used</div>
                 </div>
               </div>
             ) : null
@@ -1197,7 +1197,7 @@ export default function Dashboard() {
           {emailMsg && <div className="success">{emailMsg}</div>}
 
           {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
           ) : cards.map(card => {
             const cardPerks = card.perks || []
             const update = perkUpdates[card.id]
@@ -1207,15 +1207,15 @@ export default function Dashboard() {
             const usedCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) <= 0)
             return (
               <div key={card.id} data-reveal style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <CardArt name={card.name} style={{ width: '32px', height: '22px', flexShrink: 0 }} />
                   {card.name}
                 </div>
 
                 {/* Perk update nudge */}
                 {update && (
-                  <div style={{ background: 'rgba(29,184,122,0.08)', border: '1px solid rgba(29,184,122,0.25)', borderRadius: '6px', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                    <div style={{ fontSize: '12px', color: '#1db87a', fontWeight: '600', lineHeight: '1.4' }}>
+                  <div style={{ background: 'rgba(29,184,122,0.08)', border: '1px solid rgba(15,155,101,0.25)', borderRadius: '6px', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--green)', fontWeight: '600', lineHeight: '1.4' }}>
                       {cardPerks.length === 0
                         ? `${update.newPerks.length} perk${update.newPerks.length > 1 ? 's' : ''} available for this card`
                         : <>
@@ -1228,7 +1228,7 @@ export default function Dashboard() {
                     </div>
                     <button
                       onClick={() => setPerkUpdateModal({ card, ...update })}
-                      style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(29,184,122,0.15)', border: '1px solid rgba(29,184,122,0.35)', borderRadius: '9999px', cursor: 'pointer', color: '#1db87a', fontWeight: '700', fontFamily: 'inherit', flexShrink: 0 }}>
+                      style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(29,184,122,0.15)', border: '1px solid rgba(15,155,101,0.35)', borderRadius: '9999px', cursor: 'pointer', color: 'var(--green)', fontWeight: '700', fontFamily: 'inherit', flexShrink: 0 }}>
                       Review
                     </button>
                   </div>
@@ -1236,7 +1236,7 @@ export default function Dashboard() {
 
                 {cardPerks.length > 0 && <div className="card" style={{ padding: '0 1.125rem' }}>
                   {activeCardPerks.length === 0 && usedCardPerks.length > 0 && (
-                    <div style={{ padding: '13px 0', fontSize: '13px', color: 'rgba(221,221,228,0.3)', textAlign: 'center' }}>All perks used this cycle ✓</div>
+                    <div style={{ padding: '13px 0', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center' }}>All perks used this cycle ✓</div>
                   )}
                   {activeCardPerks.map((perk, pi) => {
                     const remaining = perk.total_amount - perk.used_amount
@@ -1244,16 +1244,16 @@ export default function Dashboard() {
                     const daysLeft = perk.resets_at ? Math.ceil((new Date(perk.resets_at) - new Date()) / (1000 * 60 * 60 * 24)) : null
                     const isExpiring = daysLeft !== null && daysLeft <= 14 && daysLeft > 0
                     const isUrgent = daysLeft !== null && daysLeft <= 7 && daysLeft > 0
-                    const accent = isUrgent ? '#d95252' : isExpiring ? '#c47c2a' : '#1db87a'
+                    const accent = isUrgent ? 'var(--red)' : isExpiring ? 'var(--orange)' : 'var(--green)'
                     return (
-                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '3px' }}>{perk.name}</div>
-                          <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginBottom: '8px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '3px' }}>{perk.name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
                             {perk.period}
                             {daysLeft !== null ? ` · ${isUrgent ? `${daysLeft}d left` : isExpiring ? `${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
                           </div>
-                          <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px' }}>
+                          <div style={{ height: '3px', background: 'var(--bg-elevated)', borderRadius: '2px' }}>
                             <div style={{ height: '3px', borderRadius: '2px', width: pct + '%', background: accent, transition: 'width 0.4s' }} />
                           </div>
                         </div>
@@ -1263,13 +1263,13 @@ export default function Dashboard() {
                           </div>
                           <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
                             <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
-                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'}
-                              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}>
+                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid var(--border)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
+                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
+                              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
                               mark used
                             </button>
                             <button onClick={() => deletePerk(perk.id).then(loadCards)}
-                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: '#d95252', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
+                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--red)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
                               onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
                               onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
                               remove
@@ -1280,7 +1280,7 @@ export default function Dashboard() {
                     )
                   })}
                   {usedCardPerks.length > 0 && activeCardPerks.length > 0 && (
-                    <div style={{ padding: '8px 0', fontSize: '11px', color: 'rgba(221,221,228,0.2)', borderTop: '1px solid rgba(255,255,255,0.04)', marginTop: '4px' }}>
+                    <div style={{ padding: '8px 0', fontSize: '11px', color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', marginTop: '4px' }}>
                       {usedCardPerks.length} perk{usedCardPerks.length > 1 ? 's' : ''} used this cycle ✓
                     </div>
                   )}
@@ -1295,46 +1295,46 @@ export default function Dashboard() {
       {tab === 'history' && (
         <div>
           <div data-reveal style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>This month</div>
-              <div style={{ fontSize: '24px', fontWeight: '700', color: '#1db87a', letterSpacing: '-0.03em' }}>${thisMonthEarned.toFixed(2)}</div>
-              <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '3px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>This month</div>
+              <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${thisMonthEarned.toFixed(2)}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>All time</div>
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '16px' }}>
+              <div style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>All time</div>
               <div style={{ fontSize: '24px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em' }}>${totalEarned.toFixed(2)}</div>
-              <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '3px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
 
           {tapsLoading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px' }}>Loading...</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '14px' }}>Loading...</div>
           ) : taps.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'rgba(221,221,228,0.3)', fontSize: '14px' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontSize: '14px' }}>
               No taps yet. Use Smart Tap to start tracking your rewards.
             </div>
           ) : (
             <div className="card" style={{ padding: '0 1.125rem' }}>
               {taps.map((tap, i) => (
-                <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < taps.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < taps.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                   <CardArt name={tap.card_name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tap.merchant || tap.card_name}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                       {tap.card_name}{tap.category ? ` · ${tap.category}` : ''}
                       {' · '}<TimeAgo dateStr={tap.tapped_at} />
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     {tap.amount > 0 && (
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '1px' }}>${tap.amount.toFixed(2)}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '1px' }}>${tap.amount.toFixed(2)}</div>
                     )}
                     {tap.estimated_value > 0 ? (
-                      <div style={{ fontSize: '12px', fontWeight: '600', color: '#1db87a' }}>+${tap.estimated_value.toFixed(2)}</div>
+                      <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--green)' }}>+${tap.estimated_value.toFixed(2)}</div>
                     ) : (
-                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.28)' }}>{tap.rewards_rate || '—'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-faintest)' }}>{tap.rewards_rate || '—'}</div>
                     )}
                   </div>
                 </div>
@@ -1350,8 +1350,8 @@ export default function Dashboard() {
           {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
               
-              <div style={{ fontSize: '15px', fontWeight: '600', color: 'rgba(221,221,228,0.5)', marginBottom: '8px' }}>No insights yet</div>
-              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.28)', lineHeight: '1.6' }}>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>No insights yet</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-faintest)', lineHeight: '1.6' }}>
                 Add cards with perks and use Smart Tap to start seeing personalized optimization tips.
               </div>
             </div>
@@ -1360,11 +1360,11 @@ export default function Dashboard() {
               {/* ── Proactive recommendations ── */}
               {perkInsights.length > 0 && (
                 <div style={{ marginBottom: '1.75rem' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
                     Use before they expire
                   </div>
                   {perkInsights.map(insight => {
-                    const urgentColor = insight.days <= 7 ? '#d95252' : insight.days <= 14 ? '#c47c2a' : '#1db87a'
+                    const urgentColor = insight.days <= 7 ? 'var(--red)' : insight.days <= 14 ? 'var(--orange)' : 'var(--green)'
                     const urgentBg = insight.days <= 7 ? 'rgba(217,82,82,0.08)' : insight.days <= 14 ? 'rgba(196,124,42,0.08)' : 'rgba(29,184,122,0.06)'
                     const urgentBorder = insight.days <= 7 ? 'rgba(217,82,82,0.25)' : insight.days <= 14 ? 'rgba(196,124,42,0.25)' : 'rgba(29,184,122,0.2)'
                     return (
@@ -1372,21 +1372,21 @@ export default function Dashboard() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                           <CardArt name={insight.card.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', fontWeight: '500', marginBottom: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#dddde4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500', marginBottom: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
                           </div>
                           <div style={{ textAlign: 'right', flexShrink: 0 }}>
                             <div style={{ fontSize: '22px', fontWeight: '700', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
                               ${insight.remaining.toFixed(0)}
                             </div>
-                            <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>{insight.days}d left</div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{insight.days}d left</div>
                           </div>
                         </div>
-                        <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.55)', lineHeight: '1.55' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
                           {'You have '}
-                          <span style={{ color: '#dddde4', fontWeight: '600' }}>${insight.remaining.toFixed(0)}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>${insight.remaining.toFixed(0)}</span>
                           {' in '}
-                          <span style={{ color: '#dddde4', fontWeight: '600' }}>{insight.perk.name}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{insight.perk.name}</span>
                           {' until '}
                           <span style={{ color: urgentColor, fontWeight: '600' }}>{formatResetDate(insight.resetDate)}</span>
                           {insight.suggestion && (
@@ -1403,7 +1403,7 @@ export default function Dashboard() {
               {/* ── Retroactive optimization feed ── */}
               {retroactiveMissed.length > 0 && (
                 <div style={{ marginBottom: '1.75rem' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
                     Left on the table
                   </div>
 
@@ -1412,7 +1412,7 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '2px' }}>
                       <button
                         onClick={() => setSelectedMonth(null)}
-                        style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', background: selectedMonth === null ? '#c47c2a' : 'transparent', borderColor: selectedMonth === null ? '#c47c2a' : 'rgba(255,255,255,0.12)', color: selectedMonth === null ? '#fff' : 'rgba(221,221,228,0.5)' }}
+                        style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: selectedMonth === null ? 'var(--text-primary)' : 'transparent', borderColor: selectedMonth === null ? 'var(--text-primary)' : 'var(--border)', color: selectedMonth === null ? '#fff' : 'var(--text-muted)' }}
                       >
                         All time
                       </button>
@@ -1422,7 +1422,7 @@ export default function Dashboard() {
                         const active = selectedMonth === m.key
                         return (
                           <button key={m.key} onClick={() => setSelectedMonth(m.key)}
-                            style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-dm-sans)', background: active ? '#c47c2a' : 'transparent', borderColor: active ? '#c47c2a' : 'rgba(255,255,255,0.12)', color: active ? '#fff' : 'rgba(221,221,228,0.5)' }}
+                            style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: active ? 'var(--text-primary)' : 'transparent', borderColor: active ? 'var(--text-primary)' : 'var(--border)', color: active ? '#fff' : 'var(--text-muted)' }}
                           >
                             {label}
                           </button>
@@ -1448,14 +1448,14 @@ export default function Dashboard() {
 
                     return (
                       <>
-                        <div data-reveal style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(196,124,42,0.2)', borderRadius: '12px', padding: '16px 18px', marginBottom: '12px' }}>
-                          <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.4)', marginBottom: '6px' }}>
+                        <div data-reveal style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(180,83,9,0.2)', borderRadius: '12px', padding: '16px 18px', marginBottom: '12px' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                             {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
                           </div>
-                          <div style={{ fontSize: '36px', fontWeight: '800', color: '#c47c2a', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                          <div style={{ fontSize: '36px', fontWeight: '800', color: 'var(--orange)', letterSpacing: '-0.04em', lineHeight: 1 }}>
                             ${filteredTotal.toFixed(2)}
                           </div>
-                          <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.35)', marginTop: '6px' }}>
+                          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
                             on the table across {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
                             {!selectedMonth && ' in your history'}
                           </div>
@@ -1465,30 +1465,30 @@ export default function Dashboard() {
                         {filtered.length > 0 && (
                           <div className="card" style={{ padding: '0 1.125rem' }}>
                             {filtered.slice(0, 15).map((item, i) => (
-                              <div key={item.tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                              <div key={item.tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                                 <CardArt name={item.bestCard.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {item.tap.merchant || item.tap.card_name}
-                                    {item.tap.amount > 0 && <span style={{ color: 'rgba(221,221,228,0.3)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
+                                    {item.tap.amount > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
                                   </div>
-                                  <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
-                                    <span style={{ color: '#d95252' }}>{item.usedCard.name}</span>
-                                    <span style={{ color: 'rgba(255,255,255,0.2)' }}> → </span>
-                                    <span style={{ color: '#1db87a' }}>{item.bestCard.name}</span>
-                                    {item.tap.category && <span style={{ color: 'rgba(255,255,255,0.25)' }}> · {item.tap.category}</span>}
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                    <span style={{ color: 'var(--red)' }}>{item.usedCard.name}</span>
+                                    <span style={{ color: 'var(--text-faintest)' }}> → </span>
+                                    <span style={{ color: 'var(--green)' }}>{item.bestCard.name}</span>
+                                    {item.tap.category && <span style={{ color: 'var(--text-faintest)' }}> · {item.tap.category}</span>}
                                   </div>
                                 </div>
                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                  <div style={{ fontSize: '13px', fontWeight: '700', color: '#c47c2a' }}>+${item.missedTotal.toFixed(2)}</div>
-                                  <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)', marginTop: '1px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
+                                  <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--orange)' }}>+${item.missedTotal.toFixed(2)}</div>
+                                  <div style={{ fontSize: '10px', color: 'var(--text-faintest)', marginTop: '1px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
                         {filtered.length > 15 && (
-                          <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.25)', marginTop: '10px' }}>
+                          <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-faintest)', marginTop: '10px' }}>
                             +{filtered.length - 15} more transactions
                           </div>
                         )}
@@ -1500,10 +1500,10 @@ export default function Dashboard() {
 
               {/* ── Card recommendations ── */}
               <div style={{ marginBottom: '1.75rem' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
                   Cards worth adding
                 </div>
-                <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.22)', marginBottom: '12px', lineHeight: '1.5' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginBottom: '12px', lineHeight: '1.5' }}>
                   Based on your last {taps.length} purchase{taps.length !== 1 ? 's' : ''} · {taps.length < 10
                     ? <span style={{ color: '#c9a227' }}>track more purchases to sharpen these picks</span>
                     : 'personalized to your spending'}
@@ -1513,16 +1513,16 @@ export default function Dashboard() {
                 {taps.length < 5 && cards.length > 0 && (
                   <div style={{ background: 'rgba(201,162,39,0.07)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '12px 14px', marginBottom: '12px' }}>
                     <div style={{ fontSize: '13px', fontWeight: '600', color: '#c9a227', marginBottom: '4px' }}>Log purchases to unlock personalized picks</div>
-                    <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', lineHeight: '1.55' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
                       Clavis learns from every tap you log. The more you track, the more accurately it can find cards that match your real spending — not just guesses. Head to the Tap tab and start logging.
                     </div>
                   </div>
                 )}
 
                 {cardRecs.length === 0 && cards.length > 0 ? (
-                  <div style={{ background: 'rgba(29,184,122,0.06)', border: '1px solid rgba(29,184,122,0.15)', borderLeft: '3px solid #1db87a', borderRadius: '4px', padding: '14px 16px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#1db87a', marginBottom: '4px' }}>Your wallet is well-optimized</div>
-                    <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.45)', lineHeight: '1.5' }}>
+                  <div style={{ background: 'rgba(15,155,101,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderLeft: '3px solid var(--green)', borderRadius: '4px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--green)', marginBottom: '4px' }}>Your wallet is well-optimized</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
                       Based on your spending, no card on the market meaningfully outperforms what you already have. Nice setup.
                     </div>
                   </div>
@@ -1535,12 +1535,12 @@ export default function Dashboard() {
                       {/* Header row */}
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '4px' }}>{rec.name}</div>
+                          <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>{rec.name}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '11px', fontWeight: '700', color: tierStyle.color, background: tierStyle.bg, padding: '2px 7px', borderRadius: '9999px' }}>
                               {tierStyle.label}
                             </span>
-                            <span style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                               {rec.annualFee === 0 ? 'No annual fee' : `$${rec.annualFee}/yr`}
                             </span>
                           </div>
@@ -1549,12 +1549,12 @@ export default function Dashboard() {
                           <div style={{ fontSize: '20px', fontWeight: '800', color: '#5b8fff', letterSpacing: '-0.03em', lineHeight: 1 }}>
                             +${Math.round(netAnnualGain)}/yr
                           </div>
-                          <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>est. from your spend</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>est. from your spend</div>
                         </div>
                       </div>
 
                       {/* Why description */}
-                      <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.45)', lineHeight: '1.55', marginBottom: '10px' }}>{rec.why}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55', marginBottom: '10px' }}>{rec.why}</div>
 
                       {/* Where you'd gain */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
@@ -1578,7 +1578,7 @@ export default function Dashboard() {
                           {affiliate.cta} →
                         </a>
                       ) : (
-                        <div style={{ textAlign: 'center', padding: '11px', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', fontSize: '12px', color: 'rgba(221,221,228,0.3)' }}>
+                        <div style={{ textAlign: 'center', padding: '11px', background: 'var(--bg-elevated)', borderRadius: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
                           Search "{rec.name}" to apply
                         </div>
                       )}
@@ -1588,7 +1588,7 @@ export default function Dashboard() {
 
                 {/* Affiliate disclosure */}
                 {cardRecs.length > 0 && (
-                  <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.18)', lineHeight: '1.55', marginTop: '8px', padding: '0 2px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-faintest)', lineHeight: '1.55', marginTop: '8px', padding: '0 2px' }}>
                     {AFFILIATE_DISCLOSURE}
                   </div>
                 )}
@@ -1601,13 +1601,13 @@ export default function Dashboard() {
       {/* ── MODALS ────────────────────────────────────── */}
 
       {emptyGiftCards.length > 0 && emptyGiftCards[emptyGiftCardIndex] && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div style={{ background: '#0f0f13', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '6px', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
             <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '64px', marginBottom: '1rem' }} />
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
-            <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.38)', marginBottom: '1.25rem', lineHeight: '1.6' }}>This gift card has a $0 balance. Would you like to remove it from your wallet?</div>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: '1.6' }}>This gift card has a $0 balance. Would you like to remove it from your wallet?</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-primary" style={{ background: '#d95252' }} onClick={async () => {
+              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={async () => {
                 await deleteCard(emptyGiftCards[emptyGiftCardIndex].id); await loadCards()
                 const remaining = emptyGiftCards.filter((_, i) => i !== emptyGiftCardIndex)
                 setEmptyGiftCards(remaining); setEmptyGiftCardIndex(0)
@@ -1622,19 +1622,19 @@ export default function Dashboard() {
       )}
 
       {suggestedPerks && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div style={sheetStyle}>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4', marginBottom: '4px' }}>Known perks found</div>
-            <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.38)', marginBottom: '1.25rem' }}>Select the perks you have on this card. You can edit amounts later.</div>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>Known perks found</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>Select the perks you have on this card. You can edit amounts later.</div>
             {suggestedPerks.map((perk, i) => (
               <div key={i} onClick={() => setSelectedPerkIndices(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i])}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', cursor: 'pointer' }}>
-                <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: selectedPerkIndices.includes(i) ? '2px solid #30c98a' : '1.5px solid rgba(255,255,255,0.2)', background: selectedPerkIndices.includes(i) ? '#1db87a' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: selectedPerkIndices.includes(i) ? '2px solid var(--green)' : '1.5px solid var(--border)', background: selectedPerkIndices.includes(i) ? 'var(--green)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                   {selectedPerkIndices.includes(i) && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4' }}>{perk.name}</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>{perk.period}{perk.total_amount > 0 ? ` · $${perk.total_amount}` : ''}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{perk.name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{perk.period}{perk.total_amount > 0 ? ` · $${perk.total_amount}` : ''}</div>
                 </div>
               </div>
             ))}
@@ -1647,14 +1647,14 @@ export default function Dashboard() {
       )}
 
       {showRankings && (
-        <div onClick={() => setShowRankings(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setShowRankings(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ ...sheetStyle, maxHeight: '70vh' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4' }}>Card rankings</div>
-                <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.35)', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Card rankings</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
               </div>
-              <button onClick={() => setShowRankings(false)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'rgba(221,221,228,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setShowRankings(false)} style={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             {(() => {
               const ranked = getRankedCards()
@@ -1663,16 +1663,16 @@ export default function Dashboard() {
                 const tiedWithPrev = i > 0 && Math.abs(ranked[i - 1].score - score) <= 0.001
                 const tiedWithNext = i < ranked.length - 1 && Math.abs(ranked[i + 1].score - score) <= 0.001
                 const isTop = i === 0 || tiedWithPrev
-                const accentColor = isTop ? '#c9a227' : 'rgba(255,255,255,0.22)'
+                const accentColor = isTop ? 'var(--gold)' : 'var(--border)'
                 return (
-                  <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
                     <div style={{ fontSize: '13px', fontWeight: '700', color: accentColor, width: '22px', flexShrink: 0, textAlign: 'center' }}>
                       {tiedWithPrev ? '=' : `#${i + 1}`}
                     </div>
                     <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#dddde4', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                      <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                         {reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}
                         {tiedWithNext && !tiedWithPrev && (card.annual_fee || 0) > 0 && (
                           <span style={{ color: 'rgba(201,162,39,0.55)' }}> · higher fee</span>
@@ -1680,11 +1680,11 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: isTop ? '#c9a227' : 'rgba(221,221,228,0.35)' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: isTop ? '#c9a227' : 'var(--text-muted)' }}>
                         {mult > 0 ? formatRate(card, mult) : '—'}
                       </div>
                       {dollarVal > 0 && (
-                        <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '1px' }}>{formatValuePerDollar(card, mult)}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>{formatValuePerDollar(card, mult)}</div>
                       )}
                     </div>
                   </div>
@@ -1693,19 +1693,19 @@ export default function Dashboard() {
             })()}
 
             {/* How we rank — collapsible formula */}
-            <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '0.75rem' }}>
+            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
               <button
                 onClick={() => setShowFormula(f => !f)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', fontFamily: 'inherit' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(221,221,228,0.3)' }}>How we rank cards</span>
-                <span style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)', transition: 'transform 0.2s', display: 'inline-block', transform: showFormula ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>How we rank cards</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', transition: 'transform 0.2s', display: 'inline-block', transform: showFormula ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
               </button>
 
               {showFormula && (
                 <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-                  <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.35)', lineHeight: '1.6' }}>
-                    Every card gets a <strong style={{ color: 'rgba(221,221,228,0.6)' }}>score</strong> for the current category and amount. The highest score wins.
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    Every card gets a <strong style={{ color: 'var(--text-secondary)' }}>score</strong> for the current category and amount. The highest score wins.
                   </div>
 
                   {[
@@ -1719,43 +1719,43 @@ export default function Dashboard() {
                       label: 'Unused perks',
                       formula: '+0.5 per active perk',
                       detail: 'Cards with perks you haven\'t fully used yet get a small bump to remind you to use what you\'re paying for.',
-                      color: 'rgba(221,221,228,0.55)',
+                      color: 'var(--text-secondary)',
                     },
                     {
                       label: 'Expiring perks',
                       formula: '+1.5 per perk expiring within 14 days',
                       detail: 'A perk about to reset is worth more urgency than one with months left. This nudges the card up so you don\'t leave money on the table.',
-                      color: 'rgba(221,221,228,0.55)',
+                      color: 'var(--text-secondary)',
                     },
                     {
                       label: 'Gift card balance',
                       formula: '+5 if gift card has remaining balance',
                       detail: 'A gift card with money on it should be used before any rewards card — you\'ve already paid for it.',
-                      color: 'rgba(221,221,228,0.55)',
+                      color: 'var(--text-secondary)',
                     },
                     {
                       label: 'Linked merchant override',
                       formula: 'Score → 9999 (always #1)',
                       detail: 'If you typed a merchant and a gift card is linked to that store, it locks to the top. No credit card rewards beat a gift card that only works here.',
-                      color: 'rgba(221,221,228,0.55)',
+                      color: 'var(--text-secondary)',
                     },
                     {
                       label: 'Tie-breaker',
                       formula: 'Higher annual fee ranks lower',
                       detail: 'When two cards score identically, the one charging you less per year wins. Why pay more for the same result?',
-                      color: 'rgba(221,221,228,0.55)',
+                      color: 'var(--text-secondary)',
                     },
                   ].map(row => (
-                    <div key={row.label} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '6px', padding: '10px 12px' }}>
+                    <div key={row.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '6px', padding: '10px 12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
                         <span style={{ fontSize: '12px', fontWeight: '700', color: row.color }}>{row.label}</span>
-                        <span style={{ fontSize: '11px', fontWeight: '600', fontFamily: 'monospace', color: 'rgba(221,221,228,0.25)', flexShrink: 0 }}>{row.formula}</span>
+                        <span style={{ fontSize: '11px', fontWeight: '600', fontFamily: 'monospace', color: 'var(--text-muted)', flexShrink: 0 }}>{row.formula}</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', margin: 0, lineHeight: '1.55' }}>{row.detail}</p>
+                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, lineHeight: '1.55' }}>{row.detail}</p>
                     </div>
                   ))}
 
-                  <p style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)', margin: '2px 0 0', lineHeight: '1.5' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: '1.5' }}>
                     Point valuations (cents per point) come from our internal table based on typical redemption rates — e.g. Chase UR at 1.8¢, Amex MR at 1.8¢, Capital One at 1.85¢.
                   </p>
                 </div>
@@ -1768,29 +1768,29 @@ export default function Dashboard() {
 
       {/* ── PERK UPDATE REVIEW MODAL ───────────────────── */}
       {perkUpdateModal && (
-        <div onClick={() => setPerkUpdateModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setPerkUpdateModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ ...sheetStyle, maxHeight: '80vh' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4' }}>Perk changes found</div>
-                <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.35)', marginTop: '2px' }}>{perkUpdateModal.card.name}</div>
+                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Perk changes found</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{perkUpdateModal.card.name}</div>
               </div>
-              <button onClick={() => setPerkUpdateModal(null)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'rgba(221,221,228,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setPerkUpdateModal(null)} style={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-            <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
               Clavis found updated perk data for this card. Review and apply what looks right — your usage tracking won't be affected.
             </div>
 
             {perkUpdateModal.newPerks.length > 0 && (
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: '#1db87a', marginBottom: '8px' }}>New perks</div>
+                <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: '8px' }}>New perks</div>
                 {perkUpdateModal.newPerks.map((p, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(29,184,122,0.06)', border: '1px solid rgba(29,184,122,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(29,184,122,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4' }}>{p.name}</div>
-                      <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>{p.period}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{p.name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{p.period}</div>
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#1db87a' }}>${p.total_amount}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--green)' }}>${p.total_amount}</div>
                   </div>
                 ))}
               </div>
@@ -1804,12 +1804,12 @@ export default function Dashboard() {
                   return (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(201,162,39,0.06)', border: '1px solid rgba(201,162,39,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#dddde4' }}>{cp.name}</div>
-                        <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>{cp.period}</div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{cp.name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{cp.period}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '13px', fontWeight: '700', color: '#c9a227' }}>${cp.total_amount}</div>
-                        {userPerk && <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.25)', textDecoration: 'line-through' }}>${userPerk.total_amount}</div>}
+                        {userPerk && <div style={{ fontSize: '11px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>${userPerk.total_amount}</div>}
                       </div>
                     </div>
                   )
@@ -1820,13 +1820,13 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <button
                 onClick={() => dismissPerkUpdate(perkUpdateModal.card.id)}
-                style={{ padding: '12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: 'rgba(221,221,228,0.45)', fontFamily: 'inherit' }}>
+                style={{ padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
                 Dismiss
               </button>
               <button
                 onClick={() => applyPerkUpdate(perkUpdateModal.card, perkUpdateModal.newPerks, perkUpdateModal.changedPerks)}
                 disabled={applyingPerkUpdate}
-                style={{ padding: '12px', background: '#1db87a', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', color: '#0a0a0f', fontFamily: 'inherit', opacity: applyingPerkUpdate ? 0.6 : 1 }}>
+                style={{ padding: '12px', background: 'var(--green)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', color: '#0a0a0f', fontFamily: 'inherit', opacity: applyingPerkUpdate ? 0.6 : 1 }}>
                 {applyingPerkUpdate ? 'Applying…' : 'Apply updates'}
               </button>
             </div>
@@ -1842,26 +1842,26 @@ export default function Dashboard() {
       )}
 
       {editingCard && (
-        <div onClick={() => setEditingCard(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setEditingCard(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={sheetStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: '#dddde4' }}>Edit {editingCard.name}</div>
-              <button onClick={() => setEditingCard(null)} style={{ background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'rgba(221,221,228,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Edit {editingCard.name}</div>
+              <button onClick={() => setEditingCard(null)} style={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             <CardArt name={editingCard.name} style={{ height: '56px', marginBottom: '1rem' }} />
-            <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.3)', marginBottom: '10px', lineHeight: '1.5' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', lineHeight: '1.5' }}>
               Cash back: enter % (e.g. 1.5). Points/miles: enter multiplier (e.g. 3 for 3x).
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', padding: '10px 12px' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', flexShrink: 0 }}>Apply to all categories</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '10px 12px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', flexShrink: 0 }}>Apply to all categories</span>
               <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '5px 8px', fontSize: '13px', flex: 1 }}
                 onChange={e => { const val = e.target.value; const filled = {}; CATEGORIES.forEach(cat => { filled[cat] = val }); setEditMultipliers(filled) }} />
             </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginBottom: '8px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Or per category:</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginBottom: '8px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Or per category:</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.25rem' }}>
               {CATEGORIES.map(cat => (
                 <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
                   <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 8px', fontSize: '13px' }}
                     value={editMultipliers[cat] || ''} onChange={e => setEditMultipliers({ ...editMultipliers, [cat]: e.target.value })} />
                 </div>

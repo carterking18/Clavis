@@ -11,8 +11,6 @@ export default function ResetPassword() {
   const [error, setError] = useState('')
   const [ready, setReady] = useState(false)
 
-  // Supabase puts the session tokens in the URL hash when redirecting.
-  // Listening for PASSWORD_RECOVERY confirms the link is valid.
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true)
@@ -36,7 +34,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-page)' }}>
       <div style={{ width: '100%', maxWidth: '380px' }}>
 
         <div style={{ marginBottom: '40px' }}>
@@ -51,16 +49,16 @@ export default function ResetPassword() {
                   <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
                 </mask>
               </defs>
-              <rect width="512" height="512" fill="#c9a227" mask="url(#akey2)"/>
+              <rect width="512" height="512" fill="#C9A227" mask="url(#akey2)"/>
             </svg>
-            <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: 'rgba(221,221,228,0.5)' }}>CLAVIS</span>
+            <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>CLAVIS</span>
           </a>
 
-          <h1 style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '-0.02em', lineHeight: '1.1', color: '#dddde4', marginBottom: '8px' }}>
+          <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '32px', fontWeight: '400', letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)', marginBottom: '8px' }}>
             Set a new<br/>
-            <span style={{ background: 'linear-gradient(135deg,#c9a227,#e4c040)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>password.</span>
+            <span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>password.</span>
           </h1>
-          <p style={{ fontSize: '13px', color: 'rgba(221,221,228,0.35)', lineHeight: '1.5' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
             {ready ? 'Choose a new password for your account.' : 'Verifying your reset link…'}
           </p>
         </div>
@@ -68,7 +66,7 @@ export default function ResetPassword() {
         {error && <div className="error">{error}</div>}
 
         {!ready ? (
-          <div style={{ textAlign: 'center', color: 'rgba(221,221,228,0.3)', fontSize: '13px', padding: '2rem 0' }}>
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: '2rem 0' }}>
             Waiting for confirmation…
           </div>
         ) : (

@@ -1,11 +1,18 @@
 import './globals.css'
 import { SWRegister } from './sw-register'
-import { DM_Sans } from 'next/font/google'
+import { Geist, Instrument_Serif } from 'next/font/google'
 
-const dmSans = DM_Sans({
+const geist = Geist({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-dm-sans',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-geist',
+  display: 'swap',
+})
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: ['400'],
+  variable: '--font-instrument',
   display: 'swap',
 })
 
@@ -21,12 +28,12 @@ export const metadata = {
 }
 
 export const viewport = {
-  themeColor: '#09090c',
+  themeColor: '#FAFAFA',
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={dmSans.variable}>
+    <html lang="en" className={`${geist.variable} ${instrumentSerif.variable}`}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/logo.svg" type="image/svg+xml" />
