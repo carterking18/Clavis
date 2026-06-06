@@ -11,6 +11,7 @@ import { dollarValuePerDollar, formatValuePerDollar } from '../../lib/pointValue
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
+import { getAffiliateLink, TIER_STYLES, AFFILIATE_DISCLOSURE } from '../../lib/affiliates'
 import { Onboarding } from '../onboarding'
 import { InstallPrompt } from '../install-prompt'
 
@@ -1497,9 +1498,25 @@ export default function Dashboard() {
 
               {/* ── Card recommendations ── */}
               <div style={{ marginBottom: '1.75rem' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(221,221,228,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
                   Cards worth adding
                 </div>
+                <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.22)', marginBottom: '12px', lineHeight: '1.5' }}>
+                  Based on your last {taps.length} purchase{taps.length !== 1 ? 's' : ''} · {taps.length < 10
+                    ? <span style={{ color: '#c9a227' }}>track more purchases to sharpen these picks</span>
+                    : 'personalized to your spending'}
+                </div>
+
+                {/* Low-tap nudge */}
+                {taps.length < 5 && cards.length > 0 && (
+                  <div style={{ background: 'rgba(201,162,39,0.07)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '12px 14px', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#c9a227', marginBottom: '4px' }}>Log purchases to unlock personalized picks</div>
+                    <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.38)', lineHeight: '1.55' }}>
+                      Clavis learns from every tap you log. The more you track, the more accurately it can find cards that match your real spending — not just guesses. Head to the Tap tab and start logging.
+                    </div>
+                  </div>
+                )}
+
                 {cardRecs.length === 0 && cards.length > 0 ? (
                   <div style={{ background: 'rgba(29,184,122,0.06)', border: '1px solid rgba(29,184,122,0.15)', borderLeft: '3px solid #1db87a', borderRadius: '4px', padding: '14px 16px' }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#1db87a', marginBottom: '4px' }}>Your wallet is well-optimized</div>
@@ -1507,33 +1524,72 @@ export default function Dashboard() {
                       Based on your spending, no card on the market meaningfully outperforms what you already have. Nice setup.
                     </div>
                   </div>
-                ) : cardRecs.map(({ rec, netAnnualGain, improvements }) => (
-                    <div key={rec.name} data-reveal style={{ background: 'rgba(91,79,255,0.07)', border: '1px solid rgba(91,79,255,0.2)', borderLeft: '3px solid #5b4fff', borderRadius: '4px', padding: '14px 14px 14px 12px', marginBottom: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
+                ) : cardRecs.map(({ rec, netAnnualGain, improvements }) => {
+                  const affiliate = getAffiliateLink(rec.name)
+                  const tierStyle = TIER_STYLES[rec.tier] || TIER_STYLES['no-fee']
+                  return (
+                    <div key={rec.name} data-reveal style={{ background: 'rgba(91,79,255,0.07)', border: '1px solid rgba(91,79,255,0.18)', borderRadius: '6px', padding: '14px', marginBottom: '10px' }}>
+
+                      {/* Header row */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '2px' }}>{rec.name}</div>
-                          <div style={{ fontSize: '11px', color: 'rgba(221,221,228,0.35)' }}>
-                            {rec.annualFee === 0 ? 'No annual fee' : `$${rec.annualFee}/yr`}
-                            {rec.studentFriendly && <span style={{ marginLeft: '6px', color: '#5b8fff' }}>· Student-friendly</span>}
+                          <div style={{ fontSize: '15px', fontWeight: '700', color: '#dddde4', marginBottom: '4px' }}>{rec.name}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '11px', fontWeight: '700', color: tierStyle.color, background: tierStyle.bg, padding: '2px 7px', borderRadius: '9999px' }}>
+                              {tierStyle.label}
+                            </span>
+                            <span style={{ fontSize: '11px', color: 'rgba(221,221,228,0.3)' }}>
+                              {rec.annualFee === 0 ? 'No annual fee' : `$${rec.annualFee}/yr`}
+                            </span>
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{ fontSize: '20px', fontWeight: '800', color: '#5b8fff', letterSpacing: '-0.03em', lineHeight: 1 }}>
                             +${Math.round(netAnnualGain)}/yr
                           </div>
-                          <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>est. gain</div>
+                          <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.3)', marginTop: '2px' }}>est. from your spend</div>
                         </div>
                       </div>
-                      <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.45)', lineHeight: '1.5', marginBottom: '8px' }}>{rec.why}</div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+
+                      {/* Why description */}
+                      <div style={{ fontSize: '12px', color: 'rgba(221,221,228,0.45)', lineHeight: '1.55', marginBottom: '10px' }}>{rec.why}</div>
+
+                      {/* Where you'd gain */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
                         {improvements.slice(0, 4).map(imp => (
                           <span key={imp.category} style={{ fontSize: '11px', fontWeight: '600', color: '#5b8fff', background: 'rgba(91,79,255,0.12)', borderRadius: '4px', padding: '3px 7px' }}>
                             {imp.category} +{(imp.gainPerDollar * 100).toFixed(1)}¢/$
+                            {imp.annualCatGain >= 10 && <span style={{ opacity: 0.6 }}> (${Math.round(imp.annualCatGain)}/yr)</span>}
                           </span>
                         ))}
                       </div>
+
+                      {/* Apply button */}
+                      {affiliate ? (
+                        <a
+                          href={affiliate.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: 'block', textAlign: 'center', padding: '11px', background: '#5b4fff', borderRadius: '6px', fontSize: '13px', fontWeight: '700', color: '#fff', textDecoration: 'none', letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                          onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+                          {affiliate.cta} →
+                        </a>
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '11px', background: 'rgba(255,255,255,0.04)', borderRadius: '6px', fontSize: '12px', color: 'rgba(221,221,228,0.3)' }}>
+                          Search "{rec.name}" to apply
+                        </div>
+                      )}
                     </div>
-                  ))}
+                  )
+                })}
+
+                {/* Affiliate disclosure */}
+                {cardRecs.length > 0 && (
+                  <div style={{ fontSize: '10px', color: 'rgba(221,221,228,0.18)', lineHeight: '1.55', marginTop: '8px', padding: '0 2px' }}>
+                    {AFFILIATE_DISCLOSURE}
+                  </div>
+                )}
               </div>
             </>
           )}
