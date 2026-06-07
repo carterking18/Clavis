@@ -579,8 +579,8 @@ export default function Dashboard() {
             <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
           </a>
 
-          {/* Center links — dashboard tabs */}
-          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+          {/* Center links — dashboard tabs (always visible, scrollable on narrow screens) */}
+          <div className="dash-nav-tabs" style={{ display: 'flex', alignItems: 'center', gap: '24px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
             {[
               { key: 'tap',      label: 'Tap' },
               { key: 'wallet',   label: 'Wallet' },
@@ -592,6 +592,7 @@ export default function Dashboard() {
                 className="mkt-nav-link"
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
+                  whiteSpace: 'nowrap', flexShrink: 0,
                   color: tab === key ? '#dddde4' : (key === 'insights' && insightCount > 0 ? 'var(--gold)' : undefined),
                 }}>
                 {label}

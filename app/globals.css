@@ -277,6 +277,13 @@ option {
 
 .tab-bar::-webkit-scrollbar { display: none; }
 
+.dash-nav-tabs::-webkit-scrollbar { display: none; }
+
+@media (max-width: 640px) {
+  .dash-nav-tabs { gap: 18px !important; }
+  .dash-nav-tabs .mkt-nav-link { font-size: 12px !important; }
+}
+
 .tab-btn {
   flex: 1;
   min-width: 0;
