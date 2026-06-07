@@ -564,7 +564,9 @@ export default function Dashboard() {
       {/* ── Sticky nav — exact match to about page nav ── */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 100,
-        margin: '0 -1.25rem',
+        left: '50%', right: '50%',
+        marginLeft: '-50vw', marginRight: '-50vw',
+        width: '100vw',
         background: 'rgba(9,9,12,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
@@ -600,11 +602,14 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* Sign out */}
-          <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-            className="pill-dark" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
-            Sign out
-          </button>
+          {/* About / Sign out */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <a href="/about" className="mkt-nav-link">About</a>
+            <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
+              className="pill-dark" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
+              Sign out
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -1645,8 +1650,8 @@ export default function Dashboard() {
       )}
 
       {showRankings && (
-        <div onClick={() => setShowRankings(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ ...sheetStyle, maxHeight: '70vh' }}>
+        <div onClick={() => setShowRankings(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '440px', maxHeight: '70vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Card rankings</div>
