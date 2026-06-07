@@ -564,8 +564,8 @@ export default function Dashboard() {
       {/* ── Sticky nav — exact match to about page nav ── */}
       <nav style={{
         position: 'sticky', top: 0, zIndex: 100,
-        left: '50%', right: '50%',
-        marginLeft: '-50vw', marginRight: '-50vw',
+        marginLeft: 'calc(-50vw + 50%)',
+        marginRight: 'calc(-50vw + 50%)',
         width: '100vw',
         background: 'rgba(9,9,12,0.85)',
         backdropFilter: 'blur(12px)',
