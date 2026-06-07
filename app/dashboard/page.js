@@ -607,7 +607,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
             <a href="/about" className="mkt-nav-link dash-about-link">About</a>
             <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-              className="pill-dark" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
+              className="pill-dark dash-sign-out" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
               Sign out
             </button>
           </div>
