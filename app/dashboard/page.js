@@ -556,61 +556,75 @@ export default function Dashboard() {
   const insightCount = perkInsights.length + retroactiveMissed.length + cardRecs.length
 
   return (
-    <div className="app">
+    <div className="app" style={{ paddingTop: 0 }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-          <svg width="22" height="22" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <mask id="hkey">
-                <circle cx="187" cy="254" r="107" fill="white"/>
-                <circle cx="187" cy="254" r="61"  fill="black"/>
-                <rect x="246" y="232" width="200" height="44" rx="22" fill="white"/>
-                <rect x="354" y="276" width="42"  height="58" rx="11" fill="white"/>
-                <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
-              </mask>
-            </defs>
-            <rect width="512" height="512" fill="#c9a227" mask="url(#hkey)"/>
-          </svg>
-          <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
-            CLAVIS
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <a href="/about"
-            style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', textDecoration: 'none', transition: 'color 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
-            About
-          </a>
-          <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-            style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', fontFamily: 'inherit' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
-            Sign out
-          </button>
+      {/* ── Sticky frosted header + tabs ── */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 80,
+        margin: '0 -1.25rem',
+        padding: '0 1.25rem',
+        background: 'rgba(250,250,250,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 0 1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+              <svg width="22" height="22" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <mask id="hkey">
+                    <circle cx="187" cy="254" r="107" fill="white"/>
+                    <circle cx="187" cy="254" r="61"  fill="black"/>
+                    <rect x="246" y="232" width="200" height="44" rx="22" fill="white"/>
+                    <rect x="354" y="276" width="42"  height="58" rx="11" fill="white"/>
+                    <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
+                  </mask>
+                </defs>
+                <rect width="512" height="512" fill="#c9a227" mask="url(#hkey)"/>
+              </svg>
+              <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
+                CLAVIS
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <a href="/about"
+                style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', textDecoration: 'none', transition: 'color 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
+                About
+              </a>
+              <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
+                style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', fontFamily: 'inherit' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
+                Sign out
+              </button>
+            </div>
+          </div>
+
+          {/* Tab bar */}
+          <div className="tab-bar" style={{ marginBottom: 0, border: 'none' }}>
+            {[
+              { key: 'tap',      label: 'Tap' },
+              { key: 'wallet',   label: 'Wallet' },
+              { key: 'perks',    label: 'Perks' },
+              { key: 'history',  label: 'History' },
+              { key: 'insights', label: 'Insights' },
+            ].map(({ key, label }) => (
+              <button key={key} className={`tab-btn${tab === key ? ' active' : ''}`} onClick={() => setTab(key)}
+                style={key === 'insights' && insightCount > 0 && tab !== key ? { color: '#c9a227' } : {}}>
+                {label}
+                {key === 'insights' && insightCount > 0 && tab !== key && (
+                  <span style={{ display: 'inline-block', width: '5px', height: '5px', background: '#c9a227', borderRadius: '50%', marginLeft: '4px', verticalAlign: 'middle', marginBottom: '2px' }} />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Tab bar */}
-      <div className="tab-bar">
-        {[
-          { key: 'tap',      label: 'Tap' },
-          { key: 'wallet',   label: 'Wallet' },
-          { key: 'perks',    label: 'Perks' },
-          { key: 'history',  label: 'History' },
-          { key: 'insights', label: 'Insights' },
-        ].map(({ key, label }) => (
-          <button key={key} className={`tab-btn${tab === key ? ' active' : ''}`} onClick={() => setTab(key)}
-            style={key === 'insights' && insightCount > 0 && tab !== key ? { color: '#c9a227' } : {}}>
-            {label}
-            {key === 'insights' && insightCount > 0 && tab !== key && (
-              <span style={{ display: 'inline-block', width: '5px', height: '5px', background: '#c9a227', borderRadius: '50%', marginLeft: '4px', verticalAlign: 'middle', marginBottom: '2px' }} />
-            )}
-          </button>
-        ))}
-      </div>
+      <div style={{ height: '1.5rem' }} />
 
       {/* ── SMART TAP ─────────────────────────────────── */}
       {tab === 'tap' && (

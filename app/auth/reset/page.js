@@ -35,11 +35,11 @@ export default function ResetPassword() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-page)' }}>
-      <div style={{ width: '100%', maxWidth: '380px' }}>
+      <div style={{ width: '100%', maxWidth: '460px' }}>
 
-        <div style={{ marginBottom: '40px' }}>
-          <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', marginBottom: '32px' }}>
-            <svg width="20" height="20" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+        <div style={{ marginBottom: '48px' }}>
+          <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', textDecoration: 'none', marginBottom: '40px' }}>
+            <svg width="24" height="24" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <mask id="akey2">
                   <circle cx="187" cy="254" r="107" fill="white"/>
@@ -54,11 +54,10 @@ export default function ResetPassword() {
             <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>CLAVIS</span>
           </a>
 
-          <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '32px', fontWeight: '700', letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)', marginBottom: '8px' }}>
-            Set a new<br/>
-            <span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>password.</span>
+          <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '42px', fontWeight: '700', letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)', marginBottom: '12px', whiteSpace: 'nowrap' }}>
+            Set a new <span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>password.</span>
           </h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
             {ready ? 'Choose a new password for your account.' : 'Verifying your reset link…'}
           </p>
         </div>
