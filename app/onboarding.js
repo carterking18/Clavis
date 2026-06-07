@@ -191,7 +191,7 @@ export function Onboarding({ onComplete }) {
               </svg>
             </div>
 
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '26px', fontWeight: '400', color: 'var(--text-primary)', letterSpacing: '-0.01em', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '26px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.01em', marginBottom: '8px' }}>
               Welcome to Clavis
             </div>
             <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '28px' }}>
@@ -227,7 +227,7 @@ export function Onboarding({ onComplete }) {
           <div>
             <StepIndicator current={1} total={3} />
 
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '22px', fontWeight: '400', color: 'var(--text-primary)', marginBottom: '6px' }}>
+            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '6px' }}>
               Add your main card
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '22px', lineHeight: '1.5' }}>
@@ -304,7 +304,7 @@ export function Onboarding({ onComplete }) {
           <div>
             <StepIndicator current={2} total={4} />
 
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '22px', fontWeight: '400', color: 'var(--text-primary)', marginBottom: '4px' }}>
+            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
               Known perks found
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
@@ -350,7 +350,7 @@ export function Onboarding({ onComplete }) {
             <StepIndicator current={totalSteps - 1} total={totalSteps} />
 
             <div style={{ fontSize: '44px', marginBottom: '16px' }}>🎉</div>
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '24px', fontWeight: '400', color: 'var(--text-primary)', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
               You&apos;re all set
             </div>
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: '1.6' }}>

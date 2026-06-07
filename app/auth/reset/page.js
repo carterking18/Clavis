@@ -54,7 +54,7 @@ export default function ResetPassword() {
             <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>CLAVIS</span>
           </a>
 
-          <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '32px', fontWeight: '400', letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)', marginBottom: '8px' }}>
+          <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '32px', fontWeight: '700', letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)', marginBottom: '8px' }}>
             Set a new<br/>
             <span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>password.</span>
           </h1>
