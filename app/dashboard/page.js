@@ -572,15 +572,24 @@ export default function Dashboard() {
         WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
       }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="dash-nav-inner" style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', minHeight: '60px', rowGap: '4px' }}>
           {/* Logo */}
           <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
             <KeySVG size={18} id="dashkey"/>
             <span className="dash-logo-text" style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
           </a>
 
-          {/* Center links — dashboard tabs (always visible, scrollable on narrow screens) */}
-          <div className="dash-nav-tabs" style={{ display: 'flex', alignItems: 'center', gap: '28px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: 0, flex: 1, justifyContent: 'center' }}>
+          {/* About / Sign out */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0, order: 2 }}>
+            <a href="/about" className="mkt-nav-link dash-about-link">About</a>
+            <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
+              className="pill-dark dash-sign-out" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
+              Sign out
+            </button>
+          </div>
+
+          {/* Center links — dashboard tabs (own row on narrow screens, scrollable) */}
+          <div className="dash-nav-tabs" style={{ display: 'flex', alignItems: 'center', gap: '28px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: 0, flex: '1 1 auto', justifyContent: 'center', order: 1 }}>
             {[
               { key: 'tap',      label: 'Tap' },
               { key: 'wallet',   label: 'Wallet' },
@@ -601,15 +610,6 @@ export default function Dashboard() {
                 )}
               </button>
             ))}
-          </div>
-
-          {/* About / Sign out */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
-            <a href="/about" className="mkt-nav-link dash-about-link">About</a>
-            <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-              className="pill-dark dash-sign-out" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
-              Sign out
-            </button>
           </div>
         </div>
       </nav>

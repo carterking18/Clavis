@@ -280,17 +280,21 @@ option {
 .dash-nav-tabs::-webkit-scrollbar { display: none; }
 
 @media (max-width: 640px) {
-  /* Keep the CLAVIS wordmark, just shrink it; drop About to free space for tabs */
-  .dash-logo-text  { font-size: 11px !important; letter-spacing: 0.05em !important; }
+  /* Row 1: logo + sign out. Row 2 (full width, own line): tabs — no more crowding. */
+  .dash-nav-inner  { padding-top: 10px !important; padding-bottom: 10px !important; }
+  .dash-logo-text  { font-size: 12px !important; letter-spacing: 0.05em !important; }
   .dash-about-link { display: none; }
   .dash-sign-out   { padding: 7px 12px !important; font-size: 10px !important; }
   .dash-nav-tabs   {
+    order: 3 !important;
+    flex: 1 1 100% !important;
     justify-content: flex-start !important;
-    gap: 18px !important;
-    padding-right: 14px;
+    gap: 20px !important;
+    margin-top: 6px;
+    padding: 4px 14px 0 0;
     scroll-padding-right: 14px;
   }
-  .dash-nav-tabs .mkt-nav-link { font-size: 12px !important; }
+  .dash-nav-tabs .mkt-nav-link { font-size: 13px !important; }
 }
 
 @media (max-width: 400px) {
