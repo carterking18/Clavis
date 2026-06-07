@@ -14,6 +14,7 @@ import { generateRecommendations } from '../../lib/recommendations'
 import { getAffiliateLink, TIER_STYLES, AFFILIATE_DISCLOSURE } from '../../lib/affiliates'
 import { Onboarding } from '../onboarding'
 import { InstallPrompt } from '../install-prompt'
+import { KeySVG, marketingStyles } from '../marketing-sections'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
@@ -558,38 +559,26 @@ export default function Dashboard() {
   return (
     <div className="app" style={{ paddingTop: 0 }}>
 
-      {/* ── Sticky frosted header + tabs ── */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 80,
+      <style>{marketingStyles}</style>
+
+      {/* ── Sticky nav — exact match to about page nav ── */}
+      <nav style={{
+        position: 'sticky', top: 0, zIndex: 100,
         margin: '0 -1.25rem',
-        padding: '0 1.25rem',
-        background: 'rgba(250,250,250,0.85)',
+        background: 'rgba(9,9,12,0.85)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--border)',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
       }}>
-        <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px', gap: '20px' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Logo */}
-          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '9px', textDecoration: 'none', flexShrink: 0 }}>
-            <svg width="22" height="22" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <mask id="hkey">
-                  <circle cx="187" cy="254" r="107" fill="white"/>
-                  <circle cx="187" cy="254" r="61"  fill="black"/>
-                  <rect x="246" y="232" width="200" height="44" rx="22" fill="white"/>
-                  <rect x="354" y="276" width="42"  height="58" rx="11" fill="white"/>
-                  <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
-                </mask>
-              </defs>
-              <rect width="512" height="512" fill="#c9a227" mask="url(#hkey)"/>
-            </svg>
-            <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
-              CLAVIS
-            </span>
+          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+            <KeySVG size={18} id="dashkey"/>
+            <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
           </a>
 
-          {/* Tabs — centered in the same grey bar as the logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {/* Center links — dashboard tabs */}
+          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             {[
               { key: 'tap',      label: 'Tap' },
               { key: 'wallet',   label: 'Wallet' },
@@ -598,15 +587,11 @@ export default function Dashboard() {
               { key: 'insights', label: 'Insights' },
             ].map(({ key, label }) => (
               <button key={key} onClick={() => setTab(key)}
+                className="mkt-nav-link"
                 style={{
-                  fontSize: '12px', fontWeight: '600', letterSpacing: '0.03em',
-                  padding: '7px 13px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                  fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s',
-                  background: tab === key ? 'var(--text-primary)' : 'transparent',
-                  color: tab === key ? '#FFFFFF' : (key === 'insights' && insightCount > 0 ? 'var(--gold)' : 'var(--text-secondary)'),
-                }}
-                onMouseEnter={e => { if (tab !== key) e.currentTarget.style.background = 'var(--bg-elevated)' }}
-                onMouseLeave={e => { if (tab !== key) e.currentTarget.style.background = 'transparent' }}>
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
+                  color: tab === key ? '#dddde4' : (key === 'insights' && insightCount > 0 ? 'var(--gold)' : undefined),
+                }}>
                 {label}
                 {key === 'insights' && insightCount > 0 && tab !== key && (
                   <span style={{ display: 'inline-block', width: '5px', height: '5px', background: '#c9a227', borderRadius: '50%', marginLeft: '5px', verticalAlign: 'middle', marginBottom: '2px' }} />
@@ -615,23 +600,13 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {/* About / Sign out */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
-            <a href="/about"
-              style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', textDecoration: 'none', transition: 'color 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
-              About
-            </a>
-            <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-              style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', fontFamily: 'inherit' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
-              Sign out
-            </button>
-          </div>
+          {/* Sign out */}
+          <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
+            className="pill-dark" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
+            Sign out
+          </button>
         </div>
-      </div>
+      </nav>
 
       <div style={{ height: '1.5rem' }} />
 
