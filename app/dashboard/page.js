@@ -574,13 +574,13 @@ export default function Dashboard() {
       }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Logo */}
-          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
             <KeySVG size={18} id="dashkey"/>
-            <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
+            <span className="dash-logo-text" style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
           </a>
 
           {/* Center links — dashboard tabs (always visible, scrollable on narrow screens) */}
-          <div className="dash-nav-tabs" style={{ display: 'flex', alignItems: 'center', gap: '24px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+          <div className="dash-nav-tabs" style={{ display: 'flex', alignItems: 'center', gap: '28px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: 0, flex: 1, justifyContent: 'center' }}>
             {[
               { key: 'tap',      label: 'Tap' },
               { key: 'wallet',   label: 'Wallet' },
@@ -604,8 +604,8 @@ export default function Dashboard() {
           </div>
 
           {/* About / Sign out */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <a href="/about" className="mkt-nav-link">About</a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0 }}>
+            <a href="/about" className="mkt-nav-link dash-about-link">About</a>
             <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
               className="pill-dark" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
               Sign out

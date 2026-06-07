@@ -280,8 +280,11 @@ option {
 .dash-nav-tabs::-webkit-scrollbar { display: none; }
 
 @media (max-width: 640px) {
-  .dash-nav-tabs { gap: 18px !important; }
-  .dash-nav-tabs .mkt-nav-link { font-size: 12px !important; }
+  /* Free up room so the tabs get breathing space instead of squishing */
+  .dash-logo-text  { display: none; }
+  .dash-about-link { display: none; }
+  .dash-nav-tabs   { justify-content: flex-start !important; gap: 22px !important; }
+  .dash-nav-tabs .mkt-nav-link { font-size: 13px !important; }
 }
 
 .tab-btn {
