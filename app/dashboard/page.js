@@ -568,43 +568,28 @@ export default function Dashboard() {
         WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border)',
       }}>
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 0 1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-              <svg width="22" height="22" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <mask id="hkey">
-                    <circle cx="187" cy="254" r="107" fill="white"/>
-                    <circle cx="187" cy="254" r="61"  fill="black"/>
-                    <rect x="246" y="232" width="200" height="44" rx="22" fill="white"/>
-                    <rect x="354" y="276" width="42"  height="58" rx="11" fill="white"/>
-                    <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
-                  </mask>
-                </defs>
-                <rect width="512" height="512" fill="#c9a227" mask="url(#hkey)"/>
-              </svg>
-              <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
-                CLAVIS
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <a href="/about"
-                style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', textDecoration: 'none', transition: 'color 0.15s' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
-                About
-              </a>
-              <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-                style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', fontFamily: 'inherit' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
-                Sign out
-              </button>
-            </div>
-          </div>
+        <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '60px', gap: '20px' }}>
+          {/* Logo */}
+          <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '9px', textDecoration: 'none', flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <mask id="hkey">
+                  <circle cx="187" cy="254" r="107" fill="white"/>
+                  <circle cx="187" cy="254" r="61"  fill="black"/>
+                  <rect x="246" y="232" width="200" height="44" rx="22" fill="white"/>
+                  <rect x="354" y="276" width="42"  height="58" rx="11" fill="white"/>
+                  <rect x="408" y="276" width="30"  height="42" rx="9"  fill="white"/>
+                </mask>
+              </defs>
+              <rect width="512" height="512" fill="#c9a227" mask="url(#hkey)"/>
+            </svg>
+            <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.02em', color: 'var(--text-primary)' }}>
+              CLAVIS
+            </span>
+          </a>
 
-          {/* Tab bar */}
-          <div className="tab-bar" style={{ marginBottom: 0, border: 'none' }}>
+          {/* Tabs — centered in the same grey bar as the logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflowX: 'auto', scrollbarWidth: 'none' }}>
             {[
               { key: 'tap',      label: 'Tap' },
               { key: 'wallet',   label: 'Wallet' },
@@ -612,14 +597,38 @@ export default function Dashboard() {
               { key: 'history',  label: 'History' },
               { key: 'insights', label: 'Insights' },
             ].map(({ key, label }) => (
-              <button key={key} className={`tab-btn${tab === key ? ' active' : ''}`} onClick={() => setTab(key)}
-                style={key === 'insights' && insightCount > 0 && tab !== key ? { color: '#c9a227' } : {}}>
+              <button key={key} onClick={() => setTab(key)}
+                style={{
+                  fontSize: '12px', fontWeight: '600', letterSpacing: '0.03em',
+                  padding: '7px 13px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+                  fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'background 0.15s, color 0.15s',
+                  background: tab === key ? 'var(--text-primary)' : 'transparent',
+                  color: tab === key ? '#FFFFFF' : (key === 'insights' && insightCount > 0 ? 'var(--gold)' : 'var(--text-secondary)'),
+                }}
+                onMouseEnter={e => { if (tab !== key) e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                onMouseLeave={e => { if (tab !== key) e.currentTarget.style.background = 'transparent' }}>
                 {label}
                 {key === 'insights' && insightCount > 0 && tab !== key && (
-                  <span style={{ display: 'inline-block', width: '5px', height: '5px', background: '#c9a227', borderRadius: '50%', marginLeft: '4px', verticalAlign: 'middle', marginBottom: '2px' }} />
+                  <span style={{ display: 'inline-block', width: '5px', height: '5px', background: '#c9a227', borderRadius: '50%', marginLeft: '5px', verticalAlign: 'middle', marginBottom: '2px' }} />
                 )}
               </button>
             ))}
+          </div>
+
+          {/* About / Sign out */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+            <a href="/about"
+              style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', textDecoration: 'none', transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
+              About
+            </a>
+            <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
+              style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-faintest)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.15s', fontFamily: 'inherit' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
+              Sign out
+            </button>
           </div>
         </div>
       </div>
