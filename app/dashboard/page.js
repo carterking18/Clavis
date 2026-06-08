@@ -388,6 +388,13 @@ export default function Dashboard() {
       const days = Math.ceil((new Date(p.resets_at) - new Date()) / (1000 * 60 * 60 * 24))
       return days <= 14 && days > 0
     })
+    // Dollar value still sitting unused on this card — this is what actually
+    // determines how much "weight" a perk should carry against a marginal
+    // rewards-rate difference. A flat per-perk bump would let a $5 perk and a
+    // $300 perk nudge the score by the same amount, which doesn't reflect
+    // what's really at stake for the user.
+    const activePerksValue = activePerks.reduce((s, p) => s + Math.max(0, (p.total_amount || 0) - (p.used_amount || 0)), 0)
+    const expiringPerksValue = expiringPerks.reduce((s, p) => s + Math.max(0, (p.total_amount || 0) - (p.used_amount || 0)), 0)
     const isGiftWithBalance = card.type === 'gift' && (card.balance || 0) > 0
 
     // Check if this gift card is linked to the merchant being typed
@@ -402,8 +409,13 @@ export default function Dashboard() {
     })()
 
     let score = dollarVal * 100
-    score += activePerks.length * 0.5
-    score += expiringPerks.length * 1.5
+    // Small steady nudge for cards carrying unused perk value, plus a
+    // sharper urgency nudge — scaled by dollars, not just perk count — for
+    // perks about to reset. A $5 credit barely moves the needle; a $200
+    // credit expiring this week can (and should) outweigh a modest
+    // rewards-rate edge from another card.
+    score += activePerks.length * 0.3 + activePerksValue / 50
+    score += expiringPerks.length * 1 + expiringPerksValue / 15
     if (isGiftWithBalance) score += 5
     if (giftMerchantLinked) score = 9999
 
@@ -1878,6 +1890,9 @@ export default function Dashboard() {
               </div>
               <button onClick={() => setShowRankings(false)} style={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
+            <div style={{ fontSize: '11.5px', color: 'var(--text-faintest)', marginBottom: '0.5rem' }}>
+              Tap a card to use it for this transaction instead — Clavis will remember your choice until you switch back to Auto.
+            </div>
             {(() => {
               const ranked = getRankedCards()
               return ranked.map(({ card, reasons, dollarVal, score }, i) => {
@@ -1886,14 +1901,25 @@ export default function Dashboard() {
                 const tiedWithNext = i < ranked.length - 1 && Math.abs(ranked[i + 1].score - score) <= 0.001
                 const isTop = i === 0 || tiedWithPrev
                 const accentColor = isTop ? 'var(--gold)' : 'var(--border)'
+                const isSelected = selectedCardId === card.id
                 return (
-                  <div key={card.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <button key={card.id}
+                    onClick={() => { setSelectedCardId(isSelected ? null : card.id); setShowRankings(false) }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 8px', margin: '0 -8px',
+                      borderBottom: '1px solid var(--border-subtle)', width: 'calc(100% + 16px)',
+                      background: isSelected ? 'rgba(37,99,235,0.06)' : 'none', border: 'none', borderRadius: '6px',
+                      cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
+                    }}>
                     <div style={{ fontSize: '13px', fontWeight: '700', color: accentColor, width: '22px', flexShrink: 0, textAlign: 'center' }}>
                       {tiedWithPrev ? '=' : `#${i + 1}`}
                     </div>
                     <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {card.name}
+                        {isSelected && <span style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--blue)', background: 'rgba(37,99,235,0.1)', borderRadius: '9999px', padding: '2px 7px', flexShrink: 0 }}>Selected</span>}
+                      </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                         {reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}
                         {tiedWithNext && !tiedWithPrev && (card.annual_fee || 0) > 0 && (
@@ -1909,7 +1935,7 @@ export default function Dashboard() {
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>{formatValuePerDollar(card, mult)}</div>
                       )}
                     </div>
-                  </div>
+                  </button>
                 )
               })
             })()}
@@ -1939,14 +1965,14 @@ export default function Dashboard() {
                     },
                     {
                       label: 'Unused perks',
-                      formula: '+0.5 per active perk',
-                      detail: 'Cards with perks you haven\'t fully used yet get a small bump to remind you to use what you\'re paying for.',
+                      formula: '+0.3/perk + (unused $ ÷ 50)',
+                      detail: 'Cards with perk value still on the table get a steady bump — sized by how much is actually unused, so a $200 credit counts for more than a $10 one, not just "a perk is a perk."',
                       color: 'var(--text-secondary)',
                     },
                     {
                       label: 'Expiring perks',
-                      formula: '+1.5 per perk expiring within 14 days',
-                      detail: 'A perk about to reset is worth more urgency than one with months left. This nudges the card up so you don\'t leave money on the table.',
+                      formula: '+1/perk + (expiring $ ÷ 15) — within 14 days',
+                      detail: 'A perk about to reset gets real urgency weight, scaled to its dollar value — large enough that a credit worth real money expiring this week can outrank a card with a slightly better rewards rate.',
                       color: 'var(--text-secondary)',
                     },
                     {
