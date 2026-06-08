@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, updateCardBalance, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers } from '../../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
@@ -205,6 +205,9 @@ export default function Dashboard() {
   const [detectedMerchant, setDetectedMerchant] = useState(null)
   const [editingCard, setEditingCard] = useState(null)
   const [editMultipliers, setEditMultipliers] = useState({})
+  const [editAnnualFee, setEditAnnualFee] = useState('')
+  const [syncingFees, setSyncingFees] = useState(false)
+  const [feeSyncDismissed, setFeeSyncDismissed] = useState(false)
   const [suggestedPerks, setSuggestedPerks] = useState(null)
   const [pendingCardId, setPendingCardId] = useState(null)
   const [selectedPerkIndices, setSelectedPerkIndices] = useState([])
@@ -604,12 +607,51 @@ export default function Dashboard() {
   function openEditCard(card) {
     const mults = {}
     CATEGORIES.forEach(cat => { const m = card.multipliers?.find(m => m.category === cat); mults[cat] = m ? String(m.multiplier) : '' })
-    setEditMultipliers(mults); setEditingCard(card)
+    setEditMultipliers(mults)
+    setEditAnnualFee(card.annual_fee != null ? String(card.annual_fee) : '')
+    setEditingCard(card)
   }
 
   async function handleSaveEdit() {
     if (!editingCard) return
-    try { await updateCardMultipliers(editingCard.id, editMultipliers); await loadCards(); setEditingCard(null) } catch (e) { console.error(e) }
+    try {
+      await updateCardMultipliers(editingCard.id, editMultipliers)
+      const fee = parseFloat(editAnnualFee)
+      if (!isNaN(fee) && fee !== (editingCard.annual_fee || 0)) await updateCardFee(editingCard.id, fee)
+      await loadCards()
+      setEditingCard(null)
+    } catch (e) { console.error(e) }
+  }
+
+  // Cards whose annual fee no longer matches the latest known rate in our
+  // internal rewards database (e.g. an issuer raised the fee since the user
+  // added the card) — surfaced as a one-click "sync" opportunity in Wallet.
+  const feeUpdates = useMemo(() => {
+    return cards
+      .map(card => {
+        const suggestion = getSuggestedMultipliers(card.name)
+        if (!suggestion || suggestion.annualFee === undefined) return null
+        const current = card.annual_fee || 0
+        if (suggestion.annualFee === current) return null
+        return { id: card.id, name: card.name, oldFee: current, newFee: suggestion.annualFee }
+      })
+      .filter(Boolean)
+  }, [cards])
+
+  async function syncAllFees() {
+    if (!feeUpdates.length) return
+    setSyncingFees(true)
+    try {
+      await Promise.all(feeUpdates.map(u => updateCardFee(u.id, u.newFee)))
+      await loadCards()
+    } catch (e) { console.error(e) }
+    setSyncingFees(false)
+  }
+
+  async function syncOneFee(update) {
+    setSyncingFees(true)
+    try { await updateCardFee(update.id, update.newFee); await loadCards() } catch (e) { console.error(e) }
+    setSyncingFees(false)
   }
 
   async function handleUpdatePerkUsed(perkId, usedAmount) {
@@ -965,6 +1007,31 @@ export default function Dashboard() {
               </div>
             )
           })()}
+
+          {feeUpdates.length > 0 && !feeSyncDismissed && (
+            <div style={{ marginBottom: '1.25rem', border: '1px solid rgba(37,99,235,0.18)', background: 'rgba(37,99,235,0.05)', borderRadius: '8px', padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '600' }}>
+                  ✦ {feeUpdates.length === 1 ? 'An annual fee has' : `${feeUpdates.length} annual fees have`} changed since you added {feeUpdates.length === 1 ? 'this card' : 'these cards'}
+                </div>
+                <button onClick={() => setFeeSyncDismissed(true)} style={{ background: 'none', border: 'none', color: 'var(--text-faintest)', cursor: 'pointer', fontSize: '14px', padding: 0, flexShrink: 0 }}>✕</button>
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                {feeUpdates.map(u => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', padding: '4px 0' }}>
+                    <span>{u.name} — ${u.oldFee}/yr → <strong style={{ color: 'var(--text-primary)' }}>${u.newFee}/yr</strong></span>
+                    <button onClick={() => syncOneFee(u)} disabled={syncingFees}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--blue)', padding: '2px 6px', flexShrink: 0 }}>
+                      Update
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button className="btn-primary" onClick={syncAllFees} disabled={syncingFees} style={{ width: 'auto', padding: '9px 16px', fontSize: '13px' }}>
+                {syncingFees ? 'Syncing…' : `Update all ${feeUpdates.length === 1 ? '' : feeUpdates.length}`.trim()}
+              </button>
+            </div>
+          )}
 
           {cards.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '14px', marginBottom: '1rem' }}>No cards yet. Add your first one below.</div>
@@ -2033,6 +2100,21 @@ export default function Dashboard() {
                     value={editMultipliers[cat] || ''} onChange={e => setEditMultipliers({ ...editMultipliers, [cat]: e.target.value })} />
                 </div>
               ))}
+            </div>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label className="label">Annual fee ($)</label>
+              <input className="input" type="number" placeholder="0" value={editAnnualFee} onChange={e => setEditAnnualFee(e.target.value)} />
+              {(() => {
+                const known = getSuggestedMultipliers(editingCard.name)
+                if (known?.annualFee === undefined) return null
+                if (String(known.annualFee) === editAnnualFee) return null
+                return (
+                  <button onClick={() => setEditAnnualFee(String(known.annualFee))}
+                    style={{ marginTop: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--blue)', padding: 0 }}>
+                    ↻ Use latest known fee — ${known.annualFee}
+                  </button>
+                )
+              })()}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn-primary" onClick={handleSaveEdit}>Save changes</button>
