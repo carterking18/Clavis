@@ -61,6 +61,21 @@ function CardArt({ name, style = {} }) {
   )
 }
 
+function InsightSection({ label, summary, isOpen, onToggle, children }) {
+  return (
+    <div style={{ marginBottom: '14px', border: '1px solid var(--border-subtle)', borderRadius: '8px', overflow: 'hidden' }}>
+      <button onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', background: 'var(--bg-elevated)', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: summary ? '4px' : 0 }}>{label}</div>
+          {summary && <div style={{ fontSize: '13px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</div>}
+        </div>
+        <span style={{ fontSize: '10px', color: 'var(--text-faintest)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▾</span>
+      </button>
+      {isOpen && <div style={{ padding: '16px' }}>{children}</div>}
+    </div>
+  )
+}
+
 function TimeAgo({ dateStr }) {
   const date = new Date(dateStr)
   const now = new Date()
@@ -111,6 +126,7 @@ export default function Dashboard() {
   const [tapsLoading, setTapsLoading] = useState(false)
   const [expandedRoiId, setExpandedRoiId] = useState(null)
   const [missedInsight, setMissedInsight] = useState(null)
+  const [openInsightSection, setOpenInsightSection] = useState({})
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [showFormula, setShowFormula] = useState(false)
@@ -1351,169 +1367,173 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
-          {perkInsights.length === 0 && retroactiveMissed.length === 0 && cardRecs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-              
-              <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>No insights yet</div>
-              <div style={{ fontSize: '13px', color: 'var(--text-faintest)', lineHeight: '1.6' }}>
-                Add cards with perks and use Smart Tap to start seeing personalized optimization tips.
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* ── Proactive recommendations ── */}
-              {perkInsights.length > 0 && (
-                <div style={{ marginBottom: '1.75rem' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
-                    Use before they expire
+          {(() => {
+            const hasExpiring = perkInsights.length > 0
+            const hasMissed = retroactiveMissed.length > 0
+            const hasRecsSection = cardRecs.length > 0 || cards.length > 0
+
+            if (!hasExpiring && !hasMissed && !hasRecsSection) {
+              return (
+                <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>No insights yet</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-faintest)', lineHeight: '1.6' }}>
+                    Add cards with perks and use Smart Tap to start seeing personalized optimization tips.
                   </div>
-                  {perkInsights.map(insight => {
-                    const urgentColor = insight.days <= 7 ? 'var(--red)' : insight.days <= 14 ? 'var(--orange)' : 'var(--green)'
-                    const urgentBg = insight.days <= 7 ? 'rgba(217,82,82,0.08)' : insight.days <= 14 ? 'rgba(196,124,42,0.08)' : 'rgba(29,184,122,0.06)'
-                    const urgentBorder = insight.days <= 7 ? 'rgba(217,82,82,0.25)' : insight.days <= 14 ? 'rgba(196,124,42,0.25)' : 'rgba(29,184,122,0.2)'
-                    return (
-                      <div key={insight.id} data-reveal style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: '4px', padding: '14px 14px 14px 12px', marginBottom: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                          <CardArt name={insight.card.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500', marginBottom: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
-                          </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontSize: '22px', fontWeight: '700', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                              ${insight.remaining.toFixed(0)}
-                            </div>
-                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{insight.days}d left</div>
-                          </div>
+                </div>
+              )
+            }
+
+            // ── Score sections by urgency/usefulness so the most relevant one leads ──
+            const urgentExpiring = perkInsights.filter(i => i.days <= 7).length
+            const soonExpiring = perkInsights.filter(i => i.days <= 14).length
+            const expiringScore = urgentExpiring > 0 ? 3 : soonExpiring > 0 ? 2 : hasExpiring ? 1 : -1
+            const missedScore = hasMissed ? (totalMissed >= 50 ? 3 : totalMissed >= 10 ? 2 : 1) : -1
+            const recsScore = cardRecs.length > 0 ? 1 : (hasRecsSection ? 0 : -1)
+
+            const expiringSummary = hasExpiring
+              ? `${perkInsights.length} perk${perkInsights.length !== 1 ? 's' : ''} to use${urgentExpiring > 0 ? ` · ${urgentExpiring} expiring within a week` : ''}`
+              : null
+            const missedSummary = hasMissed
+              ? `$${totalMissed.toFixed(0)} left on the table across ${retroactiveMissed.length} purchase${retroactiveMissed.length !== 1 ? 's' : ''}`
+              : null
+            const recsSummary = cardRecs.length > 0
+              ? `${cardRecs.length} card${cardRecs.length !== 1 ? 's' : ''} could earn you more`
+              : (cards.length > 0 ? 'Your wallet looks well-optimized' : null)
+
+            // ── Section bodies ──
+            const renderExpiring = () => perkInsights.map(insight => {
+              const urgentColor = insight.days <= 7 ? 'var(--red)' : insight.days <= 14 ? 'var(--orange)' : 'var(--green)'
+              const urgentBg = insight.days <= 7 ? 'rgba(217,82,82,0.08)' : insight.days <= 14 ? 'rgba(196,124,42,0.08)' : 'rgba(29,184,122,0.06)'
+              const urgentBorder = insight.days <= 7 ? 'rgba(217,82,82,0.25)' : insight.days <= 14 ? 'rgba(196,124,42,0.25)' : 'rgba(29,184,122,0.2)'
+              return (
+                <div key={insight.id} style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: '4px', padding: '14px 14px 14px 12px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                    <CardArt name={insight.card.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500', marginBottom: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: '22px', fontWeight: '700', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                        ${insight.remaining.toFixed(0)}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{insight.days}d left</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
+                    {'You have '}
+                    <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>${insight.remaining.toFixed(0)}</span>
+                    {' in '}
+                    <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{insight.perk.name}</span>
+                    {' until '}
+                    <span style={{ color: urgentColor, fontWeight: '600' }}>{formatResetDate(insight.resetDate)}</span>
+                    {insight.suggestion && (
+                      <> — based on your history, <span style={{ color: '#c9a227', fontWeight: '600' }}>{insight.suggestion}</span> would use this optimally</>
+                    )}
+                    {!insight.suggestion && '.'}
+                  </div>
+                </div>
+              )
+            })
+
+            const renderMissed = () => (
+              <>
+                {missedByMonth.length > 1 && (
+                  <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '2px' }}>
+                    <button
+                      onClick={() => setSelectedMonth(null)}
+                      style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: selectedMonth === null ? 'var(--text-primary)' : 'transparent', borderColor: selectedMonth === null ? 'var(--text-primary)' : 'var(--border)', color: selectedMonth === null ? '#fff' : 'var(--text-muted)' }}
+                    >
+                      All time
+                    </button>
+                    {missedByMonth.map(m => {
+                      const [yr, mo] = m.key.split('-')
+                      const label = new Date(+yr, +mo - 1).toLocaleString('default', { month: 'short', year: '2-digit' })
+                      const active = selectedMonth === m.key
+                      return (
+                        <button key={m.key} onClick={() => setSelectedMonth(m.key)}
+                          style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: active ? 'var(--text-primary)' : 'transparent', borderColor: active ? 'var(--text-primary)' : 'var(--border)', color: active ? '#fff' : 'var(--text-muted)' }}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {(() => {
+                  const filtered = selectedMonth
+                    ? retroactiveMissed.filter(m => {
+                        const d = new Date(m.tap.tapped_at)
+                        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+                        return key === selectedMonth
+                      })
+                    : retroactiveMissed
+                  const filteredTotal = filtered.reduce((s, m) => s + m.missedTotal, 0)
+                  const [yr, mo] = (selectedMonth || '').split('-')
+                  const monthLabel = selectedMonth
+                    ? new Date(+yr, +mo - 1).toLocaleString('default', { month: 'long', year: 'numeric' })
+                    : 'all time'
+
+                  return (
+                    <>
+                      <div style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(180,83,9,0.2)', borderRadius: '12px', padding: '16px 18px', marginBottom: '12px' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                          {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
                         </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
-                          {'You have '}
-                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>${insight.remaining.toFixed(0)}</span>
-                          {' in '}
-                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{insight.perk.name}</span>
-                          {' until '}
-                          <span style={{ color: urgentColor, fontWeight: '600' }}>{formatResetDate(insight.resetDate)}</span>
-                          {insight.suggestion && (
-                            <> — based on your history, <span style={{ color: '#c9a227', fontWeight: '600' }}>{insight.suggestion}</span> would use this optimally</>
-                          )}
-                          {!insight.suggestion && '.'}
+                        <div style={{ fontSize: '36px', fontWeight: '800', color: 'var(--orange)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                          ${filteredTotal.toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                          on the table across {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
+                          {!selectedMonth && ' in your history'}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
 
-              {/* ── Retroactive optimization feed ── */}
-              {retroactiveMissed.length > 0 && (
-                <div style={{ marginBottom: '1.75rem' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '12px' }}>
-                    Left on the table
-                  </div>
-
-                  {/* Monthly picker */}
-                  {missedByMonth.length > 1 && (
-                    <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '2px' }}>
-                      <button
-                        onClick={() => setSelectedMonth(null)}
-                        style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: selectedMonth === null ? 'var(--text-primary)' : 'transparent', borderColor: selectedMonth === null ? 'var(--text-primary)' : 'var(--border)', color: selectedMonth === null ? '#fff' : 'var(--text-muted)' }}
-                      >
-                        All time
-                      </button>
-                      {missedByMonth.map(m => {
-                        const [yr, mo] = m.key.split('-')
-                        const label = new Date(+yr, +mo - 1).toLocaleString('default', { month: 'short', year: '2-digit' })
-                        const active = selectedMonth === m.key
-                        return (
-                          <button key={m.key} onClick={() => setSelectedMonth(m.key)}
-                            style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: active ? 'var(--text-primary)' : 'transparent', borderColor: active ? 'var(--text-primary)' : 'var(--border)', color: active ? '#fff' : 'var(--text-muted)' }}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-
-                  {/* Summary hero */}
-                  {(() => {
-                    const filtered = selectedMonth
-                      ? retroactiveMissed.filter(m => {
-                          const d = new Date(m.tap.tapped_at)
-                          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-                          return key === selectedMonth
-                        })
-                      : retroactiveMissed
-                    const filteredTotal = filtered.reduce((s, m) => s + m.missedTotal, 0)
-                    const [yr, mo] = (selectedMonth || '').split('-')
-                    const monthLabel = selectedMonth
-                      ? new Date(+yr, +mo - 1).toLocaleString('default', { month: 'long', year: 'numeric' })
-                      : 'all time'
-
-                    return (
-                      <>
-                        <div data-reveal style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(180,83,9,0.2)', borderRadius: '12px', padding: '16px 18px', marginBottom: '12px' }}>
-                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                            {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
-                          </div>
-                          <div style={{ fontSize: '36px', fontWeight: '800', color: 'var(--orange)', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                            ${filteredTotal.toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-                            on the table across {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
-                            {!selectedMonth && ' in your history'}
-                          </div>
-                        </div>
-
-                        {/* Per-transaction breakdown */}
-                        {filtered.length > 0 && (
-                          <div className="card" style={{ padding: '0 1.125rem' }}>
-                            {filtered.slice(0, 15).map((item, i) => (
-                              <div key={item.tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                                <CardArt name={item.bestCard.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {item.tap.merchant || item.tap.card_name}
-                                    {item.tap.amount > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
-                                  </div>
-                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                    <span style={{ color: 'var(--red)' }}>{item.usedCard.name}</span>
-                                    <span style={{ color: 'var(--text-faintest)' }}> → </span>
-                                    <span style={{ color: 'var(--green)' }}>{item.bestCard.name}</span>
-                                    {item.tap.category && <span style={{ color: 'var(--text-faintest)' }}> · {item.tap.category}</span>}
-                                  </div>
+                      {filtered.length > 0 && (
+                        <div className="card" style={{ padding: '0 1.125rem' }}>
+                          {filtered.slice(0, 15).map((item, i) => (
+                            <div key={item.tap.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                              <CardArt name={item.bestCard.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {item.tap.merchant || item.tap.card_name}
+                                  {item.tap.amount > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
                                 </div>
-                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                  <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--orange)' }}>+${item.missedTotal.toFixed(2)}</div>
-                                  <div style={{ fontSize: '10px', color: 'var(--text-faintest)', marginTop: '1px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                  <span style={{ color: 'var(--red)' }}>{item.usedCard.name}</span>
+                                  <span style={{ color: 'var(--text-faintest)' }}> → </span>
+                                  <span style={{ color: 'var(--green)' }}>{item.bestCard.name}</span>
+                                  {item.tap.category && <span style={{ color: 'var(--text-faintest)' }}> · {item.tap.category}</span>}
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                        {filtered.length > 15 && (
-                          <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-faintest)', marginTop: '10px' }}>
-                            +{filtered.length - 15} more transactions
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </div>
-              )}
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--orange)' }}>+${item.missedTotal.toFixed(2)}</div>
+                                <div style={{ fontSize: '10px', color: 'var(--text-faintest)', marginTop: '1px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {filtered.length > 15 && (
+                        <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-faintest)', marginTop: '10px' }}>
+                          +{filtered.length - 15} more transactions
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
+              </>
+            )
 
-              {/* ── Card recommendations ── */}
-              <div style={{ marginBottom: '1.75rem' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '4px' }}>
-                  Cards worth adding
-                </div>
+            const renderRecs = () => (
+              <>
                 <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginBottom: '12px', lineHeight: '1.5' }}>
                   Based on your last {taps.length} purchase{taps.length !== 1 ? 's' : ''} · {taps.length < 10
                     ? <span style={{ color: '#c9a227' }}>track more purchases to sharpen these picks</span>
                     : 'personalized to your spending'}
                 </div>
 
-                {/* Low-tap nudge */}
                 {taps.length < 5 && cards.length > 0 && (
                   <div style={{ background: 'rgba(201,162,39,0.07)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '12px 14px', marginBottom: '12px' }}>
                     <div style={{ fontSize: '13px', fontWeight: '600', color: '#c9a227', marginBottom: '4px' }}>Log purchases to unlock personalized picks</div>
@@ -1523,7 +1543,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {cardRecs.length === 0 && cards.length > 0 ? (
+                {cardRecs.length === 0 ? (
                   <div style={{ background: 'rgba(15,155,101,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderLeft: '3px solid var(--green)', borderRadius: '4px', padding: '14px 16px' }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--green)', marginBottom: '4px' }}>Your wallet is well-optimized</div>
                     <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
@@ -1534,9 +1554,8 @@ export default function Dashboard() {
                   const affiliate = getAffiliateLink(rec.name)
                   const tierStyle = TIER_STYLES[rec.tier] || TIER_STYLES['no-fee']
                   return (
-                    <div key={rec.name} data-reveal style={{ background: 'rgba(91,79,255,0.07)', border: '1px solid rgba(91,79,255,0.18)', borderRadius: '6px', padding: '14px', marginBottom: '10px' }}>
+                    <div key={rec.name} style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.16)', borderRadius: '6px', padding: '14px', marginBottom: '10px' }}>
 
-                      {/* Header row */}
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>{rec.name}</div>
@@ -1550,33 +1569,30 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '20px', fontWeight: '800', color: '#5b8fff', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                          <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                             +${Math.round(netAnnualGain)}/yr
                           </div>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>est. from your spend</div>
                         </div>
                       </div>
 
-                      {/* Why description */}
                       <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55', marginBottom: '10px' }}>{rec.why}</div>
 
-                      {/* Where you'd gain */}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
                         {improvements.slice(0, 4).map(imp => (
-                          <span key={imp.category} style={{ fontSize: '11px', fontWeight: '600', color: '#5b8fff', background: 'rgba(91,79,255,0.12)', borderRadius: '4px', padding: '3px 7px' }}>
+                          <span key={imp.category} style={{ fontSize: '11px', fontWeight: '600', color: 'var(--blue)', background: 'rgba(37,99,235,0.1)', borderRadius: '4px', padding: '3px 7px' }}>
                             {imp.category} +{(imp.gainPerDollar * 100).toFixed(1)}¢/$
                             {imp.annualCatGain >= 10 && <span style={{ opacity: 0.6 }}> (${Math.round(imp.annualCatGain)}/yr)</span>}
                           </span>
                         ))}
                       </div>
 
-                      {/* Apply button */}
                       {affiliate ? (
                         <a
                           href={affiliate.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ display: 'block', textAlign: 'center', padding: '11px', background: '#5b4fff', borderRadius: '6px', fontSize: '13px', fontWeight: '700', color: '#fff', textDecoration: 'none', letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
+                          style={{ display: 'block', textAlign: 'center', padding: '11px', background: 'var(--blue)', borderRadius: '6px', fontSize: '13px', fontWeight: '700', color: '#fff', textDecoration: 'none', letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                           onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                           {affiliate.cta} →
@@ -1590,15 +1606,37 @@ export default function Dashboard() {
                   )
                 })}
 
-                {/* Affiliate disclosure */}
                 {cardRecs.length > 0 && (
                   <div style={{ fontSize: '10px', color: 'var(--text-faintest)', lineHeight: '1.55', marginTop: '8px', padding: '0 2px' }}>
                     {AFFILIATE_DISCLOSURE}
                   </div>
                 )}
-              </div>
-            </>
-          )}
+              </>
+            )
+
+            const sections = [
+              hasExpiring    && { key: 'expiring', score: expiringScore, label: 'Use before they expire', summary: expiringSummary, render: renderExpiring },
+              hasMissed      && { key: 'missed',   score: missedScore,   label: 'Left on the table',     summary: missedSummary,   render: renderMissed },
+              hasRecsSection && { key: 'recs',     score: recsScore,     label: 'Cards worth adding',    summary: recsSummary,     render: renderRecs },
+            ].filter(Boolean).sort((a, b) => b.score - a.score)
+
+            const topKey = sections[0]?.key
+
+            return sections.map(s => {
+              const isOpen = openInsightSection[s.key] !== undefined ? openInsightSection[s.key] : s.key === topKey
+              return (
+                <InsightSection
+                  key={s.key}
+                  label={s.label}
+                  summary={s.summary}
+                  isOpen={isOpen}
+                  onToggle={() => setOpenInsightSection(prev => ({ ...prev, [s.key]: !isOpen }))}
+                >
+                  {s.render()}
+                </InsightSection>
+              )
+            })
+          })()}
         </div>
       )}
 
