@@ -367,6 +367,31 @@ export default function Dashboard() {
     if (typeof window !== 'undefined') localStorage.setItem('clavis_last_cat', cat)
   }
 
+  // Generic words that show up in perk names but aren't merchant identifiers —
+  // stripped out before matching a perk name against what the user typed, so
+  // e.g. "Resy Dining Credit" reduces to "resy" rather than matching every
+  // "dining" search.
+  const PERK_GENERIC_WORDS = new Set([
+    'credit', 'credits', 'dining', 'travel', 'hotel', 'hotels', 'airline', 'airlines',
+    'fee', 'fees', 'digital', 'entertainment', 'property', 'eligible', 'stays', 'stay',
+    'global', 'entry', 'tsa', 'precheck', 'in-flight', 'inflight', 'wifi', 'wi-fi',
+    'rideshare', 'resort', 'resorts', 'fine', 'dashpass', 'plus', 'membership',
+    'annual', 'monthly', 'semi-annual', 'and', 'the', 'amex', 'chase', 'card', 'bonus',
+  ])
+
+  // Does this perk look like it's tied to a specific merchant the user is
+  // shopping at right now? (e.g. a "Peloton Credit" perk when the user types
+  // "Peloton") — these are typically use-it-here-or-lose-it statement credits
+  // that only get captured by spending at that exact merchant.
+  function perkMatchesMerchant(perkName, merchantStr) {
+    if (!merchantStr) return false
+    const m = merchantStr.toLowerCase().trim()
+    if (m.length < 3) return false
+    const words = perkName.toLowerCase().replace(/[^\w\s+'-]/g, ' ').split(/\s+/)
+      .filter(w => w.length > 2 && !PERK_GENERIC_WORDS.has(w))
+    return words.some(w => m.includes(w) || w.includes(m))
+  }
+
   function isCashBack(card) { return card?.balance_unit === 'cash back' || card?.balance_unit === 'dollars' }
   function getMultiplier(card) {
     if (!card) return 0
@@ -408,6 +433,17 @@ export default function Dashboard() {
              tapMerchant.includes(cardName.replace(/\s*(gift\s*card|gc)\s*/gi, '').trim())
     })()
 
+    // A merchant-specific perk you'd otherwise likely never use: a $60
+    // Peloton credit only has value if you're shopping at Peloton — the
+    // rewards-rate math doesn't matter if this is the one shot you have to
+    // capture it. Surface (and prioritize) the card whose unused perk best
+    // matches where the user is tapping.
+    const merchantPerkMatch = tapMerchant
+      ? activePerks
+          .filter(p => perkMatchesMerchant(p.name, tapMerchant))
+          .sort((a, b) => (b.total_amount - b.used_amount) - (a.total_amount - a.used_amount))[0]
+      : null
+
     let score = dollarVal * 100
     // Small steady nudge for cards carrying unused perk value, plus a
     // sharper urgency nudge — scaled by dollars, not just perk count — for
@@ -417,15 +453,23 @@ export default function Dashboard() {
     score += activePerks.length * 0.3 + activePerksValue / 50
     score += expiringPerks.length * 1 + expiringPerksValue / 15
     if (isGiftWithBalance) score += 5
+    // A merchant-matched perk beats ordinary rewards-rate math — this may be
+    // the only purchase all year where this credit is even capturable. It
+    // sits just below a linked gift card balance (money you've already spent).
+    if (merchantPerkMatch) score = Math.max(score, 500 + (merchantPerkMatch.total_amount - merchantPerkMatch.used_amount))
     if (giftMerchantLinked) score = 9999
 
     const reasons = []
+    if (merchantPerkMatch) {
+      const remaining = merchantPerkMatch.total_amount - merchantPerkMatch.used_amount
+      reasons.push(`Use here — captures your $${remaining % 1 === 0 ? remaining.toFixed(0) : remaining.toFixed(2)} ${merchantPerkMatch.name.replace(/\s*credit\s*$/i, '')} credit`)
+    }
     if (mult > 0) {
       const fvpd = formatValuePerDollar(card, mult)
       reasons.push(isCashBack(card) ? `${mult}% back` : `${mult}x pts${fvpd ? ` (${fvpd})` : ''}`)
     }
     if (expiringPerks.length > 0) reasons.push(`${expiringPerks.length} perk${expiringPerks.length > 1 ? 's' : ''} expiring soon`)
-    else if (activePerks.length > 0) reasons.push(`${activePerks.length} active perk${activePerks.length > 1 ? 's' : ''}`)
+    else if (activePerks.length > 0 && !merchantPerkMatch) reasons.push(`${activePerks.length} active perk${activePerks.length > 1 ? 's' : ''}`)
     if (isGiftWithBalance) reasons.push(`$${card.balance} gift balance`)
     if (giftMerchantLinked) reasons.unshift(`Use here`)
 
@@ -1979,6 +2023,12 @@ export default function Dashboard() {
                       label: 'Gift card balance',
                       formula: '+5 if gift card has remaining balance',
                       detail: 'A gift card with money on it should be used before any rewards card — you\'ve already paid for it.',
+                      color: 'var(--text-secondary)',
+                    },
+                    {
+                      label: 'Merchant-matched perk',
+                      formula: 'Score → 500 + unused $ (overrides rewards math)',
+                      detail: 'If what you typed matches an unused perk\'s name (e.g. typing "Peloton" when a card has a Peloton credit), that card jumps to the top — these are use-it-here-or-lose-it credits where the rewards rate stops mattering.',
                       color: 'var(--text-secondary)',
                     },
                     {
