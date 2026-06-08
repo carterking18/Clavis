@@ -197,6 +197,7 @@ export default function Dashboard() {
   const [selectedAmt, setSelectedAmt] = useState(0)
   const [selectedCardId, setSelectedCardId] = useState(null)
   const [tapConfirm, setTapConfirm] = useState('')
+  const [tapError, setTapError] = useState('')
   const [showAddCard, setShowAddCard] = useState(false)
   const [showAddPerk, setShowAddPerk] = useState(false)
   const [showRankings, setShowRankings] = useState(false)
@@ -549,6 +550,7 @@ export default function Dashboard() {
   async function simulateTap() {
     const card = getActiveCard()
     if (!card) return
+    setTapError('')
     const mult = getMultiplier(card)
     const rate = formatRate(card, mult)
     const dollarVal = dollarValuePerDollar(card, mult)
@@ -567,19 +569,24 @@ export default function Dashboard() {
       confirmMsg = `Tapped as ${card.name} · ${rate ? `${rate} on $${selectedAmt}` : 'card charged'} · Transaction complete`
     }
 
-    await logTap({
-      card_id: card.id,
-      card_name: card.name,
-      merchant: detectedMerchant?.name || merchantQuery || null,
-      category: selectedCat,
-      amount: selectedAmt,
-      rewards_rate: rate || (card.type === 'gift' ? 'gift' : null),
-      estimated_value: card.type === 'gift' ? 0 : estimatedValue,
-      note: tapNote.trim() || null,
-    })
-    setTapNote('')
-    setSelectedAmt(0)
-    loadTaps()
+    try {
+      await logTap({
+        card_id: card.id,
+        card_name: card.name,
+        merchant: detectedMerchant?.name || merchantQuery || null,
+        category: selectedCat,
+        amount: selectedAmt,
+        rewards_rate: rate || (card.type === 'gift' ? 'gift' : null),
+        estimated_value: card.type === 'gift' ? 0 : estimatedValue,
+        note: tapNote.trim() || null,
+      })
+      setTapNote('')
+      setSelectedAmt(0)
+      loadTaps()
+    } catch (e) {
+      setTapError(e.message || 'Failed to save tap — please try again.')
+      return
+    }
 
     setTapConfirm(confirmMsg)
     setMissedInsight(null)
@@ -1236,6 +1243,9 @@ export default function Dashboard() {
 
           {tapConfirm && (
             <div className="success" style={{ marginTop: '10px', textAlign: 'center' }}>{tapConfirm}</div>
+          )}
+          {tapError && (
+            <div className="error" style={{ marginTop: '10px', textAlign: 'center' }}>{tapError}</div>
           )}
 
           {missedInsight && (
