@@ -226,6 +226,7 @@ export default function Dashboard() {
   const [addingToCardId, setAddingToCardId] = useState(null)
   const [emailSending, setEmailSending] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [weeklyDigest, setWeeklyDigest] = useState(true)
   const [digestSaving, setDigestSaving] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
@@ -975,10 +976,43 @@ export default function Dashboard() {
             </div>
             <button onClick={() => setTourStep(0)} className="mkt-nav-link dash-about-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Take a tour</button>
             <a href="/about" className="mkt-nav-link dash-about-link">About</a>
-            <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
-              className="pill-dark dash-sign-out" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
-              Sign out
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setShowAccountMenu(v => !v)}
+                className="pill-dark dash-sign-out" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                Account
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showAccountMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {showAccountMenu && (
+                <>
+                  <div onClick={() => setShowAccountMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 10px)', right: 0, minWidth: '180px',
+                    background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px',
+                    boxShadow: '0 12px 40px rgba(0,0,0,0.18)', zIndex: 200, padding: '6px', overflow: 'hidden',
+                  }}>
+                    {user?.email && (
+                      <div style={{ padding: '8px 10px 9px', fontSize: '11.5px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-subtle)', marginBottom: '4px' }}>
+                        {user.email}
+                      </div>
+                    )}
+                    <button onClick={() => { setShowAccountMenu(false); supabase.auth.signOut().then(() => router.push('/auth')) }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '600', color: 'var(--text-secondary)', padding: '9px 10px', borderRadius: '6px' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      Sign out
+                    </button>
+                    <button onClick={() => { setShowAccountMenu(false); setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteAccountError('') }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '600', color: 'var(--red)', padding: '9px 10px', borderRadius: '6px' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(217,82,82,0.08)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      Delete account
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Center links — dashboard tabs (own row on narrow screens, scrollable) */}
@@ -1640,19 +1674,6 @@ export default function Dashboard() {
             </button>
           </div>
           {emailMsg && <div className="success">{emailMsg}</div>}
-
-          <div style={{ marginTop: '1rem', marginBottom: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)' }}>
-            <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faintest)', marginBottom: '8px' }}>
-              Account
-            </div>
-            <button onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteAccountError('') }}
-              style={{ background: 'none', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '6px', padding: '9px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '600', color: 'var(--red)' }}>
-              Delete account
-            </button>
-            <div style={{ fontSize: '11.5px', color: 'var(--text-faintest)', marginTop: '8px', lineHeight: '1.5' }}>
-              Permanently deletes your account and all associated data — cards, perks, purchase history, and preferences. This cannot be undone.
-            </div>
-          </div>
 
           {cards.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
