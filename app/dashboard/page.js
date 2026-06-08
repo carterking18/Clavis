@@ -212,6 +212,10 @@ export default function Dashboard() {
   const [correctionNote, setCorrectionNote] = useState('')
   const [correctionSubmitting, setCorrectionSubmitting] = useState(false)
   const [correctionSubmitted, setCorrectionSubmitted] = useState(false)
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [deleteAccountError, setDeleteAccountError] = useState('')
   const [syncingFees, setSyncingFees] = useState(false)
   const [feeSyncDismissed, setFeeSyncDismissed] = useState(false)
   const [suggestedPerks, setSuggestedPerks] = useState(null)
@@ -731,6 +735,27 @@ export default function Dashboard() {
       console.error(e)
     } finally {
       setCorrectionSubmitting(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (deleteConfirmText.trim().toUpperCase() !== 'DELETE') return
+    setDeletingAccount(true)
+    setDeleteAccountError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Your session has expired — please sign in again.')
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}` },
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body.error || 'Something went wrong deleting your account.')
+      await supabase.auth.signOut()
+      router.push('/')
+    } catch (e) {
+      setDeleteAccountError(e.message)
+      setDeletingAccount(false)
     }
   }
 
@@ -1616,6 +1641,19 @@ export default function Dashboard() {
           </div>
           {emailMsg && <div className="success">{emailMsg}</div>}
 
+          <div style={{ marginTop: '1rem', marginBottom: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faintest)', marginBottom: '8px' }}>
+              Account
+            </div>
+            <button onClick={() => { setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteAccountError('') }}
+              style={{ background: 'none', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '6px', padding: '9px 16px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '600', color: 'var(--red)' }}>
+              Delete account
+            </button>
+            <div style={{ fontSize: '11.5px', color: 'var(--text-faintest)', marginTop: '8px', lineHeight: '1.5' }}>
+              Permanently deletes your account and all associated data — cards, perks, purchase history, and preferences. This cannot be undone.
+            </div>
+          </div>
+
           {cards.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
           ) : cards.map(card => {
@@ -2128,6 +2166,30 @@ export default function Dashboard() {
       </div>
 
       {/* ── MODALS ────────────────────────────────────── */}
+
+      {showDeleteAccount && (
+        <div onClick={() => !deletingAccount && setShowDeleteAccount(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '1.5rem', width: '100%', maxWidth: '420px' }}>
+            <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--red)', marginBottom: '8px' }}>Delete your account?</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '14px' }}>
+              This permanently deletes your Clavis account and everything tied to it — cards, perks, purchase history, and email preferences. <strong style={{ color: 'var(--text-primary)' }}>This cannot be undone.</strong>
+            </div>
+            <label className="label">Type DELETE to confirm</label>
+            <input className="input" type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE" disabled={deletingAccount}
+              style={{ marginBottom: '12px', textTransform: 'uppercase' }} />
+            {deleteAccountError && <div style={{ fontSize: '12.5px', color: 'var(--red)', marginBottom: '12px' }}>{deleteAccountError}</div>}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-primary" style={{ background: 'var(--red)' }}
+                disabled={deleteConfirmText.trim().toUpperCase() !== 'DELETE' || deletingAccount}
+                onClick={handleDeleteAccount}>
+                {deletingAccount ? 'Deleting…' : 'Permanently delete my account'}
+              </button>
+              <button className="btn-secondary" disabled={deletingAccount} onClick={() => setShowDeleteAccount(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {emptyGiftCards.length > 0 && emptyGiftCards[emptyGiftCardIndex] && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
