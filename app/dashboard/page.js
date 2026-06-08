@@ -578,6 +578,7 @@ export default function Dashboard() {
       note: tapNote.trim() || null,
     })
     setTapNote('')
+    setSelectedAmt(0)
 
     setTapConfirm(confirmMsg)
     setMissedInsight(null)
