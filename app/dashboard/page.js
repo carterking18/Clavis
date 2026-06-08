@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers } from '../../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
@@ -206,6 +206,12 @@ export default function Dashboard() {
   const [editingCard, setEditingCard] = useState(null)
   const [editMultipliers, setEditMultipliers] = useState({})
   const [editAnnualFee, setEditAnnualFee] = useState('')
+  const [showCorrectionForm, setShowCorrectionForm] = useState(false)
+  const [correctionField, setCorrectionField] = useState('Annual fee')
+  const [correctionValue, setCorrectionValue] = useState('')
+  const [correctionNote, setCorrectionNote] = useState('')
+  const [correctionSubmitting, setCorrectionSubmitting] = useState(false)
+  const [correctionSubmitted, setCorrectionSubmitted] = useState(false)
   const [syncingFees, setSyncingFees] = useState(false)
   const [feeSyncDismissed, setFeeSyncDismissed] = useState(false)
   const [suggestedPerks, setSuggestedPerks] = useState(null)
@@ -215,6 +221,9 @@ export default function Dashboard() {
   const [emptyGiftCardIndex, setEmptyGiftCardIndex] = useState(0)
   const [addingToCardId, setAddingToCardId] = useState(null)
   const [emailSending, setEmailSending] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [weeklyDigest, setWeeklyDigest] = useState(true)
+  const [digestSaving, setDigestSaving] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
   const [taps, setTaps] = useState([])
   const [tapsLoading, setTapsLoading] = useState(false)
@@ -310,6 +319,7 @@ export default function Dashboard() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
+      getWeeklyDigestPref().then(setWeeklyDigest).catch(() => {})
       Promise.all([loadCards(), loadTaps()]).then(() => {
         setLoading(false)
         const seen = typeof window !== 'undefined' && localStorage.getItem('clavis_onboarded')
@@ -359,6 +369,33 @@ export default function Dashboard() {
     }
     return Object.values(map).sort((a, b) => b.key.localeCompare(a.key))
   }, [retroactiveMissed])
+
+  // Spending breakdown — aggregate logged taps by category and by card
+  const spendingBreakdown = useMemo(() => {
+    const byCategory = {}
+    const byCard = {}
+    let totalSpend = 0
+    let totalEarned = 0
+    for (const t of taps) {
+      const amt = t.amount || 0
+      totalSpend += amt
+      totalEarned += t.estimated_value || 0
+      const cat = t.category || 'other'
+      if (!byCategory[cat]) byCategory[cat] = { key: cat, spend: 0, earned: 0, count: 0 }
+      byCategory[cat].spend += amt
+      byCategory[cat].earned += t.estimated_value || 0
+      byCategory[cat].count++
+
+      const cardKey = t.card_id || t.card_name
+      if (!byCard[cardKey]) byCard[cardKey] = { key: cardKey, name: t.card_name, spend: 0, earned: 0, count: 0 }
+      byCard[cardKey].spend += amt
+      byCard[cardKey].earned += t.estimated_value || 0
+      byCard[cardKey].count++
+    }
+    const categories = Object.values(byCategory).sort((a, b) => b.spend - a.spend)
+    const byCardArr = Object.values(byCard).sort((a, b) => b.spend - a.spend)
+    return { categories, byCard: byCardArr, totalSpend, totalEarned }
+  }, [taps])
 
   function pickCategory(cat) {
     setSelectedCat(cat)
@@ -665,7 +702,36 @@ export default function Dashboard() {
     CATEGORIES.forEach(cat => { const m = card.multipliers?.find(m => m.category === cat); mults[cat] = m ? String(m.multiplier) : '' })
     setEditMultipliers(mults)
     setEditAnnualFee(card.annual_fee != null ? String(card.annual_fee) : '')
+    setShowCorrectionForm(false)
+    setCorrectionField('Annual fee')
+    setCorrectionValue('')
+    setCorrectionNote('')
+    setCorrectionSubmitted(false)
     setEditingCard(card)
+  }
+
+  async function handleSubmitCorrection() {
+    if (!editingCard || !correctionValue.trim()) return
+    setCorrectionSubmitting(true)
+    try {
+      const currentMap = {
+        'Annual fee': editingCard.annual_fee,
+      }
+      await submitCardCorrection({
+        cardName: editingCard.name,
+        field: correctionField,
+        currentValue: currentMap[correctionField],
+        suggestedValue: correctionValue.trim(),
+        note: correctionNote.trim(),
+      })
+      setCorrectionSubmitted(true)
+      setCorrectionValue('')
+      setCorrectionNote('')
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setCorrectionSubmitting(false)
+    }
   }
 
   async function handleSaveEdit() {
@@ -693,6 +759,36 @@ export default function Dashboard() {
       })
       .filter(Boolean)
   }, [cards])
+
+  // ── Notification center: unify urgent perk expirations + fee changes into one feed ──
+  const notifications = useMemo(() => {
+    const items = []
+    for (const insight of perkInsights) {
+      if (insight.days <= 14) {
+        items.push({
+          id: `perk-${insight.id}`,
+          urgent: insight.days <= 7,
+          icon: '◷',
+          color: insight.days <= 7 ? 'var(--red)' : 'var(--orange)',
+          title: `${insight.perk.name} expires in ${insight.days}d`,
+          detail: `$${insight.remaining.toFixed(0)} unused on your ${insight.card.name}`,
+          tab: 'perks',
+        })
+      }
+    }
+    for (const u of feeUpdates) {
+      items.push({
+        id: `fee-${u.id}`,
+        urgent: u.newFee > u.oldFee,
+        icon: '✦',
+        color: u.newFee > u.oldFee ? 'var(--orange)' : 'var(--green)',
+        title: `${u.name} annual fee changed`,
+        detail: `$${u.oldFee} → $${u.newFee}`,
+        tab: 'wallet',
+      })
+    }
+    return items.sort((a, b) => (b.urgent === a.urgent) ? 0 : (b.urgent ? 1 : -1))
+  }, [perkInsights, feeUpdates])
 
   async function syncAllFees() {
     if (!feeUpdates.length) return
@@ -781,6 +877,7 @@ export default function Dashboard() {
   }
 
   const insightCount = perkInsights.length + retroactiveMissed.length + cardRecs.length
+  const urgentNotifCount = notifications.filter(n => n.urgent).length
 
   return (
     <div className="app" style={{ paddingTop: 0 }}>
@@ -807,6 +904,50 @@ export default function Dashboard() {
 
           {/* About / Sign out */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0, order: 2 }}>
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setShowNotifications(v => !v)} aria-label="Notifications"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative', display: 'flex', alignItems: 'center', padding: '4px', color: '#dddde4', lineHeight: 1 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {notifications.length > 0 && (
+                  <span style={{
+                    position: 'absolute', top: '-2px', right: '-2px', minWidth: '15px', height: '15px', borderRadius: '50%',
+                    background: urgentNotifCount > 0 ? 'var(--red)' : 'var(--gold)', color: '#fff', fontSize: '9px', fontWeight: '700',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '1.5px solid rgba(9,9,12,0.85)',
+                  }}>
+                    {notifications.length > 9 ? '9+' : notifications.length}
+                  </span>
+                )}
+              </button>
+              {showNotifications && (
+                <>
+                  <div onClick={() => setShowNotifications(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: '320px', maxHeight: '420px', overflowY: 'auto',
+                    background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
+                    zIndex: 200, padding: '14px',
+                  }}>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px' }}>Notifications</div>
+                    {notifications.length === 0 ? (
+                      <div style={{ fontSize: '12.5px', color: 'var(--text-faintest)', padding: '12px 2px', lineHeight: '1.5' }}>
+                        You're all caught up — no expiring perks or fee changes to flag right now.
+                      </div>
+                    ) : notifications.map(n => (
+                      <button key={n.id} onClick={() => { setTab(n.tab); setShowNotifications(false) }}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '9px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
+                        <span style={{ color: n.color, fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>{n.icon}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>
+                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '1px' }}>{n.detail}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             <button onClick={() => setTourStep(0)} className="mkt-nav-link dash-about-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Take a tour</button>
             <a href="/about" className="mkt-nav-link dash-about-link">About</a>
             <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
@@ -852,7 +993,7 @@ export default function Dashboard() {
             <div style={{
               background: 'transparent',
               borderRadius: '4px',
-              padding: '11px 14px',
+              padding: '14px 18px',
               border: detectedMerchant
                 ? '1px solid rgba(29,184,122,0.4)'
                 : '1px solid var(--border)',
@@ -861,7 +1002,7 @@ export default function Dashboard() {
               alignItems: 'center',
               gap: '10px',
             }}>
-              <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--text-faintest)', flexShrink: 0, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--text-faintest)', flexShrink: 0, textTransform: 'uppercase' }}>
                 {detectedMerchant ? CAT_META[detectedMerchant.category]?.label : 'Merchant'}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -875,7 +1016,7 @@ export default function Dashboard() {
                     setMerchantSuggestions(searchMerchants(q))
                     if (!q) setDetectedMerchant(null)
                   }}
-                  style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+                  style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '16px', fontWeight: '500', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
                 />
               </div>
               {merchantQuery && (
@@ -903,16 +1044,16 @@ export default function Dashboard() {
           </div>
 
           {/* 2 ── Category selector */}
-          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', marginBottom: '18px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '20px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
             {CATEGORIES.map(cat => (
               <button key={cat} onClick={() => pickCategory(cat)}
                 style={{
-                  flexShrink: 0, padding: '6px 14px',
+                  flexShrink: 0, padding: '8px 17px',
                   borderRadius: '9999px',
                   border: selectedCat === cat ? '1px solid rgba(201,162,39,0.5)' : '1px solid var(--border-subtle)',
                   background: selectedCat === cat ? 'rgba(201,162,39,0.1)' : 'transparent',
                   color: selectedCat === cat ? '#c9a227' : 'var(--text-muted)',
-                  fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase',
+                  fontSize: '12px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase',
                   cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
                 }}>
                 {CAT_META[cat].label}
@@ -936,49 +1077,49 @@ export default function Dashboard() {
             return (
               <div style={{ border: '1px solid var(--border)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
                 {/* Card header row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <CardArt name={activeCard?.name || ''} style={{ width: '52px', height: '35px', flexShrink: 0 }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <CardArt name={activeCard?.name || ''} style={{ width: '60px', height: '40px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                    <div style={{ fontSize: '10.5px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
                       {label}
                     </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {activeCard?.name || '—'}
                     </div>
                     {activeCard?.last_four && (
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
                         •••• {activeCard.last_four}
                       </div>
                     )}
                   </div>
                   {selectedCardId && (
                     <button onClick={() => setSelectedCardId(null)}
-                      style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: '9999px', padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ fontSize: '10.5px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: '9999px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
                       Auto
                     </button>
                   )}
                 </div>
                 {/* Rate row */}
-                <div style={{ padding: '16px 16px 18px', background: 'var(--bg-elevated)' }}>
+                <div style={{ padding: '20px 20px 22px', background: 'var(--bg-elevated)' }}>
                   {isGift ? (
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                      <span style={{ fontSize: '40px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                      <span style={{ fontSize: '46px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                         ${(activeCard.balance || 0).toFixed(2)}
                       </span>
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>remaining</span>
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>remaining</span>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                        <span style={{ fontSize: '40px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+                        <span style={{ fontSize: '46px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                           {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1×'}
                         </span>
                         {valuePer && mult > 0 && (
-                          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>{valuePer}</span>
+                          <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{valuePer}</span>
                         )}
                       </div>
                       {estimatedOnAmt > 0 && (
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
                           +${estimatedOnAmt.toFixed(2)}
                         </span>
                       )}
@@ -995,14 +1136,14 @@ export default function Dashboard() {
           </button>
 
           {/* 5 ── Amount input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '10px 14px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>$</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '13px 16px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
+            <span style={{ fontSize: '15px', color: 'var(--text-muted)', fontWeight: '600' }}>$</span>
             <input type="number" min="0" placeholder="0.00" value={selectedAmt || ''}
               onChange={e => setSelectedAmt(parseFloat(e.target.value) || 0)}
-              style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '15px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
+              style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '17px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
             {selectedAmt > 0 && (
-              <button onClick={() => setSelectedAmt(0)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', padding: '0 2px' }}>✕</button>
+              <button onClick={() => setSelectedAmt(0)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '14px', padding: '0 2px' }}>✕</button>
             )}
           </div>
 
@@ -1055,9 +1196,9 @@ export default function Dashboard() {
                   { label: 'Annual fees', value: totalFees > 0 ? `$${totalFees.toFixed(0)}` : '$0', color: totalFees > 0 ? 'var(--red)' : 'var(--text-faintest)' },
                   { label: 'Net value', value: `${netValue >= 0 ? '+' : ''}$${netValue.toFixed(0)}`, color: netValue >= 0 ? 'var(--green)' : 'var(--red)' },
                 ].map(m => (
-                  <div key={m.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '14px 10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '20px', fontWeight: '700', color: m.color, marginBottom: '4px' }}>{m.value}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>{m.label}</div>
+                  <div key={m.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '18px 12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '24px', fontWeight: '700', color: m.color, marginBottom: '5px' }}>{m.value}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>{m.label}</div>
                   </div>
                 ))}
               </div>
@@ -1119,28 +1260,28 @@ export default function Dashboard() {
 
                 return (
                   <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '4px', border: isPaidOff ? '1.5px solid rgba(29,184,122,0.3)' : '1px solid var(--border-subtle)', background: isPaidOff ? 'rgba(15,155,101,0.04)' : 'var(--bg-card)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 14px', cursor: fee > 0 ? 'pointer' : 'default' }}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '17px 16px', cursor: fee > 0 ? 'pointer' : 'default' }}
                       onClick={() => fee > 0 && setExpandedRoiId(isExpanded ? null : card.id)}>
-                      <CardArt name={card.name} style={{ width: '48px', height: '32px', flexShrink: 0 }} />
+                      <CardArt name={card.name} style={{ width: '54px', height: '36px', flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>
+                        <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                           {card.type}{fee > 0 ? ` · $${fee}/yr fee` : ''}
                         </div>
                       </div>
                       {fee > 0 ? (
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {isPaidOff ? (
-                            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--green)', background: 'rgba(29,184,122,0.15)', borderRadius: '9999px', padding: '3px 10px' }}>✓ Paid off</div>
+                            <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--green)', background: 'rgba(29,184,122,0.15)', borderRadius: '9999px', padding: '4px 11px' }}>✓ Paid off</div>
                           ) : (
                             <>
-                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
-                              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
+                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
                             </>
                           )}
                         </div>
                       ) : (
-                        <div style={{ fontSize: '11px', color: 'var(--text-faintest)', padding: '0 4px' }}>no fee</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-faintest)', padding: '0 4px' }}>no fee</div>
                       )}
                     </div>
 
@@ -1445,9 +1586,32 @@ export default function Dashboard() {
             ) : null
           })()}
 
-          <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px' }}>
             <button className="btn-primary" onClick={sendEmail} disabled={emailSending}>
               {emailSending ? 'Sending...' : 'Email me my perk summary'}
+            </button>
+            <button
+              onClick={async () => {
+                const next = !weeklyDigest
+                setWeeklyDigest(next); setDigestSaving(true)
+                try { await setWeeklyDigestPref(next) } catch (e) { console.error(e); setWeeklyDigest(!next) }
+                setDigestSaving(false)
+              }}
+              disabled={digestSaving}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '6px 0', opacity: digestSaving ? 0.6 : 1 }}
+            >
+              <span style={{
+                position: 'relative', width: '34px', height: '20px', borderRadius: '10px', flexShrink: 0,
+                background: weeklyDigest ? 'var(--green)' : 'var(--border)', transition: 'background 0.15s',
+              }}>
+                <span style={{
+                  position: 'absolute', top: '2px', left: weeklyDigest ? '16px' : '2px', width: '16px', height: '16px',
+                  borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                }} />
+              </span>
+              <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                Weekly summary emails {weeklyDigest ? 'on' : 'off'}
+              </span>
             </button>
           </div>
           {emailMsg && <div className="success">{emailMsg}</div>}
@@ -1850,10 +2014,76 @@ export default function Dashboard() {
               </>
             )
 
+            const hasSpending = spendingBreakdown.totalSpend > 0
+            const spendingScore = hasSpending ? 0.5 : -1
+            const spendingSummary = hasSpending
+              ? `$${spendingBreakdown.totalSpend.toFixed(0)} tracked across ${spendingBreakdown.categories.length} categor${spendingBreakdown.categories.length !== 1 ? 'ies' : 'y'}`
+              : null
+
+            const renderSpending = () => {
+              const { categories, byCard, totalSpend, totalEarned } = spendingBreakdown
+              const CATEGORY_COLORS = ['var(--blue)', 'var(--gold)', 'var(--green)', 'var(--orange)', 'var(--red)', '#8B5CF6', '#06B6D4', '#EC4899']
+              const Bar = ({ label, sub, value, max, color }) => (
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '5px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', textTransform: 'capitalize' }}>{label}</div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>${value.toFixed(0)}</span>
+                      {sub && <span style={{ fontSize: '11px', color: 'var(--text-faintest)', marginLeft: '6px' }}>{sub}</span>}
+                    </div>
+                  </div>
+                  <div style={{ height: '6px', borderRadius: '3px', background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${max > 0 ? Math.max(3, (value / max) * 100) : 0}%`, borderRadius: '3px', background: color, transition: 'width 0.3s ease' }} />
+                  </div>
+                </div>
+              )
+
+              const maxCatSpend = Math.max(...categories.map(c => c.spend), 1)
+              const maxCardSpend = Math.max(...byCard.map(c => c.spend), 1)
+
+              return (
+                <>
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                    <div style={{ flex: 1, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.16)', borderRadius: '10px', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Total spend tracked</div>
+                      <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1 }}>${totalSpend.toFixed(0)}</div>
+                    </div>
+                    <div style={{ flex: 1, background: 'rgba(15,155,101,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderRadius: '10px', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Rewards earned</div>
+                      <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--green)', letterSpacing: '-0.03em', lineHeight: 1 }}>${totalEarned.toFixed(0)}</div>
+                    </div>
+                  </div>
+
+                  {categories.length > 0 && (
+                    <>
+                      <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>By category</div>
+                      {categories.slice(0, 8).map((c, i) => (
+                        <Bar key={c.key} label={c.key} sub={`${c.count} purchase${c.count !== 1 ? 's' : ''}`} value={c.spend} max={maxCatSpend} color={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                      ))}
+                    </>
+                  )}
+
+                  {byCard.length > 0 && (
+                    <>
+                      <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', margin: '18px 0 10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>By card</div>
+                      {byCard.slice(0, 8).map((c, i) => (
+                        <Bar key={c.key} label={c.name} sub={`${c.count} tap${c.count !== 1 ? 's' : ''} · $${c.earned.toFixed(0)} earned`} value={c.spend} max={maxCardSpend} color={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                      ))}
+                    </>
+                  )}
+
+                  <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginTop: '4px', lineHeight: '1.5' }}>
+                    Based on {taps.length} logged purchase{taps.length !== 1 ? 's' : ''}. Log more taps to sharpen this picture.
+                  </div>
+                </>
+              )
+            }
+
             const sections = [
               hasExpiring    && { key: 'expiring', score: expiringScore, label: 'Use before they expire', summary: expiringSummary, render: renderExpiring },
               hasMissed      && { key: 'missed',   score: missedScore,   label: 'Left on the table',     summary: missedSummary,   render: renderMissed },
               hasRecsSection && { key: 'recs',     score: recsScore,     label: 'Cards worth adding',    summary: recsSummary,     render: renderRecs },
+              hasSpending    && { key: 'spending', score: spendingScore, label: 'Spending breakdown',    summary: spendingSummary, render: renderSpending },
             ].filter(Boolean).sort((a, b) => b.score - a.score)
 
             const topKey = sections[0]?.key
@@ -2191,6 +2421,44 @@ export default function Dashboard() {
                   </button>
                 )
               })()}
+            </div>
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', marginBottom: '1.25rem' }}>
+              {!showCorrectionForm ? (
+                <button onClick={() => setShowCorrectionForm(true)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--text-muted)', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+                  Something look outdated? Suggest a correction
+                </button>
+              ) : correctionSubmitted ? (
+                <div style={{ fontSize: '12.5px', color: 'var(--green)', fontWeight: '600' }}>
+                  ✓ Thanks — we'll review your suggestion and update our card data.
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '8px' }}>Suggest a correction for {editingCard.name}</div>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <select className="input" value={correctionField} onChange={e => setCorrectionField(e.target.value)} style={{ flex: 1, fontSize: '13px', padding: '7px 8px' }}>
+                      <option>Annual fee</option>
+                      <option>Reward rate / multiplier</option>
+                      <option>Perk details</option>
+                      <option>Card name / details</option>
+                      <option>Other</option>
+                    </select>
+                    <input className="input" placeholder="Suggested value" value={correctionValue} onChange={e => setCorrectionValue(e.target.value)} style={{ flex: 1, fontSize: '13px', padding: '7px 8px' }} />
+                  </div>
+                  <textarea className="input" placeholder="Add a note or source (optional)" value={correctionNote} onChange={e => setCorrectionNote(e.target.value)}
+                    style={{ width: '100%', minHeight: '54px', fontSize: '13px', padding: '7px 8px', marginBottom: '8px', fontFamily: 'inherit', resize: 'vertical' }} />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn-secondary" disabled={!correctionValue.trim() || correctionSubmitting} onClick={handleSubmitCorrection}
+                      style={{ fontSize: '12px', padding: '7px 14px', opacity: (!correctionValue.trim() || correctionSubmitting) ? 0.5 : 1 }}>
+                      {correctionSubmitting ? 'Submitting…' : 'Submit suggestion'}
+                    </button>
+                    <button onClick={() => setShowCorrectionForm(false)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--text-faintest)', padding: '7px 4px' }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn-primary" onClick={handleSaveEdit}>Save changes</button>
