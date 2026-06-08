@@ -42,9 +42,9 @@ function StepIndicator({ current, total }) {
   )
 }
 
-export function Onboarding({ onComplete }) {
+export function Onboarding({ onComplete, tourOnly = false }) {
   const [step, setStep] = useState(0)
-  const [tourIndex, setTourIndex] = useState(null) // null = not touring; 0..N = current tour slide
+  const [tourIndex, setTourIndex] = useState(tourOnly ? 0 : null) // null = not touring; 0..N = current tour slide
   const [cardName, setCardName] = useState('')
   const [balanceUnit, setBalanceUnit] = useState('points')
   const [annualFee, setAnnualFee] = useState('')
@@ -203,17 +203,27 @@ export function Onboarding({ onComplete }) {
               )}
               <button className="btn-primary" onClick={() => {
                 if (tourIndex < TOUR_SLIDES.length - 1) setTourIndex(i => i + 1)
+                else if (tourOnly) onComplete()
                 else { setTourIndex(null); setStep(1) }
               }}>
-                {tourIndex < TOUR_SLIDES.length - 1 ? 'Next →' : "Let's add your first card →"}
+                {tourIndex < TOUR_SLIDES.length - 1 ? 'Next →' : (tourOnly ? 'Done' : "Let's add your first card →")}
               </button>
             </div>
 
-            <button
-              onClick={() => { setTourIndex(null); setStep(1) }}
-              style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', fontSize: '13px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
-              Skip tour
-            </button>
+            {!tourOnly && (
+              <button
+                onClick={() => { setTourIndex(null); setStep(1) }}
+                style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', fontSize: '13px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+                Skip tour
+              </button>
+            )}
+            {tourOnly && (
+              <button
+                onClick={onComplete}
+                style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', fontSize: '13px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+                Close
+              </button>
+            )}
           </div>
         )}
 

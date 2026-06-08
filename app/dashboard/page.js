@@ -128,6 +128,7 @@ export default function Dashboard() {
   const [missedInsight, setMissedInsight] = useState(null)
   const [openInsightSection, setOpenInsightSection] = useState({})
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [showTour, setShowTour] = useState(false)
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [showFormula, setShowFormula] = useState(false)
   const [perkUpdates, setPerkUpdates] = useState({})       // { cardId: { newPerks, changedPerks } }
@@ -603,6 +604,7 @@ export default function Dashboard() {
 
           {/* About / Sign out */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0, order: 2 }}>
+            <button onClick={() => setShowTour(true)} className="mkt-nav-link dash-about-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Take a tour</button>
             <a href="/about" className="mkt-nav-link dash-about-link">About</a>
             <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
               className="pill-dark dash-sign-out" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
@@ -1887,6 +1889,10 @@ export default function Dashboard() {
           setShowOnboarding(false)
           loadCards()
         }} />
+      )}
+
+      {showTour && (
+        <Onboarding tourOnly onComplete={() => setShowTour(false)} />
       )}
 
       {editingCard && (
