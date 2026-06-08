@@ -318,25 +318,31 @@ export default function Dashboard() {
     return { card, score, dollarVal, reasons }
   }
 
-  function getRankedCards() {
+  // Ranking is recomputed often (every render the Tap tab is active, plus
+  // whenever the rankings modal opens) — memoize it so we score/sort the
+  // wallet once per relevant state change instead of 2-4x per render.
+  const rankedCards = useMemo(() => {
     return [...cards]
       .filter(c => !(c.type === 'gift' && (c.balance || 0) <= 0))
-      .map(scoreCard).sort((a, b) => {
+      .map(scoreCard)
+      .sort((a, b) => {
         const d = b.score - a.score
         if (Math.abs(d) > 0.001) return d
         return (b.card.annual_fee || 0) - (a.card.annual_fee || 0)
       })
-  }
-  function getBestCard() { if (!cards.length) return null; return getRankedCards()[0].card }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cards, selectedCat, detectedMerchant, merchantQuery])
+
+  function getRankedCards() { return rankedCards }
+  function getBestCard() { return rankedCards[0]?.card || null }
   function getActiveCard() {
     if (selectedCardId) return cards.find(c => c.id === selectedCardId) || getBestCard()
     return getBestCard()
   }
   function isBestTied() {
     if (cards.length < 2 || selectedCardId) return false
-    const ranked = getRankedCards()
-    return Math.abs(ranked[0].score - ranked[1].score) <= 0.001 &&
-           (ranked[0].card.annual_fee || 0) === (ranked[1].card.annual_fee || 0)
+    return Math.abs(rankedCards[0].score - rankedCards[1].score) <= 0.001 &&
+           (rankedCards[0].card.annual_fee || 0) === (rankedCards[1].card.annual_fee || 0)
   }
 
   async function simulateTap() {

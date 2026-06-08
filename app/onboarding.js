@@ -7,6 +7,14 @@ import { getCardDesign } from '../lib/cardImages'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
+const TOUR_SLIDES = [
+  { icon: '⚡', tab: 'Tap',      title: 'Smart Tap', text: "Type where you're shopping and Clavis instantly tells you which card in your wallet earns the most — right when you need it." },
+  { icon: '💳', tab: 'Wallet',   title: 'Wallet',    text: "Every card in one place — annual fees, balances, and the value you've earned, all tracked automatically." },
+  { icon: '🎁', tab: 'Perks',    title: 'Perks',     text: 'Keep tabs on annual credits and benefits across your cards so nothing expires unused.' },
+  { icon: '🕐', tab: 'History',  title: 'History',   text: 'Every tap is logged automatically, building a running record of what you earned and where.' },
+  { icon: '💡', tab: 'Insights', title: 'Insights',  text: 'Personalized tips — perks about to expire, money left on the table, and cards worth adding to your wallet.' },
+]
+
 function CardArt({ name, style = {} }) {
   const design = getCardDesign(name)
   return (
@@ -36,6 +44,7 @@ function StepIndicator({ current, total }) {
 
 export function Onboarding({ onComplete }) {
   const [step, setStep] = useState(0)
+  const [tourIndex, setTourIndex] = useState(null) // null = not touring; 0..N = current tour slide
   const [cardName, setCardName] = useState('')
   const [balanceUnit, setBalanceUnit] = useState('points')
   const [annualFee, setAnnualFee] = useState('')
@@ -170,8 +179,46 @@ export function Onboarding({ onComplete }) {
         overflowY: 'auto',
       }}>
 
+        {/* ── Tour: quick walkthrough of the 5 tabs ──────── */}
+        {tourIndex !== null && (
+          <div style={{ textAlign: 'center' }}>
+            <StepIndicator current={tourIndex} total={TOUR_SLIDES.length} />
+
+            <div style={{ fontSize: '40px', marginBottom: '14px' }}>{TOUR_SLIDES[tourIndex].icon}</div>
+            <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>
+              {TOUR_SLIDES[tourIndex].tab} tab
+            </div>
+            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px' }}>
+              {TOUR_SLIDES[tourIndex].title}
+            </div>
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '28px', minHeight: '78px' }}>
+              {TOUR_SLIDES[tourIndex].text}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {tourIndex > 0 && (
+                <button className="btn-secondary" onClick={() => setTourIndex(i => i - 1)} style={{ width: 'auto', flexShrink: 0, padding: '11px 18px' }}>
+                  ← Back
+                </button>
+              )}
+              <button className="btn-primary" onClick={() => {
+                if (tourIndex < TOUR_SLIDES.length - 1) setTourIndex(i => i + 1)
+                else { setTourIndex(null); setStep(1) }
+              }}>
+                {tourIndex < TOUR_SLIDES.length - 1 ? 'Next →' : "Let's add your first card →"}
+              </button>
+            </div>
+
+            <button
+              onClick={() => { setTourIndex(null); setStep(1) }}
+              style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', fontSize: '13px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+              Skip tour
+            </button>
+          </div>
+        )}
+
         {/* ── Step 0: Welcome ───────────────────────────── */}
-        {step === 0 && (
+        {tourIndex === null && step === 0 && (
           <div style={{ textAlign: 'center' }}>
             <StepIndicator current={0} total={3} />
 
@@ -216,14 +263,14 @@ export function Onboarding({ onComplete }) {
               ))}
             </div>
 
-            <button className="btn-primary" onClick={() => setStep(1)} style={{ marginTop: '24px' }}>
+            <button className="btn-primary" onClick={() => setTourIndex(0)} style={{ marginTop: '24px' }}>
               Get started →
             </button>
           </div>
         )}
 
         {/* ── Step 1: Add first card ─────────────────────── */}
-        {step === 1 && (
+        {tourIndex === null && step === 1 && (
           <div>
             <StepIndicator current={1} total={3} />
 
@@ -300,7 +347,7 @@ export function Onboarding({ onComplete }) {
         )}
 
         {/* ── Step 2: Known perks found ─────────────────── */}
-        {step === 2 && suggestedPerks && suggestedPerks.length > 0 && (
+        {tourIndex === null && step === 2 && suggestedPerks && suggestedPerks.length > 0 && (
           <div>
             <StepIndicator current={2} total={4} />
 
@@ -345,7 +392,7 @@ export function Onboarding({ onComplete }) {
         )}
 
         {/* ── Step 3: Done ──────────────────────────────── */}
-        {(step === 3 || (step === 2 && (!suggestedPerks || suggestedPerks.length === 0))) && (
+        {tourIndex === null && (step === 3 || (step === 2 && (!suggestedPerks || suggestedPerks.length === 0))) && (
           <div style={{ textAlign: 'center' }}>
             <StepIndicator current={totalSteps - 1} total={totalSteps} />
 
