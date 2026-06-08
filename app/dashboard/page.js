@@ -2106,6 +2106,27 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ── FOOTER ────────────────────────────────────── */}
+      <div style={{ marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+          {[
+            { href: '/faq',     label: 'FAQ' },
+            { href: '/privacy', label: 'Privacy' },
+            { href: '/terms',   label: 'Terms' },
+            { href: '/about',   label: 'About' },
+          ].map(l => (
+            <a key={l.href} href={l.href} style={{ fontSize: '12px', color: 'var(--text-faintest)', textDecoration: 'none', transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
+              {l.label}
+            </a>
+          ))}
+        </div>
+        <span style={{ fontSize: '11px', color: 'var(--text-faintest)' }}>
+          © {new Date().getFullYear()} Clavis · Your data is never sold or shared
+        </span>
+      </div>
+
       {/* ── MODALS ────────────────────────────────────── */}
 
       {emptyGiftCards.length > 0 && emptyGiftCards[emptyGiftCardIndex] && (

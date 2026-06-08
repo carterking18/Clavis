@@ -18,6 +18,72 @@ export function KeySVG({ size = 20, id = 'mk1' }) {
   )
 }
 
+// ── Shared layout for legal/info pages (Privacy, Terms, FAQ) ──
+export function LegalLayout({ title, meta, children, navId = 'lglkey', ftId = 'lglftkey' }) {
+  return (
+    <>
+      <style>{marketingStyles}</style>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+        <nav style={{
+          position: 'sticky', top: 0, zIndex: 100,
+          background: 'rgba(9,9,12,0.85)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}>
+          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+              <KeySVG size={18} id={navId}/>
+              <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
+            </a>
+            <a href="/dashboard" className="pill-dark" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
+              ← Dashboard
+            </a>
+          </div>
+        </nav>
+
+        <div style={{ maxWidth: '720px', margin: '0 auto', padding: '64px 24px 96px' }}>
+          <h1 className="display-lg" style={{ marginBottom: '8px' }}>{title}</h1>
+          {meta && <p style={{ fontSize: '13px', color: 'var(--text-faintest)', marginBottom: '40px' }}>{meta}</p>}
+          {children}
+        </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', margin: 0 }}/>
+        <footer style={{ padding: '32px 24px' }}>
+          <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <KeySVG size={16} id={ftId}/>
+              <span style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '0.08em', color: 'rgba(221,221,228,0.35)' }}>CLAVIS</span>
+            </div>
+            <span style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)' }}>
+              © {new Date().getFullYear()} Clavis · One card. Every reward.
+            </span>
+          </div>
+        </footer>
+      </div>
+    </>
+  )
+}
+
+// ── Content primitives for legal/info pages ──────────────
+export function LegalH2({ children }) {
+  return <h2 style={{ fontSize: '19px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.01em', marginTop: '40px', marginBottom: '14px' }}>{children}</h2>
+}
+
+export function LegalP({ children }) {
+  return <p style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-secondary)', marginBottom: '14px' }}>{children}</p>
+}
+
+export function LegalList({ items }) {
+  return (
+    <ul style={{ margin: '0 0 14px', paddingLeft: '22px' }}>
+      {items.map((item, i) => (
+        <li key={i} style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-secondary)', marginBottom: '6px' }}>{item}</li>
+      ))}
+    </ul>
+  )
+}
+
 // ── Hero card-stack illustration ──────────────────────────
 export function HeroArt() {
   const bars   = [12, 20, 16, 28, 14, 18]
