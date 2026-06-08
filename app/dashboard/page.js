@@ -1570,17 +1570,17 @@ export default function Dashboard() {
             const totalAll = allPerks.reduce((s, p) => s + p.total_amount, 0)
             const usedPct = totalAll > 0 ? Math.round(((totalAll - totalRemaining) / totalAll) * 100) : 0
             return totalRemaining > 0 ? (
-              <div data-reveal style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '14px 16px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div data-reveal style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '18px 20px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '4px' }}>Uncaptured value</div>
-                  <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${totalRemaining.toFixed(0)}</div>
-                  <div style={{ height: '3px', background: 'var(--bg-elevated)', borderRadius: '2px', marginTop: '8px' }}>
-                    <div style={{ height: '3px', borderRadius: '2px', width: usedPct + '%', background: 'var(--green)', transition: 'width 0.5s' }} />
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '5px' }}>Uncaptured value</div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${totalRemaining.toFixed(0)}</div>
+                  <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px', marginTop: '9px' }}>
+                    <div style={{ height: '4px', borderRadius: '2px', width: usedPct + '%', background: 'var(--green)', transition: 'width 0.5s' }} />
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '-0.02em' }}>{usedPct}%</div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginTop: '2px' }}>used</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '-0.02em' }}>{usedPct}%</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-faintest)', marginTop: '2px' }}>used</div>
                 </div>
               </div>
             ) : null
@@ -1627,8 +1627,8 @@ export default function Dashboard() {
             const usedCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) <= 0)
             return (
               <div key={card.id} data-reveal style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CardArt name={card.name} style={{ width: '32px', height: '22px', flexShrink: 0 }} />
+                <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <CardArt name={card.name} style={{ width: '38px', height: '26px', flexShrink: 0 }} />
                   {card.name}
                 </div>
 
@@ -1666,19 +1666,19 @@ export default function Dashboard() {
                     const isUrgent = daysLeft !== null && daysLeft <= 7 && daysLeft > 0
                     const accent = isUrgent ? 'var(--red)' : isExpiring ? 'var(--orange)' : 'var(--green)'
                     return (
-                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '3px' }}>{perk.name}</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>{perk.name}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '9px' }}>
                             {perk.period}
                             {daysLeft !== null ? ` · ${isUrgent ? `${daysLeft}d left` : isExpiring ? `${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
                           </div>
-                          <div style={{ height: '3px', background: 'var(--bg-elevated)', borderRadius: '2px' }}>
-                            <div style={{ height: '3px', borderRadius: '2px', width: pct + '%', background: accent, transition: 'width 0.4s' }} />
+                          <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px' }}>
+                            <div style={{ height: '4px', borderRadius: '2px', width: pct + '%', background: accent, transition: 'width 0.4s' }} />
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '14px', fontWeight: '700', color: accent, marginBottom: '5px' }}>
+                          <div style={{ fontSize: '15px', fontWeight: '700', color: accent, marginBottom: '6px' }}>
                             {`$${remaining.toFixed(0)} left`}
                           </div>
                           <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
@@ -1715,15 +1715,15 @@ export default function Dashboard() {
       {tab === 'history' && (
         <div>
           <div data-reveal style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
-            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>This month</div>
-              <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${thisMonthEarned.toFixed(2)}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>This month</div>
+              <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${thisMonthEarned.toFixed(2)}</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
             </div>
-            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '16px' }}>
-              <div style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>All time</div>
-              <div style={{ fontSize: '24px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em' }}>${totalEarned.toFixed(2)}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
+            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>All time</div>
+              <div style={{ fontSize: '28px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em' }}>${totalEarned.toFixed(2)}</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
 
@@ -1736,25 +1736,25 @@ export default function Dashboard() {
           ) : (
             <div className="card" style={{ padding: '0 1.125rem' }}>
               {taps.map((tap, i) => (
-                <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < taps.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                  <CardArt name={tap.card_name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
+                <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < taps.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <CardArt name={tap.card_name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tap.merchant || tap.card_name}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                       {tap.card_name}{tap.category ? ` · ${tap.category}` : ''}
                       {' · '}<TimeAgo dateStr={tap.tapped_at} />
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     {tap.amount > 0 && (
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '1px' }}>${tap.amount.toFixed(2)}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>${tap.amount.toFixed(2)}</div>
                     )}
                     {tap.estimated_value > 0 ? (
-                      <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--green)' }}>+${tap.estimated_value.toFixed(2)}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--green)' }}>+${tap.estimated_value.toFixed(2)}</div>
                     ) : (
-                      <div style={{ fontSize: '11px', color: 'var(--text-faintest)' }}>{tap.rewards_rate || '—'}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-faintest)' }}>{tap.rewards_rate || '—'}</div>
                     )}
                   </div>
                 </div>
@@ -1806,21 +1806,21 @@ export default function Dashboard() {
               const urgentBg = insight.days <= 7 ? 'rgba(217,82,82,0.08)' : insight.days <= 14 ? 'rgba(196,124,42,0.08)' : 'rgba(29,184,122,0.06)'
               const urgentBorder = insight.days <= 7 ? 'rgba(217,82,82,0.25)' : insight.days <= 14 ? 'rgba(196,124,42,0.25)' : 'rgba(29,184,122,0.2)'
               return (
-                <div key={insight.id} style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: '4px', padding: '14px 14px 14px 12px', marginBottom: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                    <CardArt name={insight.card.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
+                <div key={insight.id} style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: '4px', padding: '16px 16px 16px 14px', marginBottom: '9px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <CardArt name={insight.card.name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500', marginBottom: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: '22px', fontWeight: '700', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                      <div style={{ fontSize: '25px', fontWeight: '700', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
                         ${insight.remaining.toFixed(0)}
                       </div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{insight.days}d left</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>{insight.days}d left</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
+                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
                     {'You have '}
                     <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>${insight.remaining.toFixed(0)}</span>
                     {' in '}
@@ -1877,14 +1877,14 @@ export default function Dashboard() {
 
                   return (
                     <>
-                      <div style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(180,83,9,0.2)', borderRadius: '12px', padding: '16px 18px', marginBottom: '12px' }}>
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      <div style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(180,83,9,0.2)', borderRadius: '12px', padding: '20px 22px', marginBottom: '14px' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '7px' }}>
                           {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
                         </div>
-                        <div style={{ fontSize: '36px', fontWeight: '800', color: 'var(--orange)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                        <div style={{ fontSize: '40px', fontWeight: '800', color: 'var(--orange)', letterSpacing: '-0.04em', lineHeight: 1 }}>
                           ${filteredTotal.toFixed(2)}
                         </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '7px' }}>
                           on the table across {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
                           {!selectedMonth && ' in your history'}
                         </div>
@@ -1893,14 +1893,14 @@ export default function Dashboard() {
                       {filtered.length > 0 && (
                         <div className="card" style={{ padding: '0 1.125rem' }}>
                           {filtered.slice(0, 15).map((item, i) => (
-                            <div key={item.tap.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                              <CardArt name={item.bestCard.name} style={{ width: '40px', height: '27px', flexShrink: 0 }} />
+                            <div key={item.tap.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                              <CardArt name={item.bestCard.name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {item.tap.merchant || item.tap.card_name}
                                   {item.tap.amount > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
                                 </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                                   <span style={{ color: 'var(--red)' }}>{item.usedCard.name}</span>
                                   <span style={{ color: 'var(--text-faintest)' }}> → </span>
                                   <span style={{ color: 'var(--green)' }}>{item.bestCard.name}</span>
@@ -1908,8 +1908,8 @@ export default function Dashboard() {
                                 </div>
                               </div>
                               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--orange)' }}>+${item.missedTotal.toFixed(2)}</div>
-                                <div style={{ fontSize: '10px', color: 'var(--text-faintest)', marginTop: '1px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
+                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--orange)' }}>+${item.missedTotal.toFixed(2)}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginTop: '2px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
                               </div>
                             </div>
                           ))}
