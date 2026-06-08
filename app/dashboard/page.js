@@ -12,7 +12,7 @@ import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
 import { getAffiliateLink, TIER_STYLES, AFFILIATE_DISCLOSURE } from '../../lib/affiliates'
-import { Onboarding } from '../onboarding'
+import { Onboarding, TOUR_SLIDES } from '../onboarding'
 import { InstallPrompt } from '../install-prompt'
 import { KeySVG, marketingStyles } from '../marketing-sections'
 
@@ -76,6 +76,97 @@ function InsightSection({ label, summary, isOpen, onToggle, children }) {
   )
 }
 
+function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClose }) {
+  const [rect, setRect] = useState(null)
+  const slide = slides[step]
+  const tabKey = slide.tab.toLowerCase()
+
+  useEffect(() => {
+    function update() {
+      const el = targetRefs.current[tabKey]
+      if (el) {
+        const r = el.getBoundingClientRect()
+        setRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+      }
+    }
+    update()
+    const id = requestAnimationFrame(update) // catch post-tab-switch layout shifts
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      cancelAnimationFrame(id)
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [tabKey, targetRefs])
+
+  if (!rect || typeof window === 'undefined') return null
+
+  const pad = 8
+  const spotStyle = {
+    position: 'fixed',
+    top: rect.top - pad,
+    left: rect.left - pad,
+    width: rect.width + pad * 2,
+    height: rect.height + pad * 2,
+    borderRadius: '8px',
+    boxShadow: '0 0 0 9999px rgba(15,15,20,0.6)',
+    border: '2px solid var(--gold)',
+    pointerEvents: 'none',
+    zIndex: 250,
+    transition: 'top 0.3s cubic-bezier(0.16,1,0.3,1), left 0.3s cubic-bezier(0.16,1,0.3,1), width 0.3s cubic-bezier(0.16,1,0.3,1)',
+  }
+
+  const tooltipWidth = Math.min(320, window.innerWidth - 24)
+  let tooltipLeft = rect.left + rect.width / 2 - tooltipWidth / 2
+  tooltipLeft = Math.max(12, Math.min(tooltipLeft, window.innerWidth - tooltipWidth - 12))
+  const tooltipTop = rect.top + rect.height + pad + 16
+
+  const tooltipStyle = {
+    position: 'fixed',
+    top: tooltipTop,
+    left: tooltipLeft,
+    width: tooltipWidth,
+    background: 'var(--bg-elevated)',
+    border: '1px solid var(--border)',
+    borderRadius: '12px',
+    padding: '18px',
+    boxShadow: '0 16px 48px rgba(0,0,0,0.3)',
+    zIndex: 251,
+    textAlign: 'left',
+  }
+
+  return (
+    <>
+      <div style={spotStyle} />
+      <div style={tooltipStyle}>
+        <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>
+          {slide.tab} tab · {step + 1}/{slides.length}
+        </div>
+        <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
+          {slide.icon} {slide.title}
+        </div>
+        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '16px' }}>
+          {slide.text}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {step > 0 && (
+            <button className="btn-secondary" onClick={onBack} style={{ width: 'auto', flexShrink: 0, padding: '9px 14px', fontSize: '13px' }}>
+              ← Back
+            </button>
+          )}
+          <button className="btn-primary" onClick={step < slides.length - 1 ? onNext : onFinish} style={{ flex: 1, padding: '9px 14px', fontSize: '13px' }}>
+            {step < slides.length - 1 ? 'Next →' : 'Done'}
+          </button>
+        </div>
+        <button onClick={onClose} style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', fontSize: '12px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+          Skip tour
+        </button>
+      </div>
+    </>
+  )
+}
+
 function TimeAgo({ dateStr }) {
   const date = new Date(dateStr)
   const now = new Date()
@@ -128,7 +219,14 @@ export default function Dashboard() {
   const [missedInsight, setMissedInsight] = useState(null)
   const [openInsightSection, setOpenInsightSection] = useState({})
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [showTour, setShowTour] = useState(false)
+  const [tourStep, setTourStep] = useState(null) // null = no tour; 0..N = current spotlighted tab
+  const tourTabRefs = useRef({})
+
+  // Switch the active tab to match whatever the tour is currently spotlighting,
+  // so the highlighted nav item lines up with real content underneath.
+  useEffect(() => {
+    if (tourStep !== null) setTab(TOUR_SLIDES[tourStep].tab.toLowerCase())
+  }, [tourStep])
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [showFormula, setShowFormula] = useState(false)
   const [perkUpdates, setPerkUpdates] = useState({})       // { cardId: { newPerks, changedPerks } }
@@ -604,7 +702,7 @@ export default function Dashboard() {
 
           {/* About / Sign out */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0, order: 2 }}>
-            <button onClick={() => setShowTour(true)} className="mkt-nav-link dash-about-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Take a tour</button>
+            <button onClick={() => setTourStep(0)} className="mkt-nav-link dash-about-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Take a tour</button>
             <a href="/about" className="mkt-nav-link dash-about-link">About</a>
             <button onClick={() => supabase.auth.signOut().then(() => router.push('/auth'))}
               className="pill-dark dash-sign-out" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
@@ -621,7 +719,7 @@ export default function Dashboard() {
               { key: 'history',  label: 'History' },
               { key: 'insights', label: 'Insights' },
             ].map(({ key, label }) => (
-              <button key={key} onClick={() => setTab(key)}
+              <button key={key} ref={el => { tourTabRefs.current[key] = el }} onClick={() => setTab(key)}
                 className="mkt-nav-link"
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
@@ -1891,8 +1989,16 @@ export default function Dashboard() {
         }} />
       )}
 
-      {showTour && (
-        <Onboarding tourOnly onComplete={() => setShowTour(false)} />
+      {tourStep !== null && (
+        <TourOverlay
+          slides={TOUR_SLIDES}
+          step={tourStep}
+          targetRefs={tourTabRefs}
+          onNext={() => setTourStep(s => s + 1)}
+          onBack={() => setTourStep(s => s - 1)}
+          onFinish={() => setTourStep(null)}
+          onClose={() => setTourStep(null)}
+        />
       )}
 
       {editingCard && (

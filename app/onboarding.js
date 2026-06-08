@@ -7,7 +7,7 @@ import { getCardDesign } from '../lib/cardImages'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
-const TOUR_SLIDES = [
+export const TOUR_SLIDES = [
   { icon: '⚡', tab: 'Tap',      title: 'Smart Tap', text: "Type where you're shopping and Clavis instantly tells you which card in your wallet earns the most — right when you need it." },
   { icon: '💳', tab: 'Wallet',   title: 'Wallet',    text: "Every card in one place — annual fees, balances, and the value you've earned, all tracked automatically." },
   { icon: '🎁', tab: 'Perks',    title: 'Perks',     text: 'Keep tabs on annual credits and benefits across your cards so nothing expires unused.' },
