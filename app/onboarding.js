@@ -48,6 +48,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
   const [cardName, setCardName] = useState('')
   const [balanceUnit, setBalanceUnit] = useState('points')
   const [annualFee, setAnnualFee] = useState('')
+  const [feeTouched, setFeeTouched] = useState(false) // true once the user manually edits the fee
   const [saving, setSaving] = useState(false)
   const [suggestion, setSuggestion] = useState(null)    // multiplier suggestion
   const [fetchingCard, setFetchingCard] = useState(false)
@@ -71,6 +72,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
     const s = getSuggestedMultipliers(name)
     if (s) {
       setSuggestion(s)
+      if (!feeTouched && s.annualFee !== undefined) setAnnualFee(String(s.annualFee))
       if (fetchTimer.current) clearTimeout(fetchTimer.current)
       setFetchingCard(false)
       return
@@ -317,7 +319,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
 
             {suggestion && (
               <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--blue)', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)', borderRadius: '6px', padding: '9px 12px' }}>
-                ✦ Rewards rates auto-filled — {suggestion.note}
+                ✦ Rewards rates{suggestion.annualFee !== undefined ? ' and annual fee' : ''} auto-filled — {suggestion.note}
               </div>
             )}
 
@@ -337,7 +339,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
                   type="number"
                   placeholder="0"
                   value={annualFee}
-                  onChange={e => setAnnualFee(e.target.value)}
+                  onChange={e => { setFeeTouched(true); setAnnualFee(e.target.value) }}
                 />
               </div>
             </div>

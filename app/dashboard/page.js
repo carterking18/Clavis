@@ -236,7 +236,7 @@ export default function Dashboard() {
   // Add-card form state
   const [newCard, setNewCard] = useState({
     name: '', type: 'credit', network: '', last_four: '', color: '#1a1a1a',
-    balance: '', balance_unit: 'points', annual_fee: '', merchant: '',
+    balance: '', balance_unit: 'points', annual_fee: '', merchant: '', _feeTouched: false,
     multipliers: { dining: '', travel: '', hotel: '', grocery: '', gas: '', streaming: '', retail: '', other: '' }
   })
   const [giftMerchantSuggestions, setGiftMerchantSuggestions] = useState([])
@@ -504,7 +504,14 @@ export default function Dashboard() {
     if (suggestion) {
       const mults = {}
       CATEGORIES.forEach(cat => { mults[cat] = String(suggestion.multipliers[cat] ?? '') })
-      setNewCard(prev => ({ ...prev, name, multipliers: mults, _suggestion: suggestion.note, _aiSuggestion: false }))
+      setNewCard(prev => {
+        const feeAutoFilled = !prev._feeTouched && suggestion.annualFee !== undefined
+        return {
+          ...prev, name, multipliers: mults, _suggestion: suggestion.note, _aiSuggestion: false,
+          _feeAutoFilled: feeAutoFilled,
+          annual_fee: feeAutoFilled ? String(suggestion.annualFee) : prev.annual_fee,
+        }
+      })
       setFetchingCardData(false)
       if (cardFetchTimer.current) clearTimeout(cardFetchTimer.current)
       return
@@ -1200,7 +1207,7 @@ export default function Dashboard() {
 
                   <div style={{ marginBottom: '12px' }}>
                     <label className="label">Annual fee ($) — optional</label>
-                    <input className="input" type="number" placeholder="0" value={newCard.annual_fee} onChange={e => setNewCard({ ...newCard, annual_fee: e.target.value })} />
+                    <input className="input" type="number" placeholder="0" value={newCard.annual_fee} onChange={e => setNewCard({ ...newCard, annual_fee: e.target.value, _feeTouched: true })} />
                   </div>
 
                   <div style={{ marginBottom: '16px' }}>
@@ -1210,7 +1217,7 @@ export default function Dashboard() {
                     </div>
                     {newCard._suggestion && (
                       <div style={{ marginBottom: '10px', fontSize: '12px', color: newCard._aiSuggestion ? 'var(--gold)' : 'var(--blue)', background: newCard._aiSuggestion ? 'rgba(201,162,39,0.08)' : 'rgba(37,99,235,0.06)', border: `1px solid ${newCard._aiSuggestion ? 'rgba(201,162,39,0.2)' : 'rgba(37,99,235,0.15)'}`, borderRadius: '4px', padding: '8px 12px' }}>
-                        {newCard._aiSuggestion ? '✦ AI-populated' : '✦ Rates auto-filled'} — {newCard._suggestion}
+                        {newCard._aiSuggestion ? '✦ AI-populated' : `✦ Rates${newCard._feeAutoFilled ? ' and annual fee' : ''} auto-filled`} — {newCard._suggestion}
                       </div>
                     )}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '10px 12px' }}>
