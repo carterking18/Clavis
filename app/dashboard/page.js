@@ -579,6 +579,7 @@ export default function Dashboard() {
     })
     setTapNote('')
     setSelectedAmt(0)
+    loadTaps()
 
     setTapConfirm(confirmMsg)
     setMissedInsight(null)
