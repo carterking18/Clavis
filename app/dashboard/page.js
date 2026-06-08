@@ -663,7 +663,7 @@ export default function Dashboard() {
               <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 50, overflow: 'hidden' }}>
                 {merchantSuggestions.map(m => (
                   <div key={m.name}
-                    onClick={() => { setMerchantQuery(m.name); setDetectedMerchant(m); pickCategory(m.category); setMerchantSuggestions([]) }}
+                    onClick={() => { pickCategory(m.category); setMerchantQuery(m.name); setDetectedMerchant(m); setMerchantSuggestions([]) }}
                     style={{ padding: '11px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
