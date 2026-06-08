@@ -127,7 +127,7 @@ function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClo
     top: tooltipTop,
     left: tooltipLeft,
     width: tooltipWidth,
-    background: 'var(--bg-elevated)',
+    background: 'var(--bg-card)',
     border: '1px solid var(--border)',
     borderRadius: '12px',
     padding: '18px',
