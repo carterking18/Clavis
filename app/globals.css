@@ -288,13 +288,17 @@ option {
   .dash-nav-tabs   {
     order: 3 !important;
     flex: 1 1 100% !important;
-    justify-content: flex-start !important;
-    gap: 20px !important;
-    margin-top: 6px;
-    padding: 4px 14px 0 0;
-    scroll-padding-right: 14px;
+    justify-content: center !important;
+    gap: 24px !important;
+    margin-top: 8px;
+    padding: 6px 14px 2px;
+    scroll-padding: 0 14px;
   }
-  .dash-nav-tabs .mkt-nav-link { font-size: 13px !important; }
+  .dash-nav-tabs .mkt-nav-link {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    padding: 6px 2px !important;
+  }
 }
 
 @media (max-width: 400px) {
