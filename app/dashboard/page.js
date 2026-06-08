@@ -707,7 +707,7 @@ export default function Dashboard() {
             const label = selectedCardId ? 'Selected' : isBestTied() ? 'Tied' : 'Recommended'
 
             return (
-              <div data-reveal style={{ border: '1px solid var(--border)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
                 {/* Card header row */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
                   <CardArt name={activeCard?.name || ''} style={{ width: '52px', height: '35px', flexShrink: 0 }} />

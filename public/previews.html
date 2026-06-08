@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clavis — Design Options</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f0f0f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 40px 24px;
+    min-height: 100vh;
+  }
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 48px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .option {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .option-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #555;
+  }
+  .option-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    letter-spacing: -0.02em;
+  }
+  .option-desc {
+    font-size: 13px;
+    color: #777;
+    line-height: 1.5;
+    margin-bottom: 4px;
+  }
+  .phone {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  /* ────────────────────────────────────────────────────── */
+  /* OPTION A: Premium Minimal (Linear / Stripe style)      */
+  /* ────────────────────────────────────────────────────── */
+  .a-wrap {
+    background: #fff;
+    padding: 28px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .a-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .a-logo {
+    font-size: 17px;
+    font-weight: 800;
+    color: #0f0f0f;
+    letter-spacing: -0.03em;
+  }
+  .a-logo span { color: #d4a843; }
+  .a-signout {
+    font-size: 12px;
+    color: #bbb;
+  }
+  .a-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1.5px solid #f0f0f0;
+    margin-bottom: 20px;
+  }
+  .a-tab {
+    padding: 8px 0;
+    margin-right: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ccc;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1.5px;
+  }
+  .a-tab.active {
+    color: #0f0f0f;
+    border-bottom-color: #0f0f0f;
+  }
+  .a-card-display {
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .a-card-display::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(212,168,67,0.12);
+  }
+  .a-card-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 12px;
+  }
+  .a-card-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+    letter-spacing: -0.02em;
+  }
+  .a-card-sub {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 16px;
+  }
+  .a-divider { height: 1px; background: rgba(255,255,255,0.08); margin-bottom: 14px; }
+  .a-earn-label { font-size: 10px; color: rgba(255,255,255,0.35); letter-spacing: 0.1em; margin-bottom: 4px; }
+  .a-earn-val { font-size: 26px; font-weight: 800; color: #d4a843; letter-spacing: -0.03em; }
+  .a-earn-unit { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+  .a-btn {
+    width: 100%;
+    padding: 13px;
+    background: #0f0f0f;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+  }
+  .a-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .a-control {
+    background: #f7f7f7;
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1.5px solid #f0f0f0;
+  }
+  .a-control-label { font-size: 10px; color: #aaa; font-weight: 600; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .a-control-val { font-size: 14px; font-weight: 600; color: #0f0f0f; }
+  .a-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1.5px solid #f0f0f0;
+    margin-bottom: 7px;
+  }
+  .a-row.best { border-color: #d4a843; background: #fffdf4; }
+  .a-mini-card {
+    width: 38px; height: 26px;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .a-row-name { font-size: 13px; font-weight: 600; color: #0f0f0f; }
+  .a-row-sub { font-size: 11px; color: #bbb; }
+  .a-row-rate { font-size: 15px; font-weight: 700; color: #d4a843; margin-left: auto; }
+  .a-best-badge {
+    font-size: 9px;
+    font-weight: 700;
+    color: #d4a843;
+    background: #fff8e6;
+    border: 1px solid #f0d88a;
+    border-radius: 4px;
+    padding: 1px 5px;
+    letter-spacing: 0.06em;
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  /* ────────────────────────────────────────────────────── */
+  /* OPTION B: Modern Dark (Figma / GitHub dark)            */
+  /* ────────────────────────────────────────────────────── */
+  .b-wrap {
+    background: #1c1c1e;
+    padding: 28px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .b-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .b-logo {
+    font-size: 16px;
+    font-weight: 800;
+    color: #f5f5f5;
+    letter-spacing: -0.03em;
+  }
+  .b-logo span { color: #e8b84b; }
+  .b-signout { font-size: 12px; color: rgba(255,255,255,0.3); }
+  .b-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .b-tab {
+    flex: 1;
+    padding: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.35);
+    border-radius: 7px;
+    text-align: center;
+  }
+  .b-tab.active {
+    background: #2d2d2f;
+    color: #f5f5f5;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+  .b-card-display {
+    background: linear-gradient(145deg, #2a2a2e 0%, #212124 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .b-card-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; color: rgba(255,255,255,0.3); margin-bottom: 10px; }
+  .b-card-name { font-size: 17px; font-weight: 700; color: #f5f5f5; margin-bottom: 3px; letter-spacing: -0.02em; }
+  .b-card-sub { font-size: 11px; color: rgba(255,255,255,0.3); margin-bottom: 14px; }
+  .b-divider { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 12px; }
+  .b-earn-label { font-size: 10px; color: rgba(255,255,255,0.3); letter-spacing: 0.08em; margin-bottom: 3px; }
+  .b-earn-val { font-size: 26px; font-weight: 800; color: #e8b84b; letter-spacing: -0.03em; }
+  .b-earn-unit { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 2px; }
+  .b-btn {
+    width: 100%;
+    padding: 13px;
+    background: #e8b84b;
+    color: #1c1c1e;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+  }
+  .b-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .b-control {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .b-control-label { font-size: 10px; color: rgba(255,255,255,0.3); font-weight: 600; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .b-control-val { font-size: 14px; font-weight: 600; color: #f5f5f5; }
+  .b-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    margin-bottom: 7px;
+  }
+  .b-row.best { border-color: rgba(232,184,75,0.4); background: rgba(232,184,75,0.05); }
+  .b-mini-card { width: 38px; height: 26px; border-radius: 5px; flex-shrink: 0; }
+  .b-row-name { font-size: 13px; font-weight: 600; color: #f5f5f5; }
+  .b-row-sub { font-size: 11px; color: rgba(255,255,255,0.3); }
+  .b-row-rate { font-size: 15px; font-weight: 700; color: #e8b84b; margin-left: auto; }
+  .b-best-badge {
+    font-size: 9px; font-weight: 700; color: #e8b84b;
+    background: rgba(232,184,75,0.15); border-radius: 4px;
+    padding: 1px 5px; letter-spacing: 0.06em;
+    display: block; margin-bottom: 2px;
+  }
+
+  /* ────────────────────────────────────────────────────── */
+  /* OPTION C: Card-forward / Apple Wallet style            */
+  /* ────────────────────────────────────────────────────── */
+  .c-wrap {
+    background: #f2f2f7;
+    padding: 28px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .c-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .c-logo { font-size: 20px; font-weight: 800; color: #000; letter-spacing: -0.04em; }
+  .c-logo span { color: #c8a030; }
+  .c-signout { font-size: 12px; color: #aaa; }
+  .c-big-card {
+    border-radius: 20px;
+    padding: 22px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    box-shadow: 0 16px 40px rgba(26,26,46,0.3), 0 4px 12px rgba(0,0,0,0.15);
+    min-height: 160px;
+  }
+  .c-card-chip {
+    width: 28px; height: 20px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #e8c96c, #c8a030);
+    margin-bottom: 24px;
+    box-shadow: inset 0 0 0 0.5px rgba(255,255,255,0.2);
+  }
+  .c-card-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+  }
+  .c-card-digits { font-size: 12px; color: rgba(255,255,255,0.45); letter-spacing: 0.08em; margin-bottom: 16px; }
+  .c-card-rate-wrap { display: flex; justify-content: space-between; align-items: flex-end; }
+  .c-card-rate-label { font-size: 10px; color: rgba(255,255,255,0.45); margin-bottom: 3px; }
+  .c-card-rate { font-size: 28px; font-weight: 800; color: #f0c040; letter-spacing: -0.03em; }
+  .c-card-network {
+    font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.5);
+    letter-spacing: 0.04em;
+  }
+  .c-btn {
+    width: 100%;
+    padding: 15px;
+    background: #000;
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+  }
+  .c-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .c-control {
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .c-control-label { font-size: 10px; color: #aaa; font-weight: 600; margin-bottom: 4px; }
+  .c-control-val { font-size: 15px; font-weight: 700; color: #000; }
+  .c-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    margin-bottom: 8px;
+  }
+  .c-mini-card { width: 42px; height: 28px; border-radius: 7px; flex-shrink: 0; }
+  .c-row-name { font-size: 14px; font-weight: 700; color: #000; }
+  .c-row-sub { font-size: 11px; color: #aaa; }
+  .c-row-rate { font-size: 16px; font-weight: 800; color: #2a9d8f; margin-left: auto; }
+  .c-best-badge {
+    font-size: 9px; font-weight: 700; color: #fff;
+    background: #2a9d8f; border-radius: 4px;
+    padding: 2px 6px; display: inline-block; margin-bottom: 2px;
+  }
+
+  /* ────────────────────────────────────────────────────── */
+  /* OPTION D: Finance Pro (Mercury / Ramp style)           */
+  /* ────────────────────────────────────────────────────── */
+  .d-wrap {
+    background: #fafafa;
+    padding: 28px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .d-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eee;
+  }
+  .d-logo {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0a0a0a;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+  }
+  .d-logo span { color: #c8a030; }
+  .d-signout { font-size: 11px; color: #bbb; letter-spacing: 0.04em; text-transform: uppercase; }
+  .d-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 18px;
+  }
+  .d-tab {
+    padding: 9px 0;
+    margin-right: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ccc;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .d-tab.active { color: #0a0a0a; border-bottom-color: #c8a030; }
+  .d-active-section {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .d-active-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .d-active-label { font-size: 10px; font-weight: 700; color: #aaa; letter-spacing: 0.12em; text-transform: uppercase; }
+  .d-active-name { font-size: 15px; font-weight: 700; color: #0a0a0a; margin-top: 2px; }
+  .d-active-sub { font-size: 11px; color: #bbb; }
+  .d-mini-card-big { width: 52px; height: 34px; border-radius: 5px; }
+  .d-earn-row { display: flex; gap: 20px; }
+  .d-earn-box {}
+  .d-earn-box-label { font-size: 10px; font-weight: 700; color: #bbb; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .d-earn-box-val { font-size: 22px; font-weight: 800; color: #c8a030; letter-spacing: -0.02em; }
+  .d-earn-box-unit { font-size: 10px; color: #bbb; margin-top: 1px; }
+  .d-earn-box2-val { font-size: 22px; font-weight: 800; color: #0a0a0a; letter-spacing: -0.02em; }
+  .d-btn {
+    width: 100%;
+    padding: 12px;
+    background: #c8a030;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .d-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .d-control {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .d-control-label { font-size: 9px; font-weight: 700; color: #bbb; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+  .d-control-val { font-size: 13px; font-weight: 700; color: #0a0a0a; }
+  .d-table-head {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    padding: 0 12px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #bbb;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 2px;
+  }
+  .d-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .d-row:last-child { border-bottom: none; }
+  .d-row.best { background: #fffcf0; }
+  .d-row-inner { display: flex; align-items: center; gap: 8px; }
+  .d-mini-card { width: 34px; height: 22px; border-radius: 3px; flex-shrink: 0; }
+  .d-row-name { font-size: 12px; font-weight: 600; color: #0a0a0a; }
+  .d-row-sub { font-size: 10px; color: #bbb; }
+  .d-row-rate { font-size: 13px; font-weight: 700; color: #c8a030; text-align: right; }
+  .d-row-score { font-size: 10px; font-weight: 600; color: #ccc; text-align: right; }
+  .d-best-dot { width: 6px; height: 6px; border-radius: 50%; background: #c8a030; flex-shrink: 0; }
+
+  /* shared mini card gradients */
+  .grad-amex { background: linear-gradient(135deg, #1a5f7a, #086972); }
+  .grad-sapphire { background: linear-gradient(135deg, #1a3a6b, #152d55); }
+  .grad-citi { background: linear-gradient(135deg, #c0392b, #922b21); }
+  .grad-gift { background: linear-gradient(135deg, #6c3483, #512e6b); }
+  .grad-venture { background: linear-gradient(135deg, #1e3a5f, #2980b9); }
+</style>
+</head>
+<body>
+
+<h1>Clavis — Design Directions</h1>
+<p class="subtitle">Pick one and we'll build it out fully. Each shows the Smart Tap screen.</p>
+
+<div class="grid">
+
+  <!-- OPTION A -->
+  <div class="option">
+    <div class="option-label">Option A</div>
+    <div class="option-name">Premium Minimal</div>
+    <div class="option-desc">White background, bold black type, strong contrast. Feels like Linear, Vercel, or Stripe. Clean and confident.</div>
+    <div class="phone">
+      <div class="a-wrap">
+        <div class="a-header">
+          <div class="a-logo">Cla<span>vis</span></div>
+          <div class="a-signout">Sign out</div>
+        </div>
+        <div class="a-tabs">
+          <div class="a-tab active">Smart Tap</div>
+          <div class="a-tab">My Wallet</div>
+          <div class="a-tab">Perks</div>
+        </div>
+        <div class="a-card-display">
+          <div class="a-card-label">ACTIVE CARD</div>
+          <div class="a-card-name">Amex Gold</div>
+          <div class="a-card-sub">Dining · Auto-selected</div>
+          <div class="a-divider"></div>
+          <div class="a-earn-label">EARNING THIS PURCHASE</div>
+          <div class="a-earn-val">4x pts</div>
+          <div class="a-earn-unit">per dollar</div>
+        </div>
+        <div class="a-btn">◉ Hold to Tap Clavis</div>
+        <div class="a-controls">
+          <div class="a-control">
+            <div class="a-control-label">MERCHANT</div>
+            <div class="a-control-val">Starbucks</div>
+          </div>
+          <div class="a-control">
+            <div class="a-control-label">AMOUNT</div>
+            <div class="a-control-val">$24.00</div>
+          </div>
+        </div>
+        <div class="a-row best">
+          <div class="grad-amex a-mini-card"></div>
+          <div>
+            <div class="a-best-badge">BEST</div>
+            <div class="a-row-name">Amex Gold</div>
+            <div class="a-row-sub">credit · points</div>
+          </div>
+          <div class="a-row-rate">4x pts</div>
+        </div>
+        <div class="a-row">
+          <div class="grad-sapphire a-mini-card"></div>
+          <div>
+            <div class="a-row-name">Sapphire Reserve</div>
+            <div class="a-row-sub">credit · points</div>
+          </div>
+          <div class="a-row-rate" style="color:#555">3x pts</div>
+        </div>
+        <div class="a-row">
+          <div class="grad-venture a-mini-card"></div>
+          <div>
+            <div class="a-row-name">Venture X</div>
+            <div class="a-row-sub">credit · miles</div>
+          </div>
+          <div class="a-row-rate" style="color:#555">2x pts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION B -->
+  <div class="option">
+    <div class="option-label">Option B</div>
+    <div class="option-name">Modern Dark</div>
+    <div class="option-desc">True dark gray (not pitch black), soft borders, segmented tabs. Like Figma, Linear dark mode, or GitHub dark. Approachable and polished.</div>
+    <div class="phone">
+      <div class="b-wrap">
+        <div class="b-header">
+          <div class="b-logo">Cla<span>vis</span></div>
+          <div class="b-signout">Sign out</div>
+        </div>
+        <div class="b-tabs">
+          <div class="b-tab active">Smart Tap</div>
+          <div class="b-tab">My Wallet</div>
+          <div class="b-tab">Perks</div>
+        </div>
+        <div class="b-card-display">
+          <div class="b-card-label">ACTIVE CARD</div>
+          <div class="b-card-name">Amex Gold</div>
+          <div class="b-card-sub">Dining · Auto-selected</div>
+          <div class="b-divider"></div>
+          <div class="b-earn-label">EARNING THIS PURCHASE</div>
+          <div class="b-earn-val">4x pts</div>
+          <div class="b-earn-unit">per dollar</div>
+        </div>
+        <div class="b-btn">◉ Hold to Tap Clavis</div>
+        <div class="b-controls">
+          <div class="b-control">
+            <div class="b-control-label">MERCHANT</div>
+            <div class="b-control-val">Starbucks</div>
+          </div>
+          <div class="b-control">
+            <div class="b-control-label">AMOUNT</div>
+            <div class="b-control-val">$24.00</div>
+          </div>
+        </div>
+        <div class="b-row best">
+          <div class="grad-amex b-mini-card"></div>
+          <div>
+            <div class="b-best-badge">BEST</div>
+            <div class="b-row-name">Amex Gold</div>
+            <div class="b-row-sub">credit · points</div>
+          </div>
+          <div class="b-row-rate">4x pts</div>
+        </div>
+        <div class="b-row">
+          <div class="grad-sapphire b-mini-card"></div>
+          <div>
+            <div class="b-row-name">Sapphire Reserve</div>
+            <div class="b-row-sub">credit · points</div>
+          </div>
+          <div class="b-row-rate" style="color:rgba(255,255,255,0.4)">3x pts</div>
+        </div>
+        <div class="b-row">
+          <div class="grad-venture b-mini-card"></div>
+          <div>
+            <div class="b-row-name">Venture X</div>
+            <div class="b-row-sub">credit · miles</div>
+          </div>
+          <div class="b-row-rate" style="color:rgba(255,255,255,0.4)">2x pts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION C -->
+  <div class="option">
+    <div class="option-label">Option C</div>
+    <div class="option-name">Card-Forward</div>
+    <div class="option-desc">The card is the hero — large, beautiful, front and center. Light gray system background, cards with strong depth. Like Apple Wallet or Revolut. Consumer-first.</div>
+    <div class="phone">
+      <div class="c-wrap">
+        <div class="c-header">
+          <div class="c-logo">Cla<span>vis</span></div>
+          <div class="c-signout">Sign out</div>
+        </div>
+        <div class="c-big-card">
+          <div class="c-card-chip"></div>
+          <div class="c-card-name">Amex Gold</div>
+          <div class="c-card-digits">•••• 4821</div>
+          <div class="c-card-rate-wrap">
+            <div>
+              <div class="c-card-rate-label">EARNING NOW</div>
+              <div class="c-card-rate">4x pts</div>
+            </div>
+            <div class="c-card-network">AMEX</div>
+          </div>
+        </div>
+        <div class="c-btn">◉ Tap Clavis</div>
+        <div class="c-controls">
+          <div class="c-control">
+            <div class="c-control-label">Merchant</div>
+            <div class="c-control-val">Starbucks</div>
+          </div>
+          <div class="c-control">
+            <div class="c-control-label">Amount</div>
+            <div class="c-control-val">$24.00</div>
+          </div>
+        </div>
+        <div class="c-row">
+          <div class="grad-amex c-mini-card"></div>
+          <div>
+            <div class="c-best-badge">Best choice</div>
+            <div class="c-row-name">Amex Gold</div>
+            <div class="c-row-sub">dining · points</div>
+          </div>
+          <div class="c-row-rate">4x</div>
+        </div>
+        <div class="c-row">
+          <div class="grad-sapphire c-mini-card"></div>
+          <div>
+            <div class="c-row-name">Sapphire Reserve</div>
+            <div class="c-row-sub">dining · points</div>
+          </div>
+          <div class="c-row-rate" style="color:#aaa">3x</div>
+        </div>
+        <div class="c-row">
+          <div class="grad-venture c-mini-card"></div>
+          <div>
+            <div class="c-row-name">Venture X</div>
+            <div class="c-row-sub">dining · miles</div>
+          </div>
+          <div class="c-row-rate" style="color:#aaa">2x</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OPTION D -->
+  <div class="option">
+    <div class="option-label">Option D</div>
+    <div class="option-name">Finance Pro</div>
+    <div class="option-desc">Data-table layout, tight typography, structured like Mercury or Ramp. Cards ranked in a clear table with scores. Professional and trustworthy.</div>
+    <div class="phone">
+      <div class="d-wrap">
+        <div class="d-header">
+          <div class="d-logo">Cla<span>vis</span></div>
+          <div class="d-signout">Sign out</div>
+        </div>
+        <div class="d-tabs">
+          <div class="d-tab active">Tap</div>
+          <div class="d-tab">Wallet</div>
+          <div class="d-tab">Perks</div>
+        </div>
+        <div class="d-active-section">
+          <div class="d-active-top">
+            <div>
+              <div class="d-active-label">Active Card</div>
+              <div class="d-active-name">Amex Gold</div>
+              <div class="d-active-sub">Dining · Auto-selected · **** 4821</div>
+            </div>
+            <div class="grad-amex d-mini-card-big"></div>
+          </div>
+          <div class="d-earn-row">
+            <div class="d-earn-box">
+              <div class="d-earn-box-label">Rate</div>
+              <div class="d-earn-box-val">4x pts</div>
+              <div class="d-earn-box-unit">per dollar</div>
+            </div>
+            <div class="d-earn-box">
+              <div class="d-earn-box-label">Estimated Back</div>
+              <div class="d-earn-box2-val">$0.96</div>
+              <div class="d-earn-box-unit">on $24 spend</div>
+            </div>
+          </div>
+        </div>
+        <div class="d-btn">◉ Tap Clavis</div>
+        <div class="d-controls">
+          <div class="d-control">
+            <div class="d-control-label">Merchant</div>
+            <div class="d-control-val">Starbucks</div>
+          </div>
+          <div class="d-control">
+            <div class="d-control-label">Amount</div>
+            <div class="d-control-val">$24.00</div>
+          </div>
+        </div>
+        <div class="d-table-head">
+          <div>Card</div>
+          <div>Rate</div>
+          <div>Score</div>
+        </div>
+        <div class="d-row best">
+          <div class="d-row-inner">
+            <div class="d-best-dot"></div>
+            <div class="grad-amex d-mini-card"></div>
+            <div>
+              <div class="d-row-name">Amex Gold</div>
+              <div class="d-row-sub">points</div>
+            </div>
+          </div>
+          <div class="d-row-rate">4x pts</div>
+          <div class="d-row-score" style="color:#c8a030;font-weight:700">9.2</div>
+        </div>
+        <div class="d-row">
+          <div class="d-row-inner">
+            <div style="width:6px;height:6px;flex-shrink:0;"></div>
+            <div class="grad-sapphire d-mini-card"></div>
+            <div>
+              <div class="d-row-name">Sapphire Reserve</div>
+              <div class="d-row-sub">points</div>
+            </div>
+          </div>
+          <div class="d-row-rate" style="color:#aaa">3x pts</div>
+          <div class="d-row-score">6.0</div>
+        </div>
+        <div class="d-row">
+          <div class="d-row-inner">
+            <div style="width:6px;height:6px;flex-shrink:0;"></div>
+            <div class="grad-venture d-mini-card"></div>
+            <div>
+              <div class="d-row-name">Venture X</div>
+              <div class="d-row-sub">miles</div>
+            </div>
+          </div>
+          <div class="d-row-rate" style="color:#aaa">2x mi</div>
+          <div class="d-row-score">4.0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p style="text-align:center;margin-top:48px;font-size:12px;color:#bbb;">Open <code style="background:#eee;padding:2px 6px;border-radius:4px;font-size:11px;">localhost:3000</code> and compare · Built by Clavis</p>
+
+</body>
+</html>
