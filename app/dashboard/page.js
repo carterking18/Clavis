@@ -201,6 +201,7 @@ export default function Dashboard() {
   const [showAddPerk, setShowAddPerk] = useState(false)
   const [showRankings, setShowRankings] = useState(false)
   const [merchantQuery, setMerchantQuery] = useState('')
+  const [tapNote, setTapNote] = useState('')
   const [merchantSuggestions, setMerchantSuggestions] = useState([])
   const [detectedMerchant, setDetectedMerchant] = useState(null)
   const [editingCard, setEditingCard] = useState(null)
@@ -574,7 +575,9 @@ export default function Dashboard() {
       amount: selectedAmt,
       rewards_rate: rate || (card.type === 'gift' ? 'gift' : null),
       estimated_value: card.type === 'gift' ? 0 : estimatedValue,
+      note: tapNote.trim() || null,
     })
+    setTapNote('')
 
     setTapConfirm(confirmMsg)
     setMissedInsight(null)
@@ -1100,6 +1103,19 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* 1b ── Note */}
+          <div style={{ marginBottom: '20px' }}>
+            <textarea
+              className="input"
+              rows={1}
+              placeholder="Add a note (optional)"
+              value={tapNote}
+              onChange={e => setTapNote(e.target.value)}
+              style={{ resize: 'none', lineHeight: '1.5', fontSize: '13px', paddingTop: '9px', paddingBottom: '9px', overflow: 'hidden' }}
+              onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
+            />
           </div>
 
           {/* 2 ── Category selector */}
@@ -1805,6 +1821,11 @@ export default function Dashboard() {
                       {tap.card_name}{tap.category ? ` · ${tap.category}` : ''}
                       {' · '}<TimeAgo dateStr={tap.tapped_at} />
                     </div>
+                    {tap.note && (
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        "{tap.note}"
+                      </div>
+                    )}
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     {tap.amount > 0 && (
