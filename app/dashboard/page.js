@@ -1833,9 +1833,9 @@ export default function Dashboard() {
                       {tap.card_name}{tap.category ? ` · ${tap.category}` : ''}
                       {' · '}<TimeAgo dateStr={tap.tapped_at} />
                     </div>
-                    {tap.note && (
+                    {tap.Note && (
                       <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        "{tap.note}"
+                        "{tap.Note}"
                       </div>
                     )}
                   </div>
