@@ -248,6 +248,7 @@ export default function Dashboard() {
   }, [tourStep])
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [showFormula, setShowFormula] = useState(false)
+  const [showRewardsInfo, setShowRewardsInfo] = useState(false)
   const [perkUpdates, setPerkUpdates] = useState({})       // { cardId: { newPerks, changedPerks } }
   const [perkUpdateModal, setPerkUpdateModal] = useState(null) // { card, newPerks, changedPerks }
   const [applyingPerkUpdate, setApplyingPerkUpdate] = useState(false)
@@ -1597,7 +1598,13 @@ export default function Dashboard() {
                       <input className="input" placeholder="4821" maxLength={4} value={newCard.last_four} onChange={e => setNewCard({ ...newCard, last_four: e.target.value })} />
                     </div>
                     <div>
-                      <label className="label">Rewards unit</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                        <label className="label" style={{ margin: 0 }}>Rewards unit</label>
+                        <button onClick={() => setShowRewardsInfo(v => !v)}
+                          style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '9999px', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', padding: 0, fontFamily: 'inherit', flexShrink: 0 }}>
+                          ?
+                        </button>
+                      </div>
                       <select className="input" value={newCard.balance_unit} onChange={e => setNewCard({ ...newCard, balance_unit: e.target.value })}>
                         <option value="cash back">Cash back (%)</option>
                         <option value="points">Points</option>
@@ -1605,6 +1612,25 @@ export default function Dashboard() {
                       </select>
                     </div>
                   </div>
+
+                  {showRewardsInfo && (
+                    <div style={{ marginBottom: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px' }}>What's the difference?</div>
+                      {[
+                        { label: 'Cash back', color: 'var(--green)', desc: 'A percentage of your purchase returned as real money. Simple and always worth the same — 1.5% back on a $100 purchase = $1.50. Examples: Chase Freedom Unlimited, Citi Double Cash.' },
+                        { label: 'Points', color: 'var(--purple)', desc: 'A currency issued by your bank (Chase Ultimate Rewards, Amex Membership Rewards, etc.). Worth 1¢ each if redeemed for cash, but can be worth 1.5–2¢+ when transferred to airlines or hotels. Examples: Chase Sapphire, Amex Gold.' },
+                        { label: 'Miles', color: 'var(--blue)', desc: 'Similar to points but typically tied to a specific airline or travel program. Value depends on how you redeem — flights usually beat cash. Examples: Delta SkyMiles, United MileagePlus, Capital One Venture.' },
+                      ].map(({ label, color, desc }) => (
+                        <div key={label} style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', color, minWidth: '60px', paddingTop: '1px' }}>{label}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>{desc}</div>
+                        </div>
+                      ))}
+                      <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>Not sure?</strong> Check your card's rewards page or the back of your statement — it'll say "% cash back" or "X points per dollar."
+                      </div>
+                    </div>
+                  )}
 
                   <div style={{ marginBottom: '12px' }}>
                     <label className="label">Annual fee ($) — optional</label>
