@@ -1,3 +1,6 @@
+'use client'
+import { useState } from 'react'
+
 // Shared marketing page components used by both / and /about
 
 // ── Key logo ─────────────────────────────────────────────
@@ -452,5 +455,102 @@ export function MarketingBody() {
         </div>
       </section>
     </>
+  )
+}
+
+// ── Standalone tour modal (no auth required) ──────────────
+const TOUR_SLIDES = [
+  { icon: '⚡', tab: 'Tap', title: 'Which card should I use?', text: "This is the main screen. Type the store or restaurant where you are paying and Clavis looks at every card you have and tells you which one earns the most. At Chipotle, your Amex Gold earns 4x. At Target, your Freedom earns 5%. Clavis figures that out instantly so you never leave rewards on the table." },
+  { icon: '💳', tab: 'Wallet', title: 'All your cards in one place', text: "Add each card you own once and Clavis remembers it. It knows the rewards rates, the annual fee, and how much you have earned. You do not need to check each card's app separately." },
+  { icon: '🎁', tab: 'Perks', title: 'Stop losing benefits you paid for', text: "Most cards come with free credits — things like $120 in dining credit or $50 toward hotels. They expire if you do not use them. Clavis tracks what you have left and reminds you before they disappear." },
+  { icon: '🕐', tab: 'History', title: 'A record of every purchase', text: "Every time you tap a card in Clavis, it logs the store, the card you used, and how much you earned. You can see your full spending history and even export it." },
+  { icon: '💡', tab: 'Insights', title: 'Tips to get more from your wallet', text: "Clavis watches your spending and spots things you might be missing — a perk about to expire, a card that would earn you more at a store you visit often, or a benefit you are not using. It is like having someone look over your wallet for you." },
+]
+
+export function TourModal({ onClose }) {
+  const [index, setIndex] = useState(0)
+  const slide = TOUR_SLIDES[index]
+  const isLast = index === TOUR_SLIDES.length - 1
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 300,
+        background: 'rgba(0,0,0,0.55)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1.5rem',
+      }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: '14px',
+        padding: '2rem',
+        width: '100%',
+        maxWidth: '420px',
+        position: 'relative',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
+      }}>
+        {/* Close */}
+        <button
+          onClick={onClose}
+          style={{ position: 'absolute', top: '14px', right: '14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#999', lineHeight: 1, padding: '4px' }}>
+          ✕
+        </button>
+
+        {/* Progress dots */}
+        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '28px' }}>
+          {TOUR_SLIDES.map((_, i) => (
+            <div key={i} onClick={() => setIndex(i)} style={{
+              width: i === index ? '20px' : '6px', height: '6px', borderRadius: '3px',
+              background: i === index ? '#C9A227' : 'rgba(0,0,0,0.12)',
+              transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', cursor: 'pointer',
+            }} />
+          ))}
+        </div>
+
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '40px', marginBottom: '14px' }}>{slide.icon}</div>
+          <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#C9A227', marginBottom: '6px' }}>
+            {slide.tab} tab
+          </div>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', color: '#111', marginBottom: '10px', letterSpacing: '-0.01em' }}>
+            {slide.title}
+          </div>
+          <div style={{ fontSize: '14px', color: '#555', lineHeight: '1.65', marginBottom: '28px', minHeight: '88px' }}>
+            {slide.text}
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {index > 0 && (
+              <button
+                onClick={() => setIndex(i => i - 1)}
+                style={{ padding: '11px 18px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', color: '#333', fontWeight: '600', fontSize: '14px', cursor: 'pointer', flexShrink: 0 }}>
+                ← Back
+              </button>
+            )}
+            {!isLast ? (
+              <button
+                onClick={() => setIndex(i => i + 1)}
+                style={{ flex: 1, padding: '11px 18px', borderRadius: '8px', border: 'none', background: '#111', color: '#fff', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>
+                Next →
+              </button>
+            ) : (
+              <a
+                href="/auth"
+                style={{ flex: 1, padding: '11px 18px', borderRadius: '8px', border: 'none', background: '#111', color: '#fff', fontWeight: '600', fontSize: '14px', cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                Get started free →
+              </a>
+            )}
+          </div>
+
+          <button
+            onClick={onClose}
+            style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', fontSize: '13px', color: '#aaa', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }

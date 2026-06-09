@@ -1,16 +1,19 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
-import { KeySVG, MarketingBody, marketingStyles } from './marketing-sections'
+import { KeySVG, MarketingBody, marketingStyles, TourModal } from './marketing-sections'
 
 export default function Home() {
   const router = useRouter()
+  const [showTour, setShowTour] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) router.push('/dashboard')
     }).catch(() => {})
+    // Open tour if ?tour=1
+    if (new URLSearchParams(window.location.search).get('tour') === '1') setShowTour(true)
   }, [router])
 
   return (
@@ -36,7 +39,7 @@ export default function Home() {
               <a href="#how-it-works" className="mkt-nav-link">How it works</a>
               <a href="#features"     className="mkt-nav-link">Features</a>
               <a href="#insights"     className="mkt-nav-link">Insights</a>
-              <a href="/dashboard?tour=1" className="mkt-nav-link">Take a tour</a>
+              <button onClick={() => setShowTour(true)} className="mkt-nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>Take a tour</button>
             </div>
             <a href="/auth" className="pill-dark" style={{ fontSize: '12px', fontWeight: '600', padding: '9px 20px' }}>
               Sign in
@@ -67,7 +70,7 @@ export default function Home() {
 
         {/* ── Tour CTA ── */}
         <div style={{ padding: '0 24px 80px', maxWidth: '1100px', margin: '0 auto' }}>
-          <a href="/dashboard?tour=1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '22px 28px', textDecoration: 'none', transition: 'border-color 0.15s' }}
+          <button onClick={() => setShowTour(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '22px 28px', textDecoration: 'none', transition: 'border-color 0.15s', width: '100%', cursor: 'pointer', textAlign: 'left' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(201,162,39,0.4)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
             <div>
@@ -80,8 +83,10 @@ export default function Home() {
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </div>
-          </a>
+          </button>
         </div>
+
+        {showTour && <TourModal onClose={() => setShowTour(false)} />}
 
         {/* ── Shared marketing sections ── */}
         <MarketingBody/>

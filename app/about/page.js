@@ -1,7 +1,9 @@
 'use client'
-import { KeySVG, MarketingBody, marketingStyles } from '../marketing-sections'
+import { useState } from 'react'
+import { KeySVG, MarketingBody, marketingStyles, TourModal } from '../marketing-sections'
 
 export default function About() {
+  const [showTour, setShowTour] = useState(false)
   return (
     <>
       <style>{marketingStyles}</style>
@@ -28,7 +30,7 @@ export default function About() {
               <a href="#how-it-works" className="mkt-nav-link">How it works</a>
               <a href="#features"     className="mkt-nav-link">Features</a>
               <a href="#insights"     className="mkt-nav-link">Insights</a>
-              <a href="/dashboard?tour=1" className="mkt-nav-link">Take a tour</a>
+              <button onClick={() => setShowTour(true)} className="mkt-nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>Take a tour</button>
             </div>
 
             {/* Back to dashboard */}
@@ -38,26 +40,9 @@ export default function About() {
           </div>
         </nav>
 
-        {/* ── Tour CTA ── */}
-        <div style={{ padding: '40px 24px 0', maxWidth: '1100px', margin: '0 auto' }}>
-          <a href="/dashboard?tour=1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(201,162,39,0.25)', borderRadius: '10px', padding: '22px 28px', textDecoration: 'none', transition: 'border-color 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(201,162,39,0.5)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(201,162,39,0.25)'}>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>See it in action</div>
-              <div style={{ fontSize: '17px', fontWeight: '700', color: '#dddde4', letterSpacing: '-0.01em' }}>Take a quick tour of Clavis</div>
-              <div style={{ fontSize: '13px', color: 'rgba(221,221,228,0.5)', marginTop: '4px' }}>A 60-second walkthrough of every feature. No sign up needed to look around.</div>
-            </div>
-            <div style={{ flexShrink: 0, width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </div>
-          </a>
-        </div>
-
         {/* ── All marketing sections ── */}
         <MarketingBody/>
+        {showTour && <TourModal onClose={() => setShowTour(false)} />}
 
         {/* ── Footer ── */}
         <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', margin: 0 }}/>
