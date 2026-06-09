@@ -28,6 +28,7 @@ export default function About() {
               <a href="#how-it-works" className="mkt-nav-link">How it works</a>
               <a href="#features"     className="mkt-nav-link">Features</a>
               <a href="#insights"     className="mkt-nav-link">Insights</a>
+              <a href="/dashboard?tour=1" className="mkt-nav-link">Take a tour</a>
             </div>
 
             {/* Back to dashboard */}
