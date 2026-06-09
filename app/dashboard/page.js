@@ -236,6 +236,7 @@ export default function Dashboard() {
   const [tapsLoading, setTapsLoading] = useState(false)
   const [expandedRoiId, setExpandedRoiId] = useState(null)
   const [missedInsight, setMissedInsight] = useState(null)
+  const [dismissedPortalTip, setDismissedPortalTip] = useState(null)
   const [openInsightSection, setOpenInsightSection] = useState({})
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [tourStep, setTourStep] = useState(null) // null = no tour; 0..N = current spotlighted tab
@@ -1319,9 +1320,11 @@ export default function Dashboard() {
                           </span>
                         )}
                       </div>
-                      {portalTip && (
-                        <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-secondary)', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '8px 12px', lineHeight: '1.5' }}>
-                          💡 {portalTip}
+                      {portalTip && dismissedPortalTip !== portalTip && (
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-secondary)', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '8px 12px', lineHeight: '1.5', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                          <span style={{ flex: 1 }}>💡 {portalTip}</span>
+                          <button onClick={() => setDismissedPortalTip(portalTip)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faintest)', fontSize: '13px', padding: 0, lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>✕</button>
                         </div>
                       )}
                     </div>
