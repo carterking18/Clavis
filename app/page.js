@@ -46,13 +46,13 @@ export default function Home() {
         {/* ── Hero CTA pair (only on homepage) ── */}
         <div style={{ padding: '80px 24px 0', maxWidth: '1100px', margin: '0 auto' }}>
           <div style={{ maxWidth: '560px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>Card intelligence</div>
+            <div style={{ fontSize: '11px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>Free to use</div>
             <h1 className="display-xl">
-              Always earn<br/>
-              <span className="gradient-text">the most.</span>
+              Which card<br/>
+              <span className="gradient-text">should I use?</span>
             </h1>
             <p style={{ fontSize: '16px', lineHeight: '1.65', color: 'var(--text-secondary)', marginTop: '16px', maxWidth: '420px' }}>
-              Tell Clavis what you&apos;re buying. It scores every card in your wallet and picks the one that earns the highest reward — every single time.
+              Clavis looks at every card in your wallet and tells you which one earns the most at wherever you are shopping. Add your cards once and it handles the rest.
             </p>
             <div className="hero-ctas" style={{ display: 'flex', gap: '12px', marginTop: '36px', flexWrap: 'wrap' }}>
               <a href="/auth" className="pill-dark">Get started free</a>
@@ -72,9 +72,9 @@ export default function Home() {
         <section style={{ padding: '96px 24px', textAlign: 'center' }}>
           <div style={{ maxWidth: '560px', margin: '0 auto' }}>
             <div style={{ fontSize: '11px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '16px' }}>Get started</div>
-            <h2 className="display-lg">Stop leaving money<br/><span className="gradient-text">on the table.</span></h2>
+            <h2 className="display-lg">Start getting more<br/><span className="gradient-text">from every purchase.</span></h2>
             <p style={{ fontSize: '16px', lineHeight: '1.65', color: 'var(--text-secondary)', maxWidth: '400px', margin: '16px auto 0' }}>
-              The average cardholder misses $200–400 in rewards each year from choosing the wrong card. Clavis fixes that.
+              You already have the cards. Clavis just makes sure you are using the right one every time you spend.
             </p>
             <div style={{ display: 'flex', gap: '12px', marginTop: '36px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <a href="/auth" className="pill-dark">Create free account</a>

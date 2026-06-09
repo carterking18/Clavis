@@ -348,13 +348,13 @@ export function MarketingBody() {
       <section style={{ padding: '80px 24px 96px', maxWidth: '1100px', margin: '0 auto' }}>
         <div className="mkt-grid" style={{ gap: '60px' }}>
           <div>
-            <div className="mkt-label">Card intelligence</div>
+            <div className="mkt-label">Free to use</div>
             <h1 className="display-xl">
-              Always earn<br/>
-              <span className="gradient-text">the most.</span>
+              Which card<br/>
+              <span className="gradient-text">should I use?</span>
             </h1>
             <p className="mkt-body" style={{ maxWidth: '420px' }}>
-              Tell Clavis what you&apos;re buying. It scores every card in your wallet and picks the one that earns the highest reward — every single time.
+              Clavis looks at every card in your wallet and tells you which one earns the most at wherever you are shopping. Add your cards once and it handles the rest.
             </p>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -369,13 +369,13 @@ export function MarketingBody() {
       <section id="how-it-works" className="mkt-section">
         <div style={{ textAlign: 'center', maxWidth: '560px', margin: '0 auto 64px' }}>
           <div className="mkt-label">How it works</div>
-          <h2 className="display-lg">Three steps to smarter spending.</h2>
+          <h2 className="display-lg">Set up in minutes.</h2>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
           {[
-            { step: '01', title: 'Add your cards',     body: "Import every card in your wallet. Clavis maps out each card's earn rates, perks, and annual credits automatically." },
-            { step: '02', title: 'Select a category',  body: 'Tap a purchase type — dining, travel, grocery, gas. Or type a merchant name and Clavis detects the category.' },
-            { step: '03', title: 'Tap the right card', body: 'Clavis scores every card and surfaces the best one in real time. One tap logs the transaction and tracks your rewards.' },
+            { step: '01', title: 'Add your cards',     body: 'Enter the cards you already have. Clavis fills in the reward rates and perks for you based on the card name.' },
+            { step: '02', title: 'Search a merchant',  body: 'Type where you are shopping or pick a category like dining, travel, or grocery. Clavis figures out the rest.' },
+            { step: '03', title: 'Use the right card', body: 'Clavis ranks every card by how much you will actually earn and highlights the best pick. Tap to log the purchase.' },
           ].map((item, i) => (
             <div key={i} style={{ padding: '32px 28px', background: 'var(--bg-card)' }}>
               <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.16em', color: 'rgba(201,162,39,0.5)', marginBottom: '16px' }}>{item.step}</div>
@@ -393,10 +393,10 @@ export function MarketingBody() {
         <div className="mkt-grid">
           <div>
             <div className="mkt-label">Smart selection</div>
-            <h2 className="display-lg">The right card,<br/><span className="gradient-text">every time.</span></h2>
-            <p className="mkt-body">Clavis weighs earn rates, active perks, expiring credits, and gift card balances simultaneously — then ranks every card by actual dollar value per spend.</p>
+            <h2 className="display-lg">Never guess<br/><span className="gradient-text">again.</span></h2>
+            <p className="mkt-body">At Chipotle your Amex Gold earns 4x. At Target your Freedom earns 5%. Clavis knows the difference and tells you before you pay, not after.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Real dollar value, not just reward points', 'Expiring perk bonuses factored in', 'Manual override with automatic fallback'].map((item, i) => (
+              {['Shows real dollar value, not just points', 'Factors in expiring credits automatically', 'You can always override and pick manually'].map((item, i) => (
                 <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
                   <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
@@ -415,10 +415,10 @@ export function MarketingBody() {
         <div className="mkt-grid mkt-grid-reverse" style={{ direction: 'rtl' }}>
           <div style={{ direction: 'ltr' }}>
             <div className="mkt-label">Perk tracking</div>
-            <h2 className="display-lg">No more<br/><span className="gradient-text">forgotten credits.</span></h2>
-            <p className="mkt-body">$300 travel credit. $15 streaming. $10 dining monthly. Clavis tracks every card benefit, surfaces expiring perks with three-day alerts, and shows your annual utilization at a glance.</p>
+            <h2 className="display-lg">Stop losing<br/><span className="gradient-text">benefits you paid for.</span></h2>
+            <p className="mkt-body">Most cards come with travel credits, dining credits, and streaming perks that reset every year. Clavis tracks all of them and reminds you before they expire.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Expiry alerts 14 days in advance', 'Per-card and wallet-wide perk view', 'Email digest of upcoming expirations'].map((item, i) => (
+              {['Alerts 14 days before a perk expires', 'See every unused credit across all your cards', 'Weekly email so nothing slips through'].map((item, i) => (
                 <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
                   <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
@@ -436,11 +436,11 @@ export function MarketingBody() {
       <section id="insights" className="mkt-section">
         <div className="mkt-grid">
           <div>
-            <div className="mkt-label">Intelligent insights</div>
-            <h2 className="display-lg">See where every<br/><span className="gradient-text">reward goes.</span></h2>
-            <p className="mkt-body">Your complete transaction history across every card. Retroactive analysis shows which card you should have used — and exactly how much you left on the table.</p>
+            <div className="mkt-label">Insights</div>
+            <h2 className="display-lg">See what you<br/><span className="gradient-text">are actually earning.</span></h2>
+            <p className="mkt-body">Track every purchase and the rewards it earned. Clavis also shows you past purchases where a different card would have done better, so you can improve over time.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Total rewards earned, month by month', 'Retroactive missed-value analysis', 'Category-level optimization hints'].map((item, i) => (
+              {['Total rewards earned by month', 'See which past purchases used the wrong card', 'Spot which categories you are missing out on'].map((item, i) => (
                 <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
                   <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
