@@ -8,11 +8,11 @@ import { getCardDesign } from '../lib/cardImages'
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
 export const TOUR_SLIDES = [
-  { icon: '⚡', tab: 'Tap',      title: 'Smart Tap', text: "Type where you're shopping and Clavis instantly tells you which card in your wallet earns the most — right when you need it." },
-  { icon: '💳', tab: 'Wallet',   title: 'Wallet',    text: "Every card in one place — annual fees, balances, and the value you've earned, all tracked automatically." },
-  { icon: '🎁', tab: 'Perks',    title: 'Perks',     text: 'Keep tabs on annual credits and benefits across your cards so nothing expires unused.' },
-  { icon: '🕐', tab: 'History',  title: 'History',   text: 'Every tap is logged automatically, building a running record of what you earned and where.' },
-  { icon: '💡', tab: 'Insights', title: 'Insights',  text: 'Personalized tips — perks about to expire, money left on the table, and cards worth adding to your wallet.' },
+  { icon: '⚡', tab: 'Tap', title: 'Which card should I use?', text: "This is the main screen. Type the store or restaurant where you are paying and Clavis looks at every card you have and tells you which one earns the most. At Chipotle, your Amex Gold earns 4x. At Target, your Freedom earns 5%. Clavis figures that out instantly so you never leave rewards on the table." },
+  { icon: '💳', tab: 'Wallet', title: 'All your cards in one place', text: "Add each card you own once and Clavis remembers it. It knows the rewards rates, the annual fee, and how much you have earned. You do not need to check each card's app separately." },
+  { icon: '🎁', tab: 'Perks', title: 'Stop losing benefits you paid for', text: "Most cards come with free credits — things like $120 in dining credit or $50 toward hotels. They expire if you do not use them. Clavis tracks what you have left and reminds you before they disappear." },
+  { icon: '🕐', tab: 'History', title: 'A record of every purchase', text: "Every time you tap a card in Clavis, it logs the store, the card you used, and how much you earned. You can see your full spending history and even export it." },
+  { icon: '💡', tab: 'Insights', title: 'Tips to get more from your wallet', text: "Clavis watches your spending and spots things you might be missing — a perk about to expire, a card that would earn you more at a store you visit often, or a benefit you are not using. It is like having someone look over your wallet for you." },
 ]
 
 function CardArt({ name, style = {} }) {
