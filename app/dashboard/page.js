@@ -2,9 +2,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
-import { getSuggestedMultipliers } from '../../lib/cardRewards'
+import { getSuggestedMultipliers, searchCardCatalog } from '../../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
 import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar, getPointValuation } from '../../lib/pointValues'
@@ -249,6 +249,10 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(null)
   const [showFormula, setShowFormula] = useState(false)
   const [showRewardsInfo, setShowRewardsInfo] = useState(false)
+  const [cardCatalogSuggestions, setCardCatalogSuggestions] = useState([])
+  const [recurring, setRecurring] = useState([])
+  const [showSaveRecurring, setShowSaveRecurring] = useState(false)
+  const [recurringName, setRecurringName] = useState('')
   const [perkUpdates, setPerkUpdates] = useState({})       // { cardId: { newPerks, changedPerks } }
   const [perkUpdateModal, setPerkUpdateModal] = useState(null) // { card, newPerks, changedPerks }
   const [applyingPerkUpdate, setApplyingPerkUpdate] = useState(false)
@@ -328,6 +332,12 @@ export default function Dashboard() {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
       getWeeklyDigestPref().then(setWeeklyDigest).catch(() => {})
+      getRecurring().then(setRecurring).catch(() => {})
+      // Auto-launch tour for first-time visitors
+      if (!localStorage.getItem('clavis_toured')) {
+        setTimeout(() => setTourStep(0), 800)
+        localStorage.setItem('clavis_toured', '1')
+      }
       Promise.all([loadCards(), loadTaps()]).then(() => {
         setLoading(false)
         const seen = typeof window !== 'undefined' && localStorage.getItem('clavis_onboarded')
@@ -618,6 +628,14 @@ export default function Dashboard() {
 
     setTapConfirm(confirmMsg)
     setMissedInsight(null)
+    // Offer to save as recurring if not already saved
+    const merchantName = detectedMerchant?.name || merchantQuery || null
+    const alreadySaved = recurring.some(r => r.merchant === merchantName && r.card_id === card.id)
+    if (merchantName && !alreadySaved) {
+      setRecurringName(merchantName)
+      setShowSaveRecurring(true)
+      setTimeout(() => setShowSaveRecurring(false), 8000)
+    }
 
     if (card.type !== 'gift' && selectedCardId) {
       const ranked = getRankedCards()
@@ -777,6 +795,29 @@ export default function Dashboard() {
     } finally {
       setCorrectionSubmitting(false)
     }
+  }
+
+  async function handleSaveRecurring() {
+    const card = getActiveCard()
+    if (!card || !recurringName.trim()) return
+    const newEntry = {
+      id: Date.now(),
+      name: recurringName.trim(),
+      merchant: detectedMerchant?.name || merchantQuery || recurringName.trim(),
+      category: selectedCat,
+      card_id: card.id,
+      card_name: card.name,
+    }
+    const updated = [...recurring, newEntry]
+    setRecurring(updated)
+    await saveRecurring(updated)
+    setShowSaveRecurring(false)
+  }
+
+  async function deleteRecurring(id) {
+    const updated = recurring.filter(r => r.id !== id)
+    setRecurring(updated)
+    await saveRecurring(updated)
   }
 
   async function handleDeleteAccount() {
@@ -1087,6 +1128,32 @@ export default function Dashboard() {
       {tab === 'tap' && (
         <div>
 
+          {/* 0 ── Recurring quick-taps */}
+          {recurring.length > 0 && (
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faintest)', marginBottom: '10px' }}>Recurring</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {recurring.map(r => (
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '10px 14px' }}>
+                    <button onClick={() => {
+                      setMerchantQuery(r.merchant)
+                      const m = searchMerchants(r.merchant)[0]
+                      if (m) { setDetectedMerchant(m); pickCategory(m.category) }
+                      else if (r.category) pickCategory(r.category)
+                      if (r.card_id) setSelectedCardId(r.card_id)
+                    }} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+                      <div style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-primary)' }}>{r.name}</div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>{r.card_name}{r.category ? ` · ${r.category}` : ''}</div>
+                    </button>
+                    <button onClick={() => deleteRecurring(r.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faintest)', fontSize: '14px', padding: '2px 4px', lineHeight: 1 }}
+                      title="Remove">✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* 1 ── Merchant search */}
           <div style={{ position: 'relative', marginBottom: '12px' }}>
             <div style={{
@@ -1296,6 +1363,22 @@ export default function Dashboard() {
           )}
           {tapError && (
             <div className="error" style={{ marginTop: '10px', textAlign: 'center' }}>{tapError}</div>
+          )}
+
+          {showSaveRecurring && (
+            <div style={{ marginTop: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1, minWidth: '120px' }}>Save <strong style={{ color: 'var(--text-primary)' }}>{recurringName}</strong> as a recurring purchase?</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={handleSaveRecurring}
+                  style={{ fontSize: '11.5px', fontWeight: '700', padding: '6px 14px', background: 'var(--text-primary)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Save
+                </button>
+                <button onClick={() => setShowSaveRecurring(false)}
+                  style={{ fontSize: '11.5px', fontWeight: '600', padding: '6px 12px', background: 'none', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  No thanks
+                </button>
+              </div>
+            </div>
           )}
 
           {missedInsight && (
@@ -1514,10 +1597,37 @@ export default function Dashboard() {
                 <label className="label">Card name</label>
                 <div style={{ position: 'relative' }}>
                   <input className="input" placeholder="e.g. Amex Gold" value={newCard.name}
-                    onChange={e => handleNewCardNameChange(e.target.value)} />
+                    onChange={e => {
+                      handleNewCardNameChange(e.target.value)
+                      setCardCatalogSuggestions(searchCardCatalog(e.target.value))
+                    }}
+                    onFocus={() => setCardCatalogSuggestions(searchCardCatalog(newCard.name))}
+                    onBlur={() => setTimeout(() => setCardCatalogSuggestions([]), 150)}
+                  />
                   {fetchingCardData && (
                     <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: 'var(--text-muted)' }}>
                       Looking up...
+                    </div>
+                  )}
+                  {cardCatalogSuggestions.length > 0 && (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden' }}>
+                      <div style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faintest)', padding: '8px 12px 4px' }}>From card database</div>
+                      {cardCatalogSuggestions.map((c, i) => (
+                        <div key={i}
+                          onMouseDown={() => {
+                            handleNewCardNameChange(c.name)
+                            setCardCatalogSuggestions([])
+                          }}
+                          style={{ padding: '9px 12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{c.name}</span>
+                          {c.annualFee > 0
+                            ? <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>${c.annualFee}/yr</span>
+                            : <span style={{ fontSize: '11px', color: 'var(--green)' }}>No annual fee</span>
+                          }
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -2306,9 +2416,29 @@ export default function Dashboard() {
             </a>
           ))}
         </div>
-        <span style={{ fontSize: '11px', color: 'var(--text-faintest)' }}>
-          © {new Date().getFullYear()} Clavis · Your data is never sold or shared
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {user && (() => {
+            const refCode = user.id.slice(0, 8)
+            const refUrl = `https://clavis-duvm.vercel.app/?ref=${refCode}`
+            return (
+              <button onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: 'Clavis', text: 'Use Clavis to get more out of your credit cards — it tells you the best card to use everywhere you shop.', url: refUrl })
+                } else {
+                  navigator.clipboard.writeText(refUrl)
+                  alert('Referral link copied!')
+                }
+              }} style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                🔗 Share Clavis
+              </button>
+            )
+          })()}
+          <span style={{ fontSize: '11px', color: 'var(--text-faintest)' }}>
+            © {new Date().getFullYear()} Clavis · Your data is never sold or shared
+          </span>
+        </div>
       </div>
 
       {/* ── MODALS ────────────────────────────────────── */}

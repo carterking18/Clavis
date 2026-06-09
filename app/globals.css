@@ -305,6 +305,29 @@ option {
   .dash-logo-text { display: none; }
 }
 
+@media (max-width: 640px) {
+  .app {
+    padding: 1rem 1rem 5rem;
+  }
+
+  /* Tap tab hero card — shrink the giant rate number on phones */
+  .tap-rate-display {
+    font-size: 36px !important;
+  }
+
+  /* Stat tiles — single column on very small screens */
+  .stat-grid-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Footer — stack vertically */
+  .dash-footer {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: '10px' !important;
+  }
+}
+
 .tab-btn {
   flex: 1;
   min-width: 0;
