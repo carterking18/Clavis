@@ -7,12 +7,28 @@ import { getCardDesign } from '../lib/cardImages'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
+function SlideIconTap() {
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+}
+function SlideIconWallet() {
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 13a1 1 0 1 0 2 0 1 1 0 0 0-2 0"/><path d="M2 10h20"/></svg>
+}
+function SlideIconPerks() {
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+}
+function SlideIconHistory() {
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+}
+function SlideIconInsights() {
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+}
+
 export const TOUR_SLIDES = [
-  { icon: '⚡', tab: 'Tap', title: 'Which card should I use?', text: "This is the main screen. Type the store or restaurant where you are paying and Clavis looks at every card you have and tells you which one earns the most. At Chipotle, your Amex Gold earns 4x. At Target, your Freedom earns 5%. Clavis figures that out instantly so you never leave rewards on the table." },
-  { icon: '💳', tab: 'Wallet', title: 'All your cards in one place', text: "Add each card you own once and Clavis remembers it. It knows the rewards rates, the annual fee, and how much you have earned. You do not need to check each card's app separately." },
-  { icon: '🎁', tab: 'Perks', title: 'Stop losing benefits you paid for', text: "Most cards come with free credits — things like $120 in dining credit or $50 toward hotels. They expire if you do not use them. Clavis tracks what you have left and reminds you before they disappear." },
-  { icon: '🕐', tab: 'History', title: 'A record of every purchase', text: "Every time you tap a card in Clavis, it logs the store, the card you used, and how much you earned. You can see your full spending history and even export it." },
-  { icon: '💡', tab: 'Insights', title: 'Tips to get more from your wallet', text: "Clavis watches your spending and spots things you might be missing — a perk about to expire, a card that would earn you more at a store you visit often, or a benefit you are not using. It is like having someone look over your wallet for you." },
+  { Icon: SlideIconTap,      tab: 'Tap',      title: 'Which card should I use?',        text: "This is the main screen. Type the store or restaurant where you are paying and Clavis looks at every card you have and tells you which one earns the most. At Chipotle, your Amex Gold earns 4x. At Target, your Freedom earns 5%. Clavis figures that out instantly so you never leave rewards on the table." },
+  { Icon: SlideIconWallet,   tab: 'Wallet',   title: 'All your cards in one place',      text: "Add each card you own once and Clavis remembers it. It knows the rewards rates, the annual fee, and how much you have earned. You do not need to check each card's app separately." },
+  { Icon: SlideIconPerks,    tab: 'Perks',    title: 'Stop losing benefits you paid for', text: "Most cards come with free credits — things like $120 in dining credit or $50 toward hotels. They expire if you do not use them. Clavis tracks what you have left and reminds you before they disappear." },
+  { Icon: SlideIconHistory,  tab: 'History',  title: 'A record of every purchase',       text: "Every time you tap a card in Clavis, it logs the store, the card you used, and how much you earned. You can see your full spending history and even export it." },
+  { Icon: SlideIconInsights, tab: 'Insights', title: 'Tips to get more from your wallet', text: "Clavis watches your spending and spots things you might be missing — a perk about to expire, a card that would earn you more at a store you visit often, or a benefit you are not using. It is like having someone look over your wallet for you." },
 ]
 
 function CardArt({ name, style = {} }) {
@@ -186,7 +202,9 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           <div style={{ textAlign: 'center' }}>
             <StepIndicator current={tourIndex} total={TOUR_SLIDES.length} />
 
-            <div style={{ fontSize: '40px', marginBottom: '14px' }}>{TOUR_SLIDES[tourIndex].icon}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '60px', height: '60px', borderRadius: '14px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.18)', margin: '0 auto 16px' }}>
+              {(() => { const I = TOUR_SLIDES[tourIndex].Icon; return <I /> })()}
+            </div>
             <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>
               {TOUR_SLIDES[tourIndex].tab} tab
             </div>
