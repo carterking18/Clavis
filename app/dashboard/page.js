@@ -1261,6 +1261,7 @@ export default function Dashboard() {
             const isDebit = activeCard?.type === 'debit'
             const label = selectedCardId ? 'Selected' : isBestTied() ? 'Tied' : 'Recommended'
             const portalTip = activeCard && !isCashBack(activeCard) && mult > 0
+              && (selectedCat === 'travel' || selectedCat === 'hotel')
               ? getPointValuation(activeCard.name).tip
               : null
 
