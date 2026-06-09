@@ -52,7 +52,7 @@ const FAQS = [
   },
   {
     q: 'How do I delete my account or my data?',
-    a: 'Email us at carterking18@gmail.com and we’ll permanently delete your account and all associated data — cards, purchase history, and email preferences — within 30 days. This action is irreversible.',
+    a: `Open the Account menu in the top-right corner of your dashboard and select "Delete account." You’ll be asked to type DELETE to confirm. This immediately and permanently removes your account and all associated data — cards, perks, purchase history, and email preferences. This action is irreversible. You can also reach us at carterking18@gmail.com if you need help.`,
   },
 ]
 

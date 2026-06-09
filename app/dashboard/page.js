@@ -547,6 +547,33 @@ export default function Dashboard() {
            (rankedCards[0].card.annual_fee || 0) === (rankedCards[1].card.annual_fee || 0)
   }
 
+  function exportHistory(format) {
+    const rows = taps.map(t => ({
+      Date: t.tapped_at ? new Date(t.tapped_at).toLocaleDateString() : '',
+      Merchant: t.merchant || '',
+      Card: t.card_name || '',
+      Category: t.category || '',
+      Amount: t.amount || 0,
+      'Rewards Rate': t.rewards_rate || '',
+      'Est. Value': t.estimated_value || 0,
+      Note: t.Note || '',
+    }))
+
+    if (format === 'csv') {
+      const headers = Object.keys(rows[0])
+      const csv = [headers.join(','), ...rows.map(r => headers.map(h => JSON.stringify(r[h] ?? '')).join(','))].join('\n')
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clavis-history.csv'; a.click()
+    } else {
+      import('xlsx').then(XLSX => {
+        const ws = XLSX.utils.json_to_sheet(rows)
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'History')
+        XLSX.writeFile(wb, 'clavis-history.xlsx')
+      })
+    }
+  }
+
   async function simulateTap() {
     const card = getActiveCard()
     if (!card) return
@@ -1121,10 +1148,16 @@ export default function Dashboard() {
               rows={1}
               placeholder="Add a note (optional)"
               value={tapNote}
+              maxLength={150}
               onChange={e => setTapNote(e.target.value)}
               style={{ resize: 'none', lineHeight: '1.5', fontSize: '13px', paddingTop: '9px', paddingBottom: '9px', overflow: 'hidden' }}
               onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
             />
+            {tapNote.length > 0 && (
+              <div style={{ textAlign: 'right', fontSize: '11px', color: tapNote.length >= 140 ? 'var(--red)' : 'var(--text-faintest)', marginTop: '4px' }}>
+                {tapNote.length}/150
+              </div>
+            )}
           </div>
 
           {/* 2 ── Category selector */}
@@ -1801,6 +1834,22 @@ export default function Dashboard() {
       {/* ── HISTORY ───────────────────────────────────── */}
       {tab === 'history' && (
         <div>
+          {taps.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '1rem' }}>
+              <button onClick={() => exportHistory('csv')}
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 14px', fontSize: '11.5px', fontWeight: '600', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                Export CSV
+              </button>
+              <button onClick={() => exportHistory('xlsx')}
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 14px', fontSize: '11.5px', fontWeight: '600', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                Export XLSX
+              </button>
+            </div>
+          )}
           <div data-reveal style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '20px' }}>
               <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>This month</div>
