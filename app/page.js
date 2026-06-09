@@ -52,7 +52,7 @@ export default function Home() {
               <span className="gradient-text">should I use?</span>
             </h1>
             <p style={{ fontSize: '16px', lineHeight: '1.65', color: 'var(--text-secondary)', marginTop: '16px', maxWidth: '420px' }}>
-              Clavis looks at every card in your wallet and tells you which one earns the most at wherever you are shopping. Add your cards once and it handles the rest.
+              Clavis looks at every card in your wallet and tells you which one earns the most at wherever you are shopping. Add your cards once and it handles the rest. All those perks you have? Clavis tracks them too and makes sure you actually get your money&apos;s worth.
             </p>
             <div className="hero-ctas" style={{ display: 'flex', gap: '12px', marginTop: '36px', flexWrap: 'wrap' }}>
               <a href="/auth" className="pill-dark">Get started free</a>
