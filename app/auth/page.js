@@ -151,6 +151,15 @@ export default function Auth() {
           </button>
         )}
 
+        {mode === 'signup' && (
+          <p style={{ marginTop: '20px', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.6', textAlign: 'center' }}>
+            By creating an account you agree to our{' '}
+            <a href="/terms" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Terms of Service</a>
+            {' '}and{' '}
+            <a href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Privacy Policy</a>.
+          </p>
+        )}
+
       </div>
     </div>
   )
