@@ -2431,7 +2431,11 @@ export default function Dashboard() {
               }} style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                🔗 Share Clavis
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+                Share Clavis
               </button>
             )
           })()}
