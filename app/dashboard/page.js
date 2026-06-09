@@ -7,7 +7,7 @@ import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers } from '../../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
 import { searchMerchants } from '../../lib/merchants'
-import { dollarValuePerDollar, formatValuePerDollar } from '../../lib/pointValues'
+import { dollarValuePerDollar, formatValuePerDollar, getPointValuation } from '../../lib/pointValues'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
@@ -1189,7 +1189,11 @@ export default function Dashboard() {
             const valuePer = activeCard ? formatValuePerDollar(activeCard, mult) : null
             const estimatedOnAmt = selectedAmt > 0 && dollarVal > 0 ? dollarVal * selectedAmt : 0
             const isGift = activeCard?.type === 'gift'
+            const isDebit = activeCard?.type === 'debit'
             const label = selectedCardId ? 'Selected' : isBestTied() ? 'Tied' : 'Recommended'
+            const portalTip = activeCard && !isCashBack(activeCard) && mult > 0
+              ? getPointValuation(activeCard.name).tip
+              : null
 
             return (
               <div style={{ border: '1px solid var(--border)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
@@ -1225,20 +1229,32 @@ export default function Dashboard() {
                       </span>
                       <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>remaining</span>
                     </div>
+                  ) : isDebit ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-muted)' }}>No rewards</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-faintest)' }}>Debit cards don't earn points or cash back</span>
+                    </div>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-                        <span style={{ fontSize: '46px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                          {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1×'}
-                        </span>
-                        {valuePer && mult > 0 && (
-                          <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{valuePer}</span>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+                          <span style={{ fontSize: '46px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                            {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1×'}
+                          </span>
+                          {valuePer && mult > 0 && (
+                            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{valuePer}</span>
+                          )}
+                        </div>
+                        {estimatedOnAmt > 0 && (
+                          <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
+                            +${estimatedOnAmt.toFixed(2)}
+                          </span>
                         )}
                       </div>
-                      {estimatedOnAmt > 0 && (
-                        <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
-                          +${estimatedOnAmt.toFixed(2)}
-                        </span>
+                      {portalTip && (
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-secondary)', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '8px 12px', lineHeight: '1.5' }}>
+                          💡 {portalTip}
+                        </div>
                       )}
                     </div>
                   )}
@@ -1510,6 +1526,7 @@ export default function Dashboard() {
                 <label className="label">Type</label>
                 <select className="input" value={newCard.type} onChange={e => setNewCard({ ...newCard, type: e.target.value })}>
                   <option value="credit">Credit card</option>
+                  <option value="debit">Debit card</option>
                   <option value="loyalty">Loyalty card</option>
                   <option value="gift">Gift card</option>
                   <option value="store">Store credit card</option>
