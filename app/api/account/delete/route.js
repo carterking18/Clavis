@@ -1,6 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit } from '../../../../lib/rateLimit'
 
 export async function POST(request) {
+  // 5 attempts per IP per 15 minutes
+  const { limited, headers } = rateLimit(request, { limit: 5, windowMs: 15 * 60_000 })
+  if (limited) return Response.json({ error: 'Too many requests — please wait and try again.' }, { status: 429, headers })
+
   const authHeader = request.headers.get('authorization')
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null
   if (!token) {

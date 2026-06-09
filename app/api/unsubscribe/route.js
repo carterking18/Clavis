@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import { rateLimit } from '../../../lib/rateLimit'
 
 function expectedSig(userId) {
   return crypto.createHmac('sha256', process.env.CRON_SECRET || 'clavis-dev-secret')
@@ -25,6 +26,9 @@ function page({ title, message, ok }) {
 }
 
 export async function GET(request) {
+  const { limited, headers } = rateLimit(request, { limit: 20, windowMs: 60 * 60_000 })
+  if (limited) return Response.json({ error: 'Too many requests.' }, { status: 429, headers })
+
   const { searchParams } = new URL(request.url)
   const uid = searchParams.get('uid')
   const sig = searchParams.get('sig')

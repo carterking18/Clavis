@@ -1,8 +1,12 @@
 import { Resend } from 'resend'
+import { rateLimit } from '../../../lib/rateLimit'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export async function POST(request) {
+  // 10 emails per IP per hour
+  const { limited, headers } = rateLimit(request, { limit: 10, windowMs: 60 * 60_000 })
+  if (limited) return Response.json({ error: 'Too many requests.' }, { status: 429, headers })
   const { email, perks } = await request.json()
 
   const expiringSoon = perks.filter(p => {
