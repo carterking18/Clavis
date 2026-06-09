@@ -334,8 +334,9 @@ export default function Dashboard() {
       setUser(session.user)
       getWeeklyDigestPref().then(setWeeklyDigest).catch(() => {})
       getRecurring().then(setRecurring).catch(() => {})
-      // Auto-launch tour for first-time visitors
-      if (!localStorage.getItem('clavis_toured')) {
+      // Auto-launch tour for first-time visitors or if ?tour=1 is in the URL
+      const tourParam = new URLSearchParams(window.location.search).get('tour')
+      if (!localStorage.getItem('clavis_toured') || tourParam === '1') {
         setTimeout(() => setTourStep(0), 800)
         localStorage.setItem('clavis_toured', '1')
       }

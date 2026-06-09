@@ -36,6 +36,7 @@ export default function Home() {
               <a href="#how-it-works" className="mkt-nav-link">How it works</a>
               <a href="#features"     className="mkt-nav-link">Features</a>
               <a href="#insights"     className="mkt-nav-link">Insights</a>
+              <a href="/dashboard?tour=1" className="mkt-nav-link">Take a tour</a>
             </div>
             <a href="/auth" className="pill-dark" style={{ fontSize: '12px', fontWeight: '600', padding: '9px 20px' }}>
               Sign in
@@ -62,6 +63,24 @@ export default function Home() {
               Free · No credit card required
             </p>
           </div>
+        </div>
+
+        {/* ── Tour CTA ── */}
+        <div style={{ padding: '0 24px 80px', maxWidth: '1100px', margin: '0 auto' }}>
+          <a href="/dashboard?tour=1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', padding: '22px 28px', textDecoration: 'none', transition: 'border-color 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(201,162,39,0.4)'}
+            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>See it in action</div>
+              <div style={{ fontSize: '17px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Take a quick tour of Clavis</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>A 60-second walkthrough of every feature. No sign up needed to look around.</div>
+            </div>
+            <div style={{ flexShrink: 0, width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          </a>
         </div>
 
         {/* ── Shared marketing sections ── */}
