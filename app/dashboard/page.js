@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers, searchCardCatalog } from '../../lib/cardRewards'
-import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
+import { getSuggestedPerks, calculateResetsAt, daysUntilReset, isResetDue } from '../../lib/cardPerks'
 import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar, getPointValuation } from '../../lib/pointValues'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
@@ -277,16 +277,20 @@ export default function Dashboard() {
       const data = await getUserCards()
       setCards(data)
 
-      // Auto-reset perks whose period has rolled over (resets_at is in the past)
-      const today = new Date().toISOString().split('T')[0]
+      // Roll forward every perk whose period has ended, used or not, so no
+      // perk ever shows a reset date in the past
+      let rolled = false
       for (const card of data) {
         for (const perk of card.perks || []) {
-          if (perk.resets_at && perk.resets_at < today && perk.used_amount > 0) {
-            const newResetsAt = calculateResetsAt(perk.period)
-            await updatePerk(perk.id, { used_amount: 0, resets_at: newResetsAt })
+          if (isResetDue(perk.resets_at)) {
+            const update = { used_amount: 0, resets_at: calculateResetsAt(perk.period) }
+            await updatePerk(perk.id, update)
+            Object.assign(perk, update)
+            rolled = true
           }
         }
       }
+      if (rolled) setCards([...data])
 
       // Check catalog for perk changes on cards that have perks tracked
       const dismissed = JSON.parse(localStorage.getItem('clavis_dismissed_perk_updates') || '{}')
@@ -466,9 +470,8 @@ export default function Dashboard() {
     const perks = card.perks || []
     const activePerks = perks.filter(p => p.used_amount < p.total_amount)
     const expiringPerks = activePerks.filter(p => {
-      if (!p.resets_at) return false
-      const days = Math.ceil((new Date(p.resets_at) - new Date()) / (1000 * 60 * 60 * 24))
-      return days <= 14 && days > 0
+      const days = daysUntilReset(p.resets_at)
+      return days !== null && days <= 14
     })
     // Dollar value still sitting unused on this card — this is what actually
     // determines how much "weight" a perk should carry against a marginal
@@ -960,9 +963,8 @@ export default function Dashboard() {
   const activeCard = getActiveCard()
   const allPerks = cards.flatMap(c => c.perks || [])
   const expiringPerks = allPerks.filter(p => {
-    if (!p.resets_at) return false
-    const days = Math.ceil((new Date(p.resets_at) - new Date()) / (1000 * 60 * 60 * 24))
-    return days <= 14 && days > 0
+    const days = daysUntilReset(p.resets_at)
+    return days !== null && days <= 14
   })
 
   const totalEarned = taps.reduce((s, t) => s + (t.estimated_value || 0), 0)
@@ -1940,9 +1942,9 @@ export default function Dashboard() {
                   {activeCardPerks.map((perk, pi) => {
                     const remaining = perk.total_amount - perk.used_amount
                     const pct = Math.min((perk.used_amount / perk.total_amount) * 100, 100)
-                    const daysLeft = perk.resets_at ? Math.ceil((new Date(perk.resets_at) - new Date()) / (1000 * 60 * 60 * 24)) : null
-                    const isExpiring = daysLeft !== null && daysLeft <= 14 && daysLeft > 0
-                    const isUrgent = daysLeft !== null && daysLeft <= 7 && daysLeft > 0
+                    const daysLeft = daysUntilReset(perk.resets_at)
+                    const isExpiring = daysLeft !== null && daysLeft <= 14
+                    const isUrgent = daysLeft !== null && daysLeft <= 7
                     const accent = isUrgent ? 'var(--red)' : isExpiring ? 'var(--orange)' : 'var(--green)'
                     return (
                       <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
@@ -1950,7 +1952,7 @@ export default function Dashboard() {
                           <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>{perk.name}</div>
                           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '9px' }}>
                             {perk.period}
-                            {daysLeft !== null ? ` · ${isUrgent ? `${daysLeft}d left` : isExpiring ? `${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
+                            {daysLeft !== null ? ` · ${daysLeft === 0 ? 'last day' : isExpiring ? `${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
                           </div>
                           <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px' }}>
                             <div style={{ height: '4px', borderRadius: '2px', width: pct + '%', background: accent, transition: 'width 0.4s' }} />

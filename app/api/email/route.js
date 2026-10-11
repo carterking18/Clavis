@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { daysUntilReset, isResetDue } from '../../../lib/cardPerks'
 import { rateLimit } from '../../../lib/rateLimit'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -11,8 +12,8 @@ export async function POST(request) {
 
   const expiringSoon = perks.filter(p => {
     if (!p.resets_at) return false
-    const daysLeft = Math.ceil((new Date(p.resets_at) - new Date()) / (1000 * 60 * 60 * 24))
-    return daysLeft <= 14 && daysLeft > 0
+    if (!p.resets_at || isResetDue(p.resets_at)) return false
+    return daysUntilReset(p.resets_at) <= 14
   })
 
   const unused = perks.filter(p => p.used_amount < p.total_amount)
@@ -22,7 +23,7 @@ export async function POST(request) {
   }
 
   const expiringHtml = expiringSoon.map(p => {
-    const daysLeft = Math.ceil((new Date(p.resets_at) - new Date()) / (1000 * 60 * 60 * 24))
+    const daysLeft = daysUntilReset(p.resets_at)
     const remaining = p.total_amount - p.used_amount
     return `<tr>
       <td style="padding:10px 0;border-bottom:1px solid #f0f0ec;font-size:14px;color:#1a1a1a;font-weight:600">${p.name}</td>
