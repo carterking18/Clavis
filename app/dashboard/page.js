@@ -1507,7 +1507,7 @@ export default function Dashboard() {
                         )}
                         {!isPaidOff && tapValue === 0 && perksValue === 0 && (
                           <div style={{ marginTop: '8px', padding: '7px 10px', background: 'var(--loss-wash)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', fontSize: '12px', color: 'var(--loss)', fontWeight: '500' }}>
-                            No value captured yet — use Smart Tap or mark perks used
+                            Nothing captured yet. Log a purchase or mark a credit used.
                           </div>
                         )}
                       </div>
@@ -1623,7 +1623,7 @@ export default function Dashboard() {
                         ))}
                       </div>
                     )}
-                    <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '5px' }}>When you type this merchant at checkout, the gift card will always be picked first.</p>
+                    <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '5px' }}>Picked first when you shop here.</p>
                   </div>
                 </>
               )}
@@ -1672,9 +1672,9 @@ export default function Dashboard() {
                     <div style={{ marginBottom: '12px', background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '14px 16px' }}>
                       <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '10px' }}>What's the difference?</div>
                       {[
-                        { label: 'Cash back', color: 'var(--ink)', desc: 'A percentage of your purchase returned as real money. Simple and always worth the same — 1.5% back on a $100 purchase = $1.50. Examples: Chase Freedom Unlimited, Citi Double Cash.' },
-                        { label: 'Points', color: 'var(--ink)', desc: 'A currency issued by your bank (Chase Ultimate Rewards, Amex Membership Rewards, etc.). Worth 1¢ each if redeemed for cash, but can be worth 1.5–2¢+ when transferred to airlines or hotels. Examples: Chase Sapphire, Amex Gold.' },
-                        { label: 'Miles', color: 'var(--ink)', desc: 'Similar to points but typically tied to a specific airline or travel program. Value depends on how you redeem — flights usually beat cash. Examples: Delta SkyMiles, United MileagePlus, Capital One Venture.' },
+                        { label: 'Cash back', color: 'var(--ink)', desc: 'Money back. 1.5% on $100 = $1.50. Freedom Unlimited, Double Cash.' },
+                        { label: 'Points', color: 'var(--ink)', desc: 'Bank points. About 1¢ each as cash, more via travel partners. Sapphire, Amex Gold.' },
+                        { label: 'Miles', color: 'var(--ink)', desc: 'Travel points. Worth most on flights. SkyMiles, MileagePlus, Venture.' },
                       ].map(({ label, color, desc }) => (
                         <div key={label} style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
                           <div style={{ fontSize: '12px', fontWeight: '600', color, minWidth: '60px', paddingTop: '1px' }}>{label}</div>
@@ -1948,12 +1948,12 @@ export default function Dashboard() {
             <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '20px' }}>
               <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '7px' }}>This month</div>
               <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{money(thisMonthEarned)}</div>
-              <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '4px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
+              <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '4px' }}>{thisMonthTaps.length} purchase{thisMonthTaps.length !== 1 ? 's' : ''}</div>
             </div>
             <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '20px' }}>
               <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '7px' }}>All time</div>
               <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{money(totalEarned)}</div>
-              <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '4px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
+              <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '4px' }}>{taps.length} purchase{taps.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
 
@@ -1961,7 +1961,7 @@ export default function Dashboard() {
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)', fontSize: '14px' }}>Loading...</div>
           ) : taps.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--muted)', fontSize: '14px' }}>
-              No taps yet. Use Smart Tap to start tracking your rewards.
+              No purchases yet. Log one from Tap.
             </div>
           ) : (
             <div className="card" style={{ padding: '0 1.125rem' }}>
@@ -2012,7 +2012,7 @@ export default function Dashboard() {
                 <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
                   <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink-2)', marginBottom: '8px' }}>No insights yet</div>
                   <div style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: '1.6' }}>
-                    Add cards with perks and use Smart Tap to start seeing personalized optimization tips.
+                    Add cards and log purchases to see insights here.
                   </div>
                 </div>
               )
@@ -2313,7 +2313,7 @@ export default function Dashboard() {
                     <>
                       <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink-2)', margin: '18px 0 10px' }}>By card</div>
                       {byCard.slice(0, 8).map((c, i) => (
-                        <Bar key={c.key} label={c.name} sub={`${c.count} tap${c.count !== 1 ? 's' : ''} · ${money(c.earned)} earned`} value={c.spend} max={maxCardSpend} color={barColor(i)} />
+                        <Bar key={c.key} label={c.name} sub={`${c.count} purchase${c.count !== 1 ? 's' : ''} · ${money(c.earned)} earned`} value={c.spend} max={maxCardSpend} color={barColor(i)} />
                       ))}
                     </>
                   )}
@@ -2421,7 +2421,7 @@ export default function Dashboard() {
             <div role="dialog" aria-labelledby="pv-title" onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '1.5rem', width: '100%', maxWidth: '440px', maxHeight: '80vh', overflowY: 'auto' }}>
               <div id="pv-title" style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '6px' }}>Point values</div>
               <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '16px' }}>
-                Clavis turns points into dollars using a conservative value per point, close to what you get as a statement credit. If you usually redeem through a travel portal or transfer partners, set your own value. It changes every recommendation and total.
+                Clavis values points like cash back. Redeem through travel partners? Set your own value per card.
               </div>
               {pointCards.length === 0 && <div style={{ fontSize: '14px', color: 'var(--muted)' }}>None of your cards earn points.</div>}
               {pointCards.map(c => {
@@ -2483,7 +2483,7 @@ export default function Dashboard() {
           <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
             <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '72px', marginBottom: '1rem' }} />
             <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
-            <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '1.25rem', lineHeight: '1.6' }}>This gift card has a $0 balance. Would you like to remove it from your wallet?</div>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '1.25rem', lineHeight: '1.6' }}>Balance is $0. Remove it from your wallet?</div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn-primary" style={{ background: 'var(--loss)' }} onClick={async () => {
                 await deleteCard(emptyGiftCards[emptyGiftCardIndex].id); await loadCards()
@@ -2535,7 +2535,7 @@ export default function Dashboard() {
               <button onClick={() => setShowRankings(false)} style={{ background: 'var(--sunken)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
             <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '0.5rem' }}>
-              Tap a card to use it for this transaction instead — Clavis will remember your choice until you switch back to Auto.
+              Tap a card to use it instead. Switch back to Auto anytime.
             </div>
             {(() => {
               const ranked = getRankedCards()
@@ -2543,7 +2543,8 @@ export default function Dashboard() {
                 const mult = getMultiplier(card)
                 const tiedWithPrev = i > 0 && Math.abs(ranked[i - 1].score - score) <= 0.001
                 const tiedWithNext = i < ranked.length - 1 && Math.abs(ranked[i + 1].score - score) <= 0.001
-                const isTop = i === 0 || tiedWithPrev
+                // Top means tied with #1, not merely tied with the row above
+                const isTop = Math.abs(ranked[0].score - score) <= 0.001
                 const accentColor = isTop ? 'var(--accent-ink)' : 'var(--muted)'
                 const isSelected = selectedCardId === card.id
                 return (
@@ -2598,44 +2599,44 @@ export default function Dashboard() {
                 <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
                   <div style={{ fontSize: '12px', color: 'var(--ink-2)', lineHeight: '1.6' }}>
-                    Every card gets a <strong style={{ color: 'var(--ink-2)' }}>score</strong> for the current category and amount. The highest score wins.
+                    Each card gets a score. Highest wins.
                   </div>
 
                   {[
                     {
                       label: 'Rewards value',
                       formula: 'multiplier × cents-per-point × 100',
-                      detail: 'The base score: cents earned per dollar. A 3x card at 1.0¢ per point scores 3.0. A 2% cash-back card scores 2.0. This decides the ranking.',
+                      detail: '3x at 1.0¢ = 3.0. 2% cash back = 2.0. This decides the ranking.',
                       color: 'var(--ink)',
                     },
                     {
-                      label: 'Unused credits elsewhere',
-                      formula: 'Tie-breaker only: under +0.2',
-                      detail: 'Credits that don\'t cover this merchant can\'t change what this purchase earns. They only decide between cards that earn within 0.25¢ per dollar of each other, favoring the card with more unused credit, especially credits resetting within 14 days.',
+                      label: 'Other unused credits',
+                      formula: 'Tie-breaker only',
+                      detail: 'Only decides between cards within 0.25¢ of each other. Favors more unused credit.',
                       color: 'var(--ink-2)',
                     },
                     {
                       label: 'Gift card balance',
                       formula: '+5 if gift card has remaining balance',
-                      detail: 'A gift card with money on it should be used before any rewards card — you\'ve already paid for it.',
+                      detail: 'You already paid for it. Use it first.',
                       color: 'var(--ink-2)',
                     },
                     {
-                      label: 'Merchant-matched perk',
-                      formula: 'Score → 500 + unused $ (overrides rewards math)',
-                      detail: 'If what you typed matches an unused perk\'s name (e.g. typing "Peloton" when a card has a Peloton credit), that card jumps to the top — these are use-it-here-or-lose-it credits where the rewards rate stops mattering.',
+                      label: 'Credit for this store',
+                      formula: 'Goes first',
+                      detail: 'Typed "Peloton" with an unused Peloton credit? That card goes first.',
                       color: 'var(--ink-2)',
                     },
                     {
-                      label: 'Linked merchant override',
-                      formula: 'Score → 9999 (always #1)',
-                      detail: 'If you typed a merchant and a gift card is linked to that store, it locks to the top. No credit card rewards beat a gift card that only works here.',
+                      label: 'Linked gift card',
+                      formula: 'Always first',
+                      detail: 'A gift card for this store always goes first.',
                       color: 'var(--ink-2)',
                     },
                     {
                       label: 'Tie-breaker',
                       formula: 'Higher annual fee ranks first',
-                      detail: 'When two cards score exactly the same, the one with the higher annual fee is listed first.',
+                      detail: 'Exact tie? Higher annual fee is listed first.',
                       color: 'var(--ink-2)',
                     },
                   ].map(row => (

@@ -25,11 +25,11 @@ function SlideIconInsights() {
 }
 
 export const TOUR_SLIDES = [
-  { Icon: SlideIconTap,      tab: 'Tap',      title: 'Which card should I use?',        text: "This is the main screen. Type the store or restaurant where you are paying and Clavis looks at every card you have and tells you which one earns the most. At Chipotle, your Amex Gold earns 4x points. At Target, a Venture X earns 2x miles while a Freedom Unlimited earns 1.5%. Clavis figures that out instantly so you never leave rewards on the table." },
-  { Icon: SlideIconWallet,   tab: 'Wallet',   title: 'All your cards in one place',      text: "Add each card you own once and Clavis remembers it. It knows the rewards rates, the annual fee, and how much you have earned. You do not need to check each card's app separately." },
-  { Icon: SlideIconPerks,    tab: 'Perks',    title: 'Stop losing benefits you paid for', text: "Most cards come with free credits — things like the Amex Gold's $10 a month in Uber Cash or $7 a month at Dunkin'. They expire if you do not use them. Clavis tracks what you have left and reminds you before they disappear." },
-  { Icon: SlideIconHistory,  tab: 'History',  title: 'A record of every purchase',       text: "Every time you tap a card in Clavis, it logs the store, the card you used, and how much you earned. You can see your full spending history and even export it." },
-  { Icon: SlideIconInsights, tab: 'Insights', title: 'Tips to get more from your wallet', text: "Clavis watches your spending and spots things you might be missing — a perk about to expire, a card that would earn you more at a store you visit often, or a benefit you are not using. It is like having someone look over your wallet for you." },
+  { Icon: SlideIconTap,      tab: 'Tap',      title: 'Which card should I use?',     text: "Type where you're paying. The card that earns the most is on top." },
+  { Icon: SlideIconWallet,   tab: 'Wallet',   title: 'Every card in one place',      text: 'Rates, fees and what each card has earned you.' },
+  { Icon: SlideIconPerks,    tab: 'Perks',    title: 'Credits you paid for',         text: 'Every credit, with a countdown to its reset.' },
+  { Icon: SlideIconHistory,  tab: 'History',  title: 'Every purchase you log',       text: 'Store, card and rewards earned. Export anytime.' },
+  { Icon: SlideIconInsights, tab: 'Insights', title: 'What to do next',              text: 'Credits to use, and cards that would earn you more.' },
 ]
 
 function CardArt({ name, style = {} }) {
@@ -215,7 +215,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '10px' }}>
               {TOUR_SLIDES[tourIndex].title}
             </div>
-            <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '28px', minHeight: '78px' }}>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '24px', minHeight: '46px' }}>
               {TOUR_SLIDES[tourIndex].text}
             </div>
 
@@ -465,7 +465,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
             </div>
 
             <button className="btn-primary" onClick={finish}>
-              Open Smart Tap →
+              Open Tap →
             </button>
           </div>
         )}
