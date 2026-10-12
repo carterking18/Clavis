@@ -153,6 +153,7 @@ export function LiveDemo() {
   const [autoplay, setAutoplay] = useState(false)
   const [visible, setVisible] = useState(false)
   const userTookOver = useRef(false)
+  const [cursor, setCursor] = useState({ show: false, x: 0, y: 0, ms: 0, down: false })
 
   useEffect(() => {
     if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setAutoplay(true)
@@ -166,19 +167,42 @@ export function LiveDemo() {
     let cancelled = false
     const timers = []
     const wait = ms => new Promise(r => timers.push(setTimeout(r, ms)))
+    // A pointer that moves like a person: to the field, click, type, click
+    // the suggestion, then over to the result
+    const root = rootRef.current
+    const moveTo = async (el, fx = 0.2, fy = 0.5, ms = 650) => {
+      if (!el || !root) return
+      const r = el.getBoundingClientRect(), base = root.getBoundingClientRect()
+      setCursor(c => ({ ...c, show: true, ms, x: r.left - base.left + r.width * fx, y: r.top - base.top + r.height * fy }))
+      await wait(ms + 80)
+    }
+    const click = async () => {
+      setCursor(c => ({ ...c, down: true })); await wait(160)
+      setCursor(c => ({ ...c, down: false })); await wait(120)
+    }
     const run = async () => {
       let i = DEMO_MERCHANTS.findIndex(m => m.name === merchant?.name) + 1
+      await moveTo(root?.querySelector('.demo-best-value'), 0.5, 0.4, 0)
       while (!cancelled) {
-        await wait(2600)
+        await wait(2200)
         if (cancelled || document.hidden) continue
         const m = DEMO_MERCHANTS[i % DEMO_MERCHANTS.length]
-        setMerchant(null)
+        await moveTo(root.querySelector('#demo-merchant'), 0.12, 0.55)
+        await click()
+        setMerchant(null); setQuery('')
+        await wait(200)
         for (let n = 1; n <= m.name.length && !cancelled; n++) {
           setQuery(m.name.slice(0, n))
-          await wait(70)
+          await wait(85)
         }
-        await wait(350)
-        if (!cancelled) choose(m)
+        await wait(300)
+        const option = [...root.querySelectorAll('.demo-suggest-item')].find(o => o.firstChild?.textContent === m.name)
+        await moveTo(option, 0.25, 0.5, 450)
+        await click()
+        if (cancelled) break
+        choose(m)
+        await wait(250)
+        await moveTo(root.querySelector('.demo-best-value'), 0.5, 0.4, 700)
         i++
       }
     }
@@ -192,6 +216,7 @@ export function LiveDemo() {
     if (userTookOver.current) return
     userTookOver.current = true
     setAutoplay(false)
+    setCursor(c => ({ ...c, show: false }))
   }
 
   const spend = Math.max(0, Number(amount) || 0)
@@ -203,6 +228,12 @@ export function LiveDemo() {
 
   return (
     <div className="demo" ref={rootRef} onPointerDown={takeOver} onKeyDown={takeOver}>
+      {autoplay && cursor.show && (
+        <span className={`demo-cursor${cursor.down ? ' is-down' : ''}`} aria-hidden="true"
+          style={{ transform: `translate(${cursor.x - 5}px, ${cursor.y - 3}px)`, transitionDuration: `${cursor.ms}ms` }}>
+          <svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 3l14 8.2-6.1 1.5-3.2 5.8z" fill="#111827" stroke="#FFFFFF" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+        </span>
+      )}
       <div className="demo-controls">
         <div className="demo-field">
           <label htmlFor="demo-merchant" className="demo-label">Where are you paying?</label>
@@ -236,7 +267,7 @@ export function LiveDemo() {
         ))}
         {autoplay && (
           <button className="demo-pause" onClick={e => { e.stopPropagation(); takeOver() }} aria-label="Pause the demo">
-            <span aria-hidden="true" className="demo-pause-dot"/> Playing · Pause
+            <span aria-hidden="true" className="demo-pause-dot"/> Demo playing · Pause
           </button>
         )}
       </div>
@@ -426,7 +457,14 @@ export const marketingStyles = `
   .demo-chip.is-active { color: var(--ink); border-color: var(--ink); }
   .demo-pause { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: none; background: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--ink-2); cursor: pointer; border-radius: var(--radius-control); }
   .demo-pause:hover { background: var(--sunken); color: var(--ink); }
-  .demo-pause-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gain); }
+  .demo-pause-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); animation: demo-blink 1.6s ease-in-out infinite; }
+  @keyframes demo-blink { 50% { opacity: 0.25; } }
+  .demo { position: relative; }
+  .demo-cursor { position: absolute; left: 0; top: 0; z-index: 20; pointer-events: none; transition-property: transform; transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1); will-change: transform; filter: drop-shadow(0 2px 3px rgba(17,24,39,0.25)); }
+  .demo-cursor::before { content: ''; position: absolute; left: -6px; top: -8px; width: 22px; height: 22px; border-radius: 50%; background: rgba(17,24,39,0.18); transform: scale(0); opacity: 0; }
+  .demo-cursor.is-down svg { transform: scale(0.88); transform-origin: 5px 3px; }
+  .demo-cursor.is-down::before { animation: demo-click 380ms ease-out; }
+  @keyframes demo-click { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
   .demo-segmented { margin: 16px 24px 0; }
   .demo-results { margin-top: 24px; border-top: 1px solid var(--hairline); }
   .demo-best { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 28px 24px 28px 28px; box-shadow: inset 4px 0 0 var(--accent); background: var(--accent-wash); border-bottom: 1px solid var(--hairline); }
