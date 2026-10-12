@@ -111,8 +111,8 @@ function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClo
     width: rect.width + pad * 2,
     height: rect.height + pad * 2,
     borderRadius: '8px',
-    boxShadow: '0 0 0 9999px rgba(15,15,20,0.6)',
-    border: '2px solid var(--gold)',
+    boxShadow: '0 0 0 9999px var(--scrim)',
+    border: '2px solid var(--ink)',
     pointerEvents: 'none',
     zIndex: 250,
     transition: 'top 0.3s cubic-bezier(0.16,1,0.3,1), left 0.3s cubic-bezier(0.16,1,0.3,1), width 0.3s cubic-bezier(0.16,1,0.3,1)',
@@ -132,7 +132,7 @@ function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClo
     border: '1px solid var(--hairline)',
     borderRadius: '12px',
     padding: '18px',
-    boxShadow: '0 16px 48px rgba(0,0,0,0.3)',
+    boxShadow: 'var(--shadow-overlay)',
     zIndex: 251,
     textAlign: 'left',
   }
@@ -141,7 +141,7 @@ function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClo
     <>
       <div style={spotStyle} />
       <div style={tooltipStyle}>
-        <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>
+        <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: '6px' }}>
           {slide.tab} tab · {step + 1}/{slides.length}
         </div>
         <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: '400', color: 'var(--ink)', marginBottom: '8px' }}>
@@ -888,7 +888,7 @@ export default function Dashboard() {
           id: `perk-${insight.id}`,
           urgent: insight.days <= 7,
           icon: '◷',
-          color: insight.days <= 7 ? 'var(--loss)' : 'var(--orange)',
+          color: insight.days <= 7 ? 'var(--loss)' : 'var(--ink)',
           title: `${insight.perk.name} expires in ${insight.days}d`,
           detail: `${money(insight.remaining)} unused on your ${insight.card.name}`,
           tab: 'perks',
@@ -900,7 +900,7 @@ export default function Dashboard() {
         id: `fee-${u.id}`,
         urgent: u.newFee > u.oldFee,
         icon: '✦',
-        color: u.newFee > u.oldFee ? 'var(--orange)' : 'var(--gain)',
+        color: u.newFee > u.oldFee ? 'var(--ink)' : 'var(--gain)',
         title: `${u.name} annual fee changed`,
         detail: `${moneyWhole(u.oldFee)} → ${moneyWhole(u.newFee)}`,
         tab: 'wallet',
@@ -1032,7 +1032,7 @@ export default function Dashboard() {
                 {notifications.length > 0 && (
                   <span style={{
                     position: 'absolute', top: '-2px', right: '-2px', minWidth: '15px', height: '15px', borderRadius: '50%',
-                    background: urgentNotifCount > 0 ? 'var(--loss)' : 'var(--gold)', color: '#fff', fontSize: '12px', fontWeight: '600',
+                    background: urgentNotifCount > 0 ? 'var(--loss)' : 'var(--ink)', color: 'var(--surface)', fontSize: '12px', fontWeight: '600',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '1.5px solid rgba(9,9,12,0.85)',
                   }}>
                     {notifications.length > 9 ? '9+' : notifications.length}
@@ -1044,7 +1044,7 @@ export default function Dashboard() {
                   <div onClick={() => setShowNotifications(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
                   <div style={{
                     position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: '320px', maxHeight: '420px', overflowY: 'auto',
-                    background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: '10px', boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
+                    background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: '10px', boxShadow: 'var(--shadow-overlay)',
                     zIndex: 200, padding: '14px',
                   }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '10px' }}>Notifications</div>
@@ -1082,7 +1082,7 @@ export default function Dashboard() {
                   <div style={{
                     position: 'absolute', top: 'calc(100% + 10px)', right: 0, minWidth: '180px',
                     background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: '10px',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.18)', zIndex: 200, padding: '6px', overflow: 'hidden',
+                    boxShadow: 'var(--shadow-overlay)', zIndex: 200, padding: '6px', overflow: 'hidden',
                   }}>
                     {user?.email && (
                       <div style={{ padding: '8px 10px 9px', fontSize: '12px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: '1px solid var(--hairline-soft)', marginBottom: '4px' }}>
@@ -1109,7 +1109,7 @@ export default function Dashboard() {
                     </button>
                     <button onClick={() => { setShowAccountMenu(false); setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteAccountError('') }}
                       style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: '600', color: 'var(--loss)', padding: '9px 10px', borderRadius: '6px' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(217,82,82,0.08)'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--loss-wash)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       Delete account
                     </button>
@@ -1133,11 +1133,11 @@ export default function Dashboard() {
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
                   whiteSpace: 'nowrap', flexShrink: 0,
-                  color: tab === key ? '#dddde4' : (key === 'insights' && insightCount > 0 ? 'var(--gold)' : undefined),
+                  color: tab === key ? '#dddde4' : (key === 'insights' && insightCount > 0 ? 'var(--ink)' : undefined),
                 }}>
                 {label}
                 {key === 'insights' && insightCount > 0 && tab !== key && (
-                  <span style={{ display: 'inline-block', width: '5px', height: '5px', background: '#c9a227', borderRadius: '50%', marginLeft: '5px', verticalAlign: 'middle', marginBottom: '2px' }} />
+                  <span style={{ display: 'inline-block', width: '5px', height: '5px', background: 'var(--ink)', borderRadius: '50%', marginLeft: '5px', verticalAlign: 'middle', marginBottom: '2px' }} />
                 )}
               </button>
             ))}
@@ -1184,7 +1184,7 @@ export default function Dashboard() {
               borderRadius: '4px',
               padding: '14px 18px',
               border: detectedMerchant
-                ? '1px solid rgba(29,184,122,0.4)'
+                ? '1px solid var(--hairline)'
                 : '1px solid var(--hairline)',
               transition: 'border-color 0.2s',
               display: 'flex',
@@ -1217,7 +1217,7 @@ export default function Dashboard() {
               )}
             </div>
             {merchantSuggestions.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 200, overflow: 'hidden', maxHeight: '260px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 200, overflow: 'hidden', maxHeight: '260px', overflowY: 'auto', boxShadow: 'var(--shadow-overlay)' }}>
                 {merchantSuggestions.map(m => (
                   <div key={m.name}
                     onClick={() => { pickCategory(m.category); setMerchantQuery(m.name); setDetectedMerchant(m); setMerchantSuggestions([]) }}
@@ -1258,9 +1258,9 @@ export default function Dashboard() {
                 style={{
                   flexShrink: 0, padding: '8px 17px',
                   borderRadius: '9999px',
-                  border: selectedCat === cat ? '1px solid rgba(201,162,39,0.5)' : '1px solid var(--hairline-soft)',
-                  background: selectedCat === cat ? 'rgba(201,162,39,0.1)' : 'transparent',
-                  color: selectedCat === cat ? '#c9a227' : 'var(--muted)',
+                  border: selectedCat === cat ? '1px solid var(--hairline)' : '1px solid var(--hairline-soft)',
+                  background: selectedCat === cat ? 'var(--sunken)' : 'transparent',
+                  color: selectedCat === cat ? 'var(--ink)' : 'var(--muted)',
                   fontSize: '12px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase',
                   cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
                 }}>
@@ -1289,12 +1289,16 @@ export default function Dashboard() {
               : null
 
             return (
-              <div style={{ border: '1px solid var(--hairline)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
+              <div style={{
+                border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', marginBottom: '10px', overflow: 'hidden',
+                // The single accent moment on this screen: Clavis's own pick
+                boxShadow: label === 'Recommended' ? 'inset 3px 0 0 var(--accent)' : 'none',
+              }}>
                 {/* Card header row */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px', borderBottom: '1px solid var(--hairline-soft)' }}>
                   <CardArt name={activeCard?.name || ''} style={{ width: '60px', height: '40px', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '500', color: label === 'Recommended' ? 'var(--accent-ink)' : 'var(--ink-2)', marginBottom: '4px' }}>
                       {label}
                     </div>
                     <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1317,7 +1321,7 @@ export default function Dashboard() {
                 <div style={{ padding: '20px 20px 22px', background: 'var(--sunken)' }}>
                   {isGift ? (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                      <span style={{ fontSize: '28px', fontWeight: '600', color: 'var(--gain)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                      <span style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                         {money(activeCard.balance || 0)}
                       </span>
                       <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: '500' }}>remaining</span>
@@ -1331,7 +1335,7 @@ export default function Dashboard() {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-                          <span style={{ fontSize: '28px', fontWeight: '600', color: '#c9a227', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                          <span style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                             {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1×'}
                           </span>
                           {valuePer && mult > 0 && (
@@ -1348,7 +1352,7 @@ export default function Dashboard() {
                         )}
                       </div>
                       {portalTip && dismissedPortalTip !== portalTip && (
-                        <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--ink-2)', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '8px 12px', lineHeight: '1.5', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--ink-2)', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '8px 12px', lineHeight: '1.5', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                           <span style={{ flex: 1 }}>💡 {portalTip}</span>
                           <button onClick={() => setDismissedPortalTip(portalTip)}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '14px', padding: 0, lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>✕</button>
@@ -1400,7 +1404,7 @@ export default function Dashboard() {
               <span style={{ fontSize: '14px', color: 'var(--ink-2)', flex: 1, minWidth: '120px' }}>Save <strong style={{ color: 'var(--ink)' }}>{recurringName}</strong> as a recurring purchase?</span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button onClick={handleSaveRecurring}
-                  style={{ fontSize: '12px', fontWeight: '600', padding: '6px 14px', background: 'var(--ink)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ fontSize: '12px', fontWeight: '600', padding: '6px 14px', background: 'var(--ink)', color: 'var(--surface)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Save
                 </button>
                 <button onClick={() => setShowSaveRecurring(false)}
@@ -1412,10 +1416,10 @@ export default function Dashboard() {
           )}
 
           {missedInsight && (
-            <div style={{ marginTop: '8px', background: 'rgba(180,83,9,0.08)', border: '1px solid rgba(180,83,9,0.28)', borderRadius: '4px', padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ marginTop: '8px', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '4px', padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
               <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--orange)', marginBottom: '2px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '2px' }}>
                   {missedInsight.missedOnAmt
                     ? `${money(missedInsight.missedOnAmt)} more with ${missedInsight.cardName}`
                     : `${missedInsight.missedPerDollar}¢/$ more with ${missedInsight.cardName}`}
@@ -1461,7 +1465,7 @@ export default function Dashboard() {
           })()}
 
           {feeUpdates.length > 0 && !feeSyncDismissed && (
-            <div style={{ marginBottom: '1.25rem', border: '1px solid rgba(37,99,235,0.18)', background: 'rgba(37,99,235,0.05)', borderRadius: '8px', padding: '14px 16px' }}>
+            <div style={{ marginBottom: '1.25rem', border: '1px solid var(--hairline)', background: 'var(--sunken)', borderRadius: '8px', padding: '14px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
                 <div style={{ fontSize: '14px', color: 'var(--ink)', fontWeight: '600' }}>
                   ✦ {feeUpdates.length === 1 ? 'An annual fee has' : `${feeUpdates.length} annual fees have`} changed since you added {feeUpdates.length === 1 ? 'this card' : 'these cards'}
@@ -1473,7 +1477,7 @@ export default function Dashboard() {
                   <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '14px', color: 'var(--ink-2)', padding: '4px 0' }}>
                     <span>{u.name} — {moneyWhole(u.oldFee)}/yr → <strong style={{ color: 'var(--ink)' }}>{moneyWhole(u.newFee)}/yr</strong></span>
                     <button onClick={() => syncOneFee(u)} disabled={syncingFees}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--blue)', padding: '2px 6px', flexShrink: 0 }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--ink)', padding: '2px 6px', flexShrink: 0 }}>
                       Update
                     </button>
                   </div>
@@ -1514,7 +1518,7 @@ export default function Dashboard() {
                 const isPaidOff = fee > 0 && roiPct >= 100
 
                 return (
-                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '4px', border: isPaidOff ? '1.5px solid rgba(29,184,122,0.3)' : '1px solid var(--hairline-soft)', background: isPaidOff ? 'rgba(15,155,101,0.04)' : 'var(--surface)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
+                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '4px', border: isPaidOff ? '1.5px solid var(--hairline)' : '1px solid var(--hairline-soft)', background: isPaidOff ? 'var(--gain-wash)' : 'var(--surface)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '17px 16px', cursor: fee > 0 ? 'pointer' : 'default' }}
                       onClick={() => fee > 0 && setExpandedRoiId(isExpanded ? null : card.id)}>
                       <CardArt name={card.name} style={{ width: '54px', height: '36px', flexShrink: 0 }} />
@@ -1527,10 +1531,10 @@ export default function Dashboard() {
                       {fee > 0 ? (
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {isPaidOff ? (
-                            <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--gain)', background: 'rgba(29,184,122,0.15)', borderRadius: '9999px', padding: '4px 11px' }}>✓ Paid off</div>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--gain)', background: 'var(--gain-wash)', borderRadius: '9999px', padding: '4px 11px' }}>✓ Paid off</div>
                           ) : (
                             <>
-                              <div style={{ fontSize: '16px', fontWeight: '600', color: '#c9a227', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
+                              <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
                               <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '1px', ...NUM }}>{moneyWhole(remaining)} to go</div>
                             </>
                           )}
@@ -1543,7 +1547,7 @@ export default function Dashboard() {
                     {fee > 0 && (
                       <div style={{ padding: '0 14px', marginBottom: isExpanded ? '0' : '12px' }}>
                         <div style={{ height: '4px', background: 'var(--sunken)', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? 'var(--gain)' : roiPct > 60 ? 'var(--gold)' : 'rgba(201,162,39,0.45)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
+                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? 'var(--gain)' : roiPct > 60 ? 'var(--ink)' : 'var(--muted)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
                         </div>
                         {!isExpanded && breakEvenLabel && (
                           <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '5px', marginBottom: '2px' }}>{breakEvenLabel}</div>
@@ -1554,7 +1558,7 @@ export default function Dashboard() {
                     {fee > 0 && isExpanded && (
                       <div style={{ margin: '0 14px 14px', background: 'var(--sunken)', borderRadius: '4px', padding: '12px', border: '1px solid var(--hairline-soft)' }}>
                         {[
-                          { label: 'Perks captured', value: perksValue, color: 'var(--blue)' },
+                          { label: 'Perks captured', value: perksValue, color: 'var(--ink)' },
                           { label: 'Tap rewards', value: tapValue, color: 'var(--gain)' },
                         ].map(row => (
                           <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -1579,17 +1583,17 @@ export default function Dashboard() {
                           </span>
                         </div>
                         {breakEvenLabel && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '4px', fontSize: '12px', color: '#c9a227', fontWeight: '500' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '4px', fontSize: '12px', color: 'var(--ink)', fontWeight: '500' }}>
                             — {breakEvenLabel}
                           </div>
                         )}
                         {isPaidOff && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(15,155,101,0.08)', border: '1px solid rgba(15,155,101,0.25)', borderRadius: '4px', fontSize: '12px', color: 'var(--gain)', fontWeight: '600' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'var(--gain-wash)', border: '1px solid var(--hairline)', borderRadius: '4px', fontSize: '12px', color: 'var(--gain)', fontWeight: '600' }}>
                             ✓ This card has fully paid for its annual fee
                           </div>
                         )}
                         {!isPaidOff && tapValue === 0 && perksValue === 0 && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(217,82,82,0.08)', border: '1px solid rgba(217,82,82,0.2)', borderRadius: '4px', fontSize: '12px', color: 'var(--loss)', fontWeight: '500' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'var(--loss-wash)', border: '1px solid var(--hairline)', borderRadius: '4px', fontSize: '12px', color: 'var(--loss)', fontWeight: '500' }}>
                             No value captured yet — use Smart Tap or mark perks used
                           </div>
                         )}
@@ -1599,20 +1603,20 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', gap: '5px', padding: '0 14px 14px' }}>
                       <button onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}
                         style={{ flex: 1, padding: '6px 4px', fontSize: '12px', border: '1px solid var(--hairline)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--muted)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'; e.currentTarget.style.color = 'var(--ink)' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; e.currentTarget.style.color = 'var(--ink)' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.color = 'var(--muted)' }}>
                         + perk
                       </button>
                       <button onClick={() => openEditCard(card)}
                         style={{ padding: '6px 9px', fontSize: '12px', border: '1px solid var(--hairline)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--muted)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'; e.currentTarget.style.color = 'var(--ink)' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; e.currentTarget.style.color = 'var(--ink)' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.color = 'var(--muted)' }}>
                         edit
                       </button>
                       <button onClick={() => deleteCard(card.id).then(loadCards)}
-                        style={{ padding: '6px 9px', fontSize: '12px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--loss)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
+                        style={{ padding: '6px 9px', fontSize: '12px', border: '1px solid var(--hairline)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--loss)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
+                        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--loss)'}
+                        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                         ×
                       </button>
                     </div>
@@ -1645,7 +1649,7 @@ export default function Dashboard() {
                     </div>
                   )}
                   {cardCatalogSuggestions.length > 0 && (
-                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: '8px', boxShadow: 'var(--shadow-overlay)', zIndex: 50, overflow: 'hidden' }}>
                       <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', padding: '8px 12px 4px' }}>From card database</div>
                       {cardCatalogSuggestions.map((c, i) => (
                         <div key={i}
@@ -1659,7 +1663,7 @@ export default function Dashboard() {
                           <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{c.name}</span>
                           {c.annualFee > 0
                             ? <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{moneyWhole(c.annualFee)}/yr</span>
-                            : <span style={{ fontSize: '12px', color: 'var(--gain)' }}>No annual fee</span>
+                            : <span style={{ fontSize: '12px', color: 'var(--muted)' }}>No annual fee</span>
                           }
                         </div>
                       ))}
@@ -1701,7 +1705,7 @@ export default function Dashboard() {
                       }}
                     />
                     {giftMerchantSuggestions.length > 0 && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 200, overflow: 'hidden', maxHeight: '260px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 200, overflow: 'hidden', maxHeight: '260px', overflowY: 'auto', boxShadow: 'var(--shadow-overlay)' }}>
                         {giftMerchantSuggestions.map(m => (
                           <div key={m.name}
                             onClick={() => { setNewCard(prev => ({ ...prev, merchant: m.name })); setGiftMerchantSuggestions([]) }}
@@ -1762,9 +1766,9 @@ export default function Dashboard() {
                     <div style={{ marginBottom: '12px', background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: '8px', padding: '14px 16px' }}>
                       <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '10px' }}>What's the difference?</div>
                       {[
-                        { label: 'Cash back', color: 'var(--gain)', desc: 'A percentage of your purchase returned as real money. Simple and always worth the same — 1.5% back on a $100 purchase = $1.50. Examples: Chase Freedom Unlimited, Citi Double Cash.' },
-                        { label: 'Points', color: 'var(--purple)', desc: 'A currency issued by your bank (Chase Ultimate Rewards, Amex Membership Rewards, etc.). Worth 1¢ each if redeemed for cash, but can be worth 1.5–2¢+ when transferred to airlines or hotels. Examples: Chase Sapphire, Amex Gold.' },
-                        { label: 'Miles', color: 'var(--blue)', desc: 'Similar to points but typically tied to a specific airline or travel program. Value depends on how you redeem — flights usually beat cash. Examples: Delta SkyMiles, United MileagePlus, Capital One Venture.' },
+                        { label: 'Cash back', color: 'var(--ink)', desc: 'A percentage of your purchase returned as real money. Simple and always worth the same — 1.5% back on a $100 purchase = $1.50. Examples: Chase Freedom Unlimited, Citi Double Cash.' },
+                        { label: 'Points', color: 'var(--ink)', desc: 'A currency issued by your bank (Chase Ultimate Rewards, Amex Membership Rewards, etc.). Worth 1¢ each if redeemed for cash, but can be worth 1.5–2¢+ when transferred to airlines or hotels. Examples: Chase Sapphire, Amex Gold.' },
+                        { label: 'Miles', color: 'var(--ink)', desc: 'Similar to points but typically tied to a specific airline or travel program. Value depends on how you redeem — flights usually beat cash. Examples: Delta SkyMiles, United MileagePlus, Capital One Venture.' },
                       ].map(({ label, color, desc }) => (
                         <div key={label} style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
                           <div style={{ fontSize: '12px', fontWeight: '600', color, minWidth: '60px', paddingTop: '1px' }}>{label}</div>
@@ -1788,7 +1792,7 @@ export default function Dashboard() {
                       Cash back: enter % (e.g. 1.5). Points: enter multiplier (e.g. 3 for 3x).
                     </div>
                     {newCard._suggestion && (
-                      <div style={{ marginBottom: '10px', fontSize: '12px', color: newCard._aiSuggestion ? 'var(--gold)' : 'var(--blue)', background: newCard._aiSuggestion ? 'rgba(201,162,39,0.08)' : 'rgba(37,99,235,0.06)', border: `1px solid ${newCard._aiSuggestion ? 'rgba(201,162,39,0.2)' : 'rgba(37,99,235,0.15)'}`, borderRadius: '4px', padding: '8px 12px' }}>
+                      <div style={{ marginBottom: '10px', fontSize: '12px', color: newCard._aiSuggestion ? 'var(--ink)' : 'var(--ink)', background: newCard._aiSuggestion ? 'var(--sunken)' : 'var(--sunken)', border: `1px solid ${newCard._aiSuggestion ? 'var(--hairline)' : 'var(--hairline)'}`, borderRadius: '4px', padding: '8px 12px' }}>
                         {newCard._aiSuggestion ? '✦ AI-populated' : `✦ Rates${newCard._feeAutoFilled ? ' and annual fee' : ''} auto-filled`} — {newCard._suggestion}
                       </div>
                     )}
@@ -1867,7 +1871,7 @@ export default function Dashboard() {
       {tab === 'perks' && (
         <div>
           {expiringPerks.length > 0 && (
-            <div data-reveal style={{ background: 'rgba(180,83,9,0.08)', border: '1px solid rgba(180,83,9,0.3)', borderRadius: '4px', padding: '10px 14px', marginBottom: '1rem', fontSize: '14px', color: 'var(--orange)', fontWeight: '500' }}>
+            <div data-reveal style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '4px', padding: '10px 14px', marginBottom: '1rem', fontSize: '14px', color: 'var(--ink)', fontWeight: '500' }}>
               — {expiringPerks.length} credit{expiringPerks.length > 1 ? 's' : ''} expiring within 14 days — use them now.
             </div>
           )}
@@ -1881,9 +1885,9 @@ export default function Dashboard() {
               <div data-reveal style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: '4px', padding: '18px 20px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '5px' }}>Uncaptured value</div>
-                  <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--gain)', letterSpacing: '-0.03em', ...NUM }}>{moneyWhole(totalRemaining)}</div>
+                  <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{moneyWhole(totalRemaining)}</div>
                   <div style={{ height: '4px', background: 'var(--sunken)', borderRadius: '2px', marginTop: '9px' }}>
-                    <div style={{ height: '4px', borderRadius: '2px', width: usedPct + '%', background: 'var(--gain)', transition: 'width 0.5s' }} />
+                    <div style={{ height: '4px', borderRadius: '2px', width: usedPct + '%', background: 'var(--ink)', transition: 'width 0.5s' }} />
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1910,11 +1914,11 @@ export default function Dashboard() {
             >
               <span style={{
                 position: 'relative', width: '34px', height: '20px', borderRadius: '10px', flexShrink: 0,
-                background: weeklyDigest ? 'var(--gain)' : 'var(--hairline)', transition: 'background 0.15s',
+                background: weeklyDigest ? 'var(--ink)' : 'var(--hairline)', transition: 'background 0.15s',
               }}>
                 <span style={{
                   position: 'absolute', top: '2px', left: weeklyDigest ? '16px' : '2px', width: '16px', height: '16px',
-                  borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  borderRadius: '50%', background: 'var(--surface)', transition: 'left 0.15s', boxShadow: '0 1px 2px var(--hairline)',
                 }} />
               </span>
               <span style={{ fontSize: '12px', color: 'var(--ink-2)' }}>
@@ -1942,8 +1946,8 @@ export default function Dashboard() {
 
                 {/* Perk update nudge */}
                 {update && (
-                  <div style={{ background: 'rgba(29,184,122,0.08)', border: '1px solid rgba(15,155,101,0.25)', borderRadius: '6px', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--gain)', fontWeight: '600', lineHeight: '1.4' }}>
+                  <div style={{ background: 'var(--gain-wash)', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--ink)', fontWeight: '600', lineHeight: '1.4' }}>
                       {cardPerks.length === 0
                         ? `${update.newPerks.length} perk${update.newPerks.length > 1 ? 's' : ''} available for this card`
                         : <>
@@ -1952,11 +1956,11 @@ export default function Dashboard() {
                             {update.changedPerks.length > 0 && `${update.changedPerks.length} perk${update.changedPerks.length > 1 ? 's' : ''} updated`}
                           </>
                       }
-                      <span style={{ color: 'rgba(29,184,122,0.6)', fontWeight: '400' }}> · from latest card data</span>
+                      <span style={{ color: 'var(--muted)', fontWeight: '400' }}> · from latest card data</span>
                     </div>
                     <button
                       onClick={() => setPerkUpdateModal({ card, ...update })}
-                      style={{ fontSize: '12px', padding: '4px 10px', background: 'rgba(29,184,122,0.15)', border: '1px solid rgba(15,155,101,0.35)', borderRadius: '9999px', cursor: 'pointer', color: 'var(--gain)', fontWeight: '600', fontFamily: 'inherit', flexShrink: 0 }}>
+                      style={{ fontSize: '12px', padding: '4px 10px', background: 'var(--gain-wash)', border: '1px solid var(--hairline)', borderRadius: '9999px', cursor: 'pointer', color: 'var(--ink)', fontWeight: '600', fontFamily: 'inherit', flexShrink: 0 }}>
                       Review
                     </button>
                   </div>
@@ -1972,7 +1976,7 @@ export default function Dashboard() {
                     const daysLeft = daysUntilReset(perk.resets_at)
                     const isExpiring = daysLeft !== null && daysLeft <= 14
                     const isUrgent = daysLeft !== null && daysLeft <= 7
-                    const accent = isUrgent ? 'var(--loss)' : isExpiring ? 'var(--orange)' : 'var(--gain)'
+                    const accent = isUrgent ? 'var(--loss)' : 'var(--ink)'
                     return (
                       <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1992,14 +1996,14 @@ export default function Dashboard() {
                           <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
                             <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
                               style={{ fontSize: '12px', padding: '3px 8px', border: '1px solid var(--hairline)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--muted)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
+                              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
                               onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                               mark used
                             </button>
                             <button onClick={() => deletePerk(perk.id).then(loadCards)}
-                              style={{ fontSize: '12px', padding: '3px 8px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--loss)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
-                              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
+                              style={{ fontSize: '12px', padding: '3px 8px', border: '1px solid var(--hairline)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--loss)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
+                              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--loss)'}
+                              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                               remove
                             </button>
                           </div>
@@ -2026,13 +2030,13 @@ export default function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '1rem' }}>
               <button onClick={() => exportHistory('csv')}
                 style={{ background: 'none', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                 Export CSV
               </button>
               <button onClick={() => exportHistory('xlsx')}
                 style={{ background: 'none', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                 Export XLSX
               </button>
@@ -2041,12 +2045,12 @@ export default function Dashboard() {
           <div data-reveal style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
             <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: '4px', padding: '20px' }}>
               <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>This month</div>
-              <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--gain)', letterSpacing: '-0.03em', ...NUM }}>{money(thisMonthEarned)}</div>
+              <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{money(thisMonthEarned)}</div>
               <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '4px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
             </div>
             <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: '4px', padding: '20px' }}>
               <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>All time</div>
-              <div style={{ fontSize: '28px', fontWeight: '600', color: '#c9a227', letterSpacing: '-0.03em', ...NUM }}>{money(totalEarned)}</div>
+              <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{money(totalEarned)}</div>
               <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '4px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
@@ -2131,9 +2135,9 @@ export default function Dashboard() {
 
             // ── Section bodies ──
             const renderExpiring = () => perkInsights.map(insight => {
-              const urgentColor = insight.days <= 7 ? 'var(--loss)' : insight.days <= 14 ? 'var(--orange)' : 'var(--gain)'
-              const urgentBg = insight.days <= 7 ? 'rgba(217,82,82,0.08)' : insight.days <= 14 ? 'rgba(196,124,42,0.08)' : 'rgba(29,184,122,0.06)'
-              const urgentBorder = insight.days <= 7 ? 'rgba(217,82,82,0.25)' : insight.days <= 14 ? 'rgba(196,124,42,0.25)' : 'rgba(29,184,122,0.2)'
+              const urgentColor = insight.days <= 7 ? 'var(--loss)' : insight.days <= 14 ? 'var(--ink)' : 'var(--ink-2)'
+              const urgentBg = insight.days <= 7 ? 'var(--loss-wash)' : insight.days <= 14 ? 'var(--sunken)' : 'var(--gain-wash)'
+              const urgentBorder = insight.days <= 7 ? 'var(--hairline)' : insight.days <= 14 ? 'var(--hairline)' : 'var(--hairline)'
               return (
                 <div key={insight.id} style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: '4px', padding: '16px 16px 16px 14px', marginBottom: '9px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
@@ -2157,7 +2161,7 @@ export default function Dashboard() {
                     {' until '}
                     <span style={{ color: urgentColor, fontWeight: '600' }}>{formatResetDate(insight.resetDate)}</span>
                     {insight.suggestion && (
-                      <> — based on your history, <span style={{ color: '#c9a227', fontWeight: '600' }}>{insight.suggestion}</span> would use this optimally</>
+                      <> — based on your history, <span style={{ color: 'var(--ink)', fontWeight: '600' }}>{insight.suggestion}</span> would use this optimally</>
                     )}
                     {!insight.suggestion && '.'}
                   </div>
@@ -2171,7 +2175,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '2px' }}>
                     <button
                       onClick={() => setSelectedMonth(null)}
-                      style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: selectedMonth === null ? 'var(--ink)' : 'transparent', borderColor: selectedMonth === null ? 'var(--ink)' : 'var(--hairline)', color: selectedMonth === null ? '#fff' : 'var(--muted)' }}
+                      style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', background: selectedMonth === null ? 'var(--ink)' : 'transparent', borderColor: selectedMonth === null ? 'var(--ink)' : 'var(--hairline)', color: selectedMonth === null ? 'var(--surface)' : 'var(--muted)' }}
                     >
                       All time
                     </button>
@@ -2181,7 +2185,7 @@ export default function Dashboard() {
                       const active = selectedMonth === m.key
                       return (
                         <button key={m.key} onClick={() => setSelectedMonth(m.key)}
-                          style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: active ? 'var(--ink)' : 'transparent', borderColor: active ? 'var(--ink)' : 'var(--hairline)', color: active ? '#fff' : 'var(--muted)' }}
+                          style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', background: active ? 'var(--ink)' : 'transparent', borderColor: active ? 'var(--ink)' : 'var(--hairline)', color: active ? 'var(--surface)' : 'var(--muted)' }}
                         >
                           {label}
                         </button>
@@ -2206,11 +2210,11 @@ export default function Dashboard() {
 
                   return (
                     <>
-                      <div style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(180,83,9,0.2)', borderRadius: '12px', padding: '20px 22px', marginBottom: '14px' }}>
+                      <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '12px', padding: '20px 22px', marginBottom: '14px' }}>
                         <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '7px' }}>
                           {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
                         </div>
-                        <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--orange)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+                        <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.04em', lineHeight: 1 }}>
                           {money(filteredTotal)}
                         </div>
                         <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginTop: '7px' }}>
@@ -2232,12 +2236,12 @@ export default function Dashboard() {
                                 <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
                                   <span style={{ color: 'var(--loss)' }}>{item.usedCard.name}</span>
                                   <span style={{ color: 'var(--muted)' }}> → </span>
-                                  <span style={{ color: 'var(--gain)' }}>{item.bestCard.name}</span>
+                                  <span style={{ color: 'var(--ink)' }}>{item.bestCard.name}</span>
                                   {item.tap.category && <span style={{ color: 'var(--muted)' }}> · {item.tap.category}</span>}
                                 </div>
                               </div>
                               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--orange)', ...NUM }}>{money(item.missedTotal, { sign: true })}</div>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', ...NUM }}>{money(item.missedTotal, { sign: true })}</div>
                                 <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px', ...NUM }}>{centsPerDollar(item.missedPerDollar)}/$</div>
                               </div>
                             </div>
@@ -2259,13 +2263,13 @@ export default function Dashboard() {
               <>
                 <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '12px', lineHeight: '1.5' }}>
                   Based on your last {taps.length} purchase{taps.length !== 1 ? 's' : ''} · {taps.length < 10
-                    ? <span style={{ color: '#c9a227' }}>track more purchases to sharpen these picks</span>
+                    ? <span style={{ color: 'var(--ink)' }}>track more purchases to sharpen these picks</span>
                     : 'personalized to your spending'}
                 </div>
 
                 {taps.length < 5 && cards.length > 0 && (
-                  <div style={{ background: 'rgba(201,162,39,0.07)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '12px 14px', marginBottom: '12px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#c9a227', marginBottom: '4px' }}>Log purchases to unlock personalized picks</div>
+                  <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '12px 14px', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Log purchases to unlock personalized picks</div>
                     <div style={{ fontSize: '12px', color: 'var(--ink-2)', lineHeight: '1.55' }}>
                       Clavis learns from every tap you log. The more you track, the more accurately it can find cards that match your real spending — not just guesses. Head to the Tap tab and start logging.
                     </div>
@@ -2273,8 +2277,8 @@ export default function Dashboard() {
                 )}
 
                 {cardRecs.length === 0 ? (
-                  <div style={{ background: 'rgba(15,155,101,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderLeft: '3px solid var(--gain)', borderRadius: '4px', padding: '14px 16px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--gain)', marginBottom: '4px' }}>Your wallet is well-optimized</div>
+                  <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '4px', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Your wallet is well-optimized</div>
                     <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.5' }}>
                       Based on your spending, no card on the market meaningfully outperforms what you already have. Nice setup.
                     </div>
@@ -2283,7 +2287,7 @@ export default function Dashboard() {
                   const affiliate = getAffiliateLink(rec.name)
                   const tierStyle = TIER_STYLES[rec.tier] || TIER_STYLES['no-fee']
                   return (
-                    <div key={rec.name} style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.16)', borderRadius: '6px', padding: '14px', marginBottom: '10px' }}>
+                    <div key={rec.name} style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '14px', marginBottom: '10px' }}>
 
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -2298,7 +2302,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                          <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1 }}>
                             {moneyWhole(netAnnualGain, { sign: true })}/yr
                           </div>
                           <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>est. from your spend</div>
@@ -2309,7 +2313,7 @@ export default function Dashboard() {
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
                         {improvements.slice(0, 4).map(imp => (
-                          <span key={imp.category} style={{ fontSize: '12px', fontWeight: '600', color: 'var(--blue)', background: 'rgba(37,99,235,0.1)', borderRadius: '4px', padding: '3px 7px' }}>
+                          <span key={imp.category} style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink)', background: 'var(--sunken)', borderRadius: '4px', padding: '3px 7px' }}>
                             {imp.category} +{centsPerDollar(imp.gainPerDollar)}/$
                             {imp.annualCatGain >= 10 && <span style={{ opacity: 0.6 }}> ({moneyWhole(imp.annualCatGain)}/yr)</span>}
                           </span>
@@ -2321,7 +2325,7 @@ export default function Dashboard() {
                           href={affiliate.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ display: 'block', textAlign: 'center', padding: '11px', background: 'var(--blue)', borderRadius: '6px', fontSize: '14px', fontWeight: '600', color: '#fff', textDecoration: 'none', letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
+                          style={{ display: 'block', textAlign: 'center', padding: '11px', background: 'var(--ink)', borderRadius: '6px', fontSize: '14px', fontWeight: '600', color: 'var(--surface)', textDecoration: 'none', letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                           onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                           {affiliate.cta} →
@@ -2351,7 +2355,8 @@ export default function Dashboard() {
 
             const renderSpending = () => {
               const { categories, byCard, totalSpend, totalEarned } = spendingBreakdown
-              const CATEGORY_COLORS = ['var(--blue)', 'var(--gold)', 'var(--gain)', 'var(--orange)', 'var(--loss)', '#8B5CF6', '#06B6D4', '#EC4899']
+              // Ink for the largest bar, muted for the rest: no rainbow
+              const barColor = i => i === 0 ? 'var(--ink)' : 'var(--muted)'
               const Bar = ({ label, sub, value, max, color }) => (
                 <div style={{ marginBottom: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '5px' }}>
@@ -2373,13 +2378,13 @@ export default function Dashboard() {
               return (
                 <>
                   <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-                    <div style={{ flex: 1, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.16)', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ flex: 1, background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '10px', padding: '14px 16px' }}>
                       <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>Total spend tracked</div>
-                      <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1, ...NUM }}>{moneyWhole(totalSpend)}</div>
+                      <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1, ...NUM }}>{moneyWhole(totalSpend)}</div>
                     </div>
-                    <div style={{ flex: 1, background: 'rgba(15,155,101,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderRadius: '10px', padding: '14px 16px' }}>
+                    <div style={{ flex: 1, background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '10px', padding: '14px 16px' }}>
                       <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>Rewards earned</div>
-                      <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--gain)', letterSpacing: '-0.03em', lineHeight: 1, ...NUM }}>{money(totalEarned)}</div>
+                      <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1, ...NUM }}>{money(totalEarned)}</div>
                     </div>
                   </div>
 
@@ -2387,7 +2392,7 @@ export default function Dashboard() {
                     <>
                       <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>By category</div>
                       {categories.slice(0, 8).map((c, i) => (
-                        <Bar key={c.key} label={c.key} sub={`${c.count} purchase${c.count !== 1 ? 's' : ''}`} value={c.spend} max={maxCatSpend} color={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                        <Bar key={c.key} label={c.key} sub={`${c.count} purchase${c.count !== 1 ? 's' : ''}`} value={c.spend} max={maxCatSpend} color={barColor(i)} />
                       ))}
                     </>
                   )}
@@ -2396,7 +2401,7 @@ export default function Dashboard() {
                     <>
                       <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', margin: '18px 0 10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>By card</div>
                       {byCard.slice(0, 8).map((c, i) => (
-                        <Bar key={c.key} label={c.name} sub={`${c.count} tap${c.count !== 1 ? 's' : ''} · ${money(c.earned)} earned`} value={c.spend} max={maxCardSpend} color={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                        <Bar key={c.key} label={c.name} sub={`${c.count} tap${c.count !== 1 ? 's' : ''} · ${money(c.earned)} earned`} value={c.spend} max={maxCardSpend} color={barColor(i)} />
                       ))}
                     </>
                   )}
@@ -2464,7 +2469,7 @@ export default function Dashboard() {
                   alert('Referral link copied!')
                 }
               }} style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', background: 'none', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
@@ -2500,7 +2505,7 @@ export default function Dashboard() {
           }
         }
         return (
-          <div onClick={() => setShowPointValues(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div onClick={() => setShowPointValues(false)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
             <div role="dialog" aria-labelledby="pv-title" onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: '8px', padding: '1.5rem', width: '100%', maxWidth: '440px', maxHeight: '80vh', overflowY: 'auto' }}>
               <div id="pv-title" style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '6px' }}>Point values</div>
               <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '16px' }}>
@@ -2538,7 +2543,7 @@ export default function Dashboard() {
       })()}
 
       {showDeleteAccount && (
-        <div onClick={() => !deletingAccount && setShowDeleteAccount(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <div onClick={() => !deletingAccount && setShowDeleteAccount(false)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: '8px', padding: '1.5rem', width: '100%', maxWidth: '420px' }}>
             <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--loss)', marginBottom: '8px' }}>Delete your account?</div>
             <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '14px' }}>
@@ -2562,7 +2567,7 @@ export default function Dashboard() {
       )}
 
       {emptyGiftCards.length > 0 && emptyGiftCards[emptyGiftCardIndex] && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
             <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '64px', marginBottom: '1rem' }} />
             <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
@@ -2583,15 +2588,15 @@ export default function Dashboard() {
       )}
 
       {suggestedPerks && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div style={sheetStyle}>
             <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Known perks found</div>
             <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '1.25rem' }}>Select the perks you have on this card. You can edit amounts later.</div>
             {suggestedPerks.map((perk, i) => (
               <div key={i} onClick={() => setSelectedPerkIndices(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i])}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--hairline-soft)', cursor: 'pointer' }}>
-                <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: selectedPerkIndices.includes(i) ? '2px solid var(--gain)' : '1.5px solid var(--hairline)', background: selectedPerkIndices.includes(i) ? 'var(--gain)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                  {selectedPerkIndices.includes(i) && <span style={{ color: '#fff', fontSize: '12px', fontWeight: '600' }}>✓</span>}
+                <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: selectedPerkIndices.includes(i) ? '2px solid var(--ink)' : '1.5px solid var(--hairline)', background: selectedPerkIndices.includes(i) ? 'var(--ink)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  {selectedPerkIndices.includes(i) && <span style={{ color: 'var(--surface)', fontSize: '12px', fontWeight: '600' }}>✓</span>}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{perk.name}</div>
@@ -2608,7 +2613,7 @@ export default function Dashboard() {
       )}
 
       {showRankings && (
-        <div onClick={() => setShowRankings(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+        <div onClick={() => setShowRankings(false)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '440px', maxHeight: '70vh', overflowY: 'auto', border: '1px solid var(--hairline)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
@@ -2627,7 +2632,7 @@ export default function Dashboard() {
                 const tiedWithPrev = i > 0 && Math.abs(ranked[i - 1].score - score) <= 0.001
                 const tiedWithNext = i < ranked.length - 1 && Math.abs(ranked[i + 1].score - score) <= 0.001
                 const isTop = i === 0 || tiedWithPrev
-                const accentColor = isTop ? 'var(--gold)' : 'var(--hairline)'
+                const accentColor = isTop ? 'var(--accent-ink)' : 'var(--muted)'
                 const isSelected = selectedCardId === card.id
                 return (
                   <button key={card.id}
@@ -2635,7 +2640,8 @@ export default function Dashboard() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 8px', margin: '0 -8px',
                       borderBottom: '1px solid var(--hairline-soft)', width: 'calc(100% + 16px)',
-                      background: isSelected ? 'rgba(37,99,235,0.06)' : 'none', border: 'none', borderRadius: '6px',
+                      background: isSelected ? 'var(--sunken)' : 'none', border: 'none', borderRadius: 'var(--radius-control)',
+                      boxShadow: isTop ? 'inset 3px 0 0 var(--accent)' : 'none',
                       cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
                     }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: accentColor, width: '22px', flexShrink: 0, textAlign: 'center' }}>
@@ -2645,17 +2651,17 @@ export default function Dashboard() {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {card.name}
-                        {isSelected && <span style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--blue)', background: 'rgba(37,99,235,0.1)', borderRadius: '9999px', padding: '2px 7px', flexShrink: 0 }}>Selected</span>}
+                        {isSelected && <span style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink)', background: 'var(--sunken)', borderRadius: '9999px', padding: '2px 7px', flexShrink: 0 }}>Selected</span>}
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                         {reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}
                         {tiedWithNext && !tiedWithPrev && (card.annual_fee || 0) > 0 && (
-                          <span style={{ color: 'rgba(201,162,39,0.55)' }}> · higher fee</span>
+                          <span style={{ color: 'var(--muted)' }}> · higher fee</span>
                         )}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: isTop ? '#c9a227' : 'var(--muted)' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: isTop ? 'var(--ink)' : 'var(--muted)' }}>
                         {mult > 0 ? formatRate(card, mult) : '—'}
                       </div>
                       {dollarVal > 0 && (
@@ -2688,7 +2694,7 @@ export default function Dashboard() {
                       label: 'Rewards value',
                       formula: 'multiplier × cents-per-point × 100',
                       detail: 'The base score. A 3x card at 1.8¢/pt scores 5.4. A 2% cash-back card scores 2.0. This is the dominant factor — everything else is a small nudge.',
-                      color: '#c9a227',
+                      color: 'var(--ink)',
                     },
                     {
                       label: 'Unused perks',
@@ -2749,7 +2755,7 @@ export default function Dashboard() {
 
       {/* ── PERK UPDATE REVIEW MODAL ───────────────────── */}
       {perkUpdateModal && (
-        <div onClick={() => setPerkUpdateModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setPerkUpdateModal(null)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ ...sheetStyle, maxHeight: '80vh' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
               <div>
@@ -2764,14 +2770,14 @@ export default function Dashboard() {
 
             {perkUpdateModal.newPerks.length > 0 && (
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--gain)', marginBottom: '8px' }}>New perks</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: '8px' }}>New perks</div>
                 {perkUpdateModal.newPerks.map((p, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(29,184,122,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--gain-wash)', border: '1px solid var(--gain-wash)', borderRadius: '6px', marginBottom: '6px' }}>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{p.name}</div>
                       <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{p.period}</div>
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--gain)', ...NUM }}>{moneyWhole(p.total_amount)}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', ...NUM }}>{moneyWhole(p.total_amount)}</div>
                   </div>
                 ))}
               </div>
@@ -2779,17 +2785,17 @@ export default function Dashboard() {
 
             {perkUpdateModal.changedPerks.length > 0 && (
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.07em', textTransform: 'uppercase', color: '#c9a227', marginBottom: '8px' }}>Updated amounts</div>
+                <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: '8px' }}>Updated amounts</div>
                 {perkUpdateModal.changedPerks.map((cp, i) => {
                   const userPerk = perkUpdateModal.card.perks.find(up => up.name.toLowerCase().includes(cp.name.toLowerCase()) || cp.name.toLowerCase().includes(up.name.toLowerCase()))
                   return (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(201,162,39,0.06)', border: '1px solid rgba(201,162,39,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '6px', marginBottom: '6px' }}>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{cp.name}</div>
                         <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{cp.period}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#c9a227', ...NUM }}>{moneyWhole(cp.total_amount)}</div>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', ...NUM }}>{moneyWhole(cp.total_amount)}</div>
                         {userPerk && <div style={{ fontSize: '12px', color: 'var(--muted)', textDecoration: 'line-through' }}>{moneyWhole(userPerk.total_amount)}</div>}
                       </div>
                     </div>
@@ -2807,7 +2813,7 @@ export default function Dashboard() {
               <button
                 onClick={() => applyPerkUpdate(perkUpdateModal.card, perkUpdateModal.newPerks, perkUpdateModal.changedPerks)}
                 disabled={applyingPerkUpdate}
-                style={{ padding: '12px', background: 'var(--gain)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#0a0a0f', fontFamily: 'inherit', opacity: applyingPerkUpdate ? 0.6 : 1 }}>
+                style={{ padding: '12px', background: 'var(--ink)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--surface)', fontFamily: 'inherit', opacity: applyingPerkUpdate ? 0.6 : 1 }}>
                 {applyingPerkUpdate ? 'Applying…' : 'Apply updates'}
               </button>
             </div>
@@ -2835,7 +2841,7 @@ export default function Dashboard() {
       )}
 
       {editingCard && (
-        <div onClick={() => setEditingCard(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setEditingCard(null)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={sheetStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)' }}>Edit {editingCard.name}</div>
@@ -2869,7 +2875,7 @@ export default function Dashboard() {
                 if (String(known.annualFee) === editAnnualFee) return null
                 return (
                   <button onClick={() => setEditAnnualFee(String(known.annualFee))}
-                    style={{ marginTop: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--blue)', padding: 0 }}>
+                    style={{ marginTop: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--ink)', padding: 0 }}>
                     ↻ Use latest known fee — {moneyWhole(known.annualFee)}
                   </button>
                 )
@@ -2882,7 +2888,7 @@ export default function Dashboard() {
                   Something look outdated? Suggest a correction
                 </button>
               ) : correctionSubmitted ? (
-                <div style={{ fontSize: '12px', color: 'var(--gain)', fontWeight: '600' }}>
+                <div style={{ fontSize: '12px', color: 'var(--ink)', fontWeight: '600' }}>
                   ✓ Thanks — we'll review your suggestion and update our card data.
                 </div>
               ) : (

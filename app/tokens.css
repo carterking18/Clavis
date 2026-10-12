@@ -55,6 +55,7 @@
 
   /* ── Elevation: overlays only ──────────────────────── */
   --shadow-overlay: 0 12px 32px rgba(17, 24, 39, 0.16);
+  --scrim:          rgba(17, 24, 39, 0.40);
 
   /* ── Motion ────────────────────────────────────────── */
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);

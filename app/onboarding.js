@@ -9,19 +9,19 @@ import { moneyWhole } from '../lib/format'
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
 function SlideIconTap() {
-  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
 }
 function SlideIconWallet() {
-  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 13a1 1 0 1 0 2 0 1 1 0 0 0-2 0"/><path d="M2 10h20"/></svg>
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M16 13a1 1 0 1 0 2 0 1 1 0 0 0-2 0"/><path d="M2 10h20"/></svg>
 }
 function SlideIconPerks() {
-  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
 }
 function SlideIconHistory() {
-  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
 }
 function SlideIconInsights() {
-  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+  return <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
 }
 
 export const TOUR_SLIDES = [
@@ -51,7 +51,7 @@ function StepIndicator({ current, total }) {
           width: i === current ? '20px' : '6px',
           height: '6px',
           borderRadius: '3px',
-          background: i === current ? 'var(--gold)' : 'rgba(0,0,0,0.12)',
+          background: i === current ? 'var(--ink)' : 'var(--hairline)',
           transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)',
         }} />
       ))}
@@ -182,7 +182,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(0,0,0,0.4)',
+      background: 'var(--scrim)',
       backdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '1.5rem',
@@ -203,10 +203,10 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           <div style={{ textAlign: 'center' }}>
             <StepIndicator current={tourIndex} total={TOUR_SLIDES.length} />
 
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '60px', height: '60px', borderRadius: '14px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.18)', margin: '0 auto 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '60px', height: '60px', borderRadius: '14px', background: 'var(--sunken)', border: '1px solid var(--hairline)', margin: '0 auto 16px' }}>
               {(() => { const I = TOUR_SLIDES[tourIndex].Icon; return <I /> })()}
             </div>
-            <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>
+            <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: '6px' }}>
               {TOUR_SLIDES[tourIndex].tab} tab
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '10px' }}>
@@ -337,7 +337,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
             )}
 
             {suggestion && (
-              <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--blue)', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.15)', borderRadius: '6px', padding: '9px 12px' }}>
+              <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--ink)', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '9px 12px' }}>
                 ✦ Rewards rates{suggestion.annualFee !== undefined ? ' and annual fee' : ''} auto-filled — {suggestion.note}
               </div>
             )}
@@ -402,7 +402,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
                   flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s',
                 }}>
-                  {selectedPerkIndices.includes(i) && <span style={{ color: '#fff', fontSize: '12px', fontWeight: '600' }}>✓</span>}
+                  {selectedPerkIndices.includes(i) && <span style={{ color: 'var(--surface)', fontSize: '12px', fontWeight: '600' }}>✓</span>}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{perk.name}</div>
@@ -448,9 +448,9 @@ export function Onboarding({ onComplete, tourOnly = false }) {
                 }}>
                   <div style={{
                     width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
-                    background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.3)',
+                    background: 'var(--sunken)', border: '1px solid var(--hairline)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '12px', fontWeight: '600', color: 'var(--gold)',
+                    fontSize: '12px', fontWeight: '600', color: 'var(--ink)',
                   }}>
                     {item.step}
                   </div>
