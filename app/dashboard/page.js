@@ -38,25 +38,31 @@ function getSavedCategory() {
   return 'dining'
 }
 
-function CardArt({ name, style = {} }) {
+// Flat mini-card in the issuer's color. Small sizes are a swatch for list rows;
+// the large size shows the card name and last four. No network wordmarks or
+// fake chips, and never a recreated issuer logo.
+const CARD_ART_SIZES = { sm: { width: '36px', height: '24px' }, md: { width: '48px', height: '32px' } }
+
+function CardArt({ name, lastFour, size, style = {} }) {
   const design = getCardDesign(name)
+  const large = !size
   return (
-    <div style={{
-      borderRadius: 'var(--radius-container)',
-      background: `linear-gradient(135deg, ${design.gradient[0]}, ${design.gradient[1]})`,
-      padding: '8px 10px',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
+    <div aria-hidden="true" style={{
+      borderRadius: large ? 'var(--radius-container)' : '4px',
+      background: design.gradient[0],
+      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px',
+      padding: large ? '12px 14px' : 0,
+      color: 'rgba(255,255,255,0.92)',
+      ...(CARD_ART_SIZES[size] || {}),
+      flexShrink: 0,
       ...style
     }}>
-      {design.chip && (
-        <div style={{ width: '20px', height: '14px', borderRadius: '3px', background: 'rgba(0,0,0,0.06)', border: '0.5px solid rgba(255,255,255,0.25)' }} />
-      )}
-      {design.network && (
-        <div style={{ alignSelf: 'flex-end', fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', letterSpacing: '0.04em', marginTop: 'auto' }}>
-          {design.network}
-        </div>
+      {large && (
+        <>
+          <span style={{ fontSize: '14px', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+          {lastFour && <span style={{ fontSize: '12px', ...NUM }}>•••• {lastFour}</span>}
+        </>
       )}
     </div>
   )
@@ -1294,7 +1300,7 @@ export default function Dashboard() {
               }}>
                 {/* Card header row */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px', borderBottom: '1px solid var(--hairline-soft)' }}>
-                  <CardArt name={activeCard?.name || ''} style={{ width: '60px', height: '40px', flexShrink: 0 }} />
+                  <CardArt name={activeCard?.name || ''} size="md" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '12px', fontWeight: '500', color: label === 'Recommended' ? 'var(--accent-ink)' : 'var(--ink-2)', marginBottom: '4px' }}>
                       {label}
@@ -1519,7 +1525,7 @@ export default function Dashboard() {
                   <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: 'var(--radius-container)', border: isPaidOff ? '1.5px solid var(--hairline)' : '1px solid var(--hairline-soft)', background: isPaidOff ? 'var(--gain-wash)' : 'var(--surface)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '17px 16px', cursor: fee > 0 ? 'pointer' : 'default' }}
                       onClick={() => fee > 0 && setExpandedRoiId(isExpanded ? null : card.id)}>
-                      <CardArt name={card.name} style={{ width: '54px', height: '36px', flexShrink: 0 }} />
+                      <CardArt name={card.name} size="sm" />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
                         <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
@@ -1681,7 +1687,7 @@ export default function Dashboard() {
                 </select>
               </div>
 
-              {newCard.name && <div style={{ marginBottom: '12px' }}><CardArt name={newCard.name} style={{ height: '64px' }} /></div>}
+              {newCard.name && <div style={{ marginBottom: '12px' }}><CardArt name={newCard.name} lastFour={newCard.last_four} style={{ height: '72px' }} /></div>}
 
               {newCard.type === 'gift' && (
                 <>
@@ -1824,7 +1830,7 @@ export default function Dashboard() {
             <div data-reveal style={{ marginTop: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-container)', padding: '1.25rem', border: '1px solid var(--hairline)' }}>
               <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Add a perk</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.125rem' }}>
-                <CardArt name={cards.find(c => c.id === addingToCardId)?.name || ''} style={{ width: '28px', height: '20px', flexShrink: 0 }} />
+                <CardArt name={cards.find(c => c.id === addingToCardId)?.name || ''} size="sm" />
                 <span style={{ fontSize: '14px', color: 'var(--ink-2)', fontWeight: '500' }}>{cards.find(c => c.id === addingToCardId)?.name}</span>
               </div>
               <div style={{ marginBottom: '12px' }}>
@@ -1938,7 +1944,7 @@ export default function Dashboard() {
             return (
               <div key={card.id} data-reveal style={{ marginBottom: '1.5rem' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <CardArt name={card.name} style={{ width: '38px', height: '26px', flexShrink: 0 }} />
+                  <CardArt name={card.name} size="sm" />
                   {card.name}
                 </div>
 
@@ -2063,7 +2069,7 @@ export default function Dashboard() {
             <div className="card" style={{ padding: '0 1.125rem' }}>
               {taps.map((tap, i) => (
                 <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < taps.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
-                  <CardArt name={tap.card_name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
+                  <CardArt name={tap.card_name} size="sm" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tap.merchant || tap.card_name}
@@ -2139,7 +2145,7 @@ export default function Dashboard() {
               return (
                 <div key={insight.id} style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: 'var(--radius-container)', padding: '16px 16px 16px 14px', marginBottom: '9px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <CardArt name={insight.card.name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
+                    <CardArt name={insight.card.name} size="sm" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '500', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
@@ -2225,7 +2231,7 @@ export default function Dashboard() {
                         <div className="card" style={{ padding: '0 1.125rem' }}>
                           {filtered.slice(0, 15).map((item, i) => (
                             <div key={item.tap.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
-                              <CardArt name={item.bestCard.name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
+                              <CardArt name={item.bestCard.name} size="sm" />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {item.tap.merchant || item.tap.card_name}
@@ -2567,7 +2573,7 @@ export default function Dashboard() {
       {emptyGiftCards.length > 0 && emptyGiftCards[emptyGiftCardIndex] && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
-            <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '64px', marginBottom: '1rem' }} />
+            <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '72px', marginBottom: '1rem' }} />
             <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
             <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '1.25rem', lineHeight: '1.6' }}>This gift card has a $0 balance. Would you like to remove it from your wallet?</div>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -2645,7 +2651,7 @@ export default function Dashboard() {
                     <div style={{ fontSize: '14px', fontWeight: '600', color: accentColor, width: '22px', flexShrink: 0, textAlign: 'center' }}>
                       {tiedWithPrev ? '=' : `#${i + 1}`}
                     </div>
-                    <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
+                    <CardArt name={card.name} size="sm" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {card.name}
@@ -2845,7 +2851,7 @@ export default function Dashboard() {
               <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)' }}>Edit {editingCard.name}</div>
               <button onClick={() => setEditingCard(null)} style={{ background: 'var(--sunken)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-            <CardArt name={editingCard.name} style={{ height: '56px', marginBottom: '1rem' }} />
+            <CardArt name={editingCard.name} lastFour={editingCard.last_four} style={{ height: '72px', marginBottom: '1rem' }} />
             <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '10px', lineHeight: '1.5' }}>
               Cash back: enter % (e.g. 1.5). Points/miles: enter multiplier (e.g. 3 for 3x).
             </div>

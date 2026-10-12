@@ -37,9 +37,12 @@ function CardArt({ name, style = {} }) {
   return (
     <div style={{
       borderRadius: 'var(--radius-container)',
-      background: `linear-gradient(135deg, ${design.gradient[0]}, ${design.gradient[1]})`,
+      background: design.gradient[0],
+      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)',
+      display: 'flex', alignItems: 'flex-end', padding: '12px 14px',
+      color: 'rgba(255,255,255,0.92)', fontSize: '14px', fontWeight: '500',
       ...style
-    }} />
+    }}>{name}</div>
   )
 }
 
