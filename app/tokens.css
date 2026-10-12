@@ -1,0 +1,67 @@
+/* Clavis design tokens. The only place colors, type, radii, spacing,
+   shadows and motion are defined. Contrast ratios are against --paper. */
+
+:root {
+  /* ── Color roles ───────────────────────────────────── */
+  --ink:           #111827;  /* primary text, primary buttons, selected state (16.9:1) */
+  --ink-2:         #4B5563;  /* secondary text (7.2:1) */
+  --muted:         #626A77;  /* tertiary text, AA on paper, surface and sunken (5.2:1) */
+  --paper:         #FAFAFA;  /* page background */
+  --surface:       #FFFFFF;  /* cards, inputs, menus */
+  --sunken:        #F4F4F5;  /* stat tiles, wells, hover */
+  --hairline:      rgba(17, 24, 39, 0.10);
+  --hairline-soft: rgba(17, 24, 39, 0.06);
+
+  /* One accent, reserved for the single best-pick / primary-value moment per
+     screen. Fill and border only: as text it fails contrast, use --accent-ink. */
+  --accent:        #C9A227;
+  --accent-ink:    #7D6309;  /* (5.5:1) */
+  --accent-wash:   rgba(201, 162, 39, 0.08);
+
+  /* Semantic money colors: gained and lost only, never decoration */
+  --gain:          #047857;  /* (5.3:1) */
+  --gain-wash:     rgba(4, 120, 87, 0.08);
+  --loss:          #B91C1C;  /* also destructive actions (6.2:1) */
+  --loss-wash:     rgba(185, 28, 28, 0.06);
+
+  --focus-ring:    0 0 0 2px var(--paper), 0 0 0 4px var(--ink);
+
+  /* ── Type: one family everywhere. Avenir Next where installed (Apple
+     devices), Figtree elsewhere (loaded in app/layout.js) ── */
+  --font-sans:     'Avenir Next', 'Avenir', var(--font-figtree), -apple-system, 'Segoe UI', sans-serif;
+  --font-display:  var(--font-sans);
+
+  /* App scale: 4 sizes, 3 weights */
+  --text-xs:  12px;   /* labels, meta, captions */
+  --text-sm:  14px;   /* body, rows, buttons, inputs */
+  --text-md:  16px;   /* titles, card names in focus */
+  --text-lg:  28px;   /* hero numbers */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+
+  /* ── Shape ─────────────────────────────────────────── */
+  --radius-container: 8px;  /* cards, panels, tiles, dialogs */
+  --radius-control:   6px;  /* buttons, inputs, segmented controls */
+
+  /* ── Space (4px base) ──────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  /* ── Elevation: overlays only ──────────────────────── */
+  --shadow-overlay: 0 12px 32px rgba(17, 24, 39, 0.16);
+  --scrim:          rgba(17, 24, 39, 0.40);
+
+  /* ── Motion ────────────────────────────────────────── */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration: 200ms;
+
+  /* ── Layout ────────────────────────────────────────── */
+  --content-width: 760px;
+}

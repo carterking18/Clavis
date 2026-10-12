@@ -1,12 +1,22 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { buildDemoWallet, DEMO_CATEGORIES, DEMO_MERCHANTS, DEMO_PURCHASES, SOURCES, RATES_VERIFIED, RATES_VERIFIED_LABEL } from '../lib/demoWallet.js'
+import { rankCards, isCashBack } from '../lib/ranking.js'
+import { analyzeRetroactiveTaps } from '../lib/insights'
+import { searchMerchants } from '../lib/merchants'
+import { getCardDesign } from '../lib/cardImages'
+import { daysUntilReset } from '../lib/cardPerks.js'
+import { dollarValuePerDollar } from '../lib/pointValues.js'
+import { money, moneyWhole } from '../lib/format.js'
+import { useReorder } from '../lib/useReorder'
 
-// Shared marketing page components used by both / and /about
+// Shared marketing page components used by /, /about and the legal pages
 
 // ── Key logo ─────────────────────────────────────────────
 export function KeySVG({ size = 20, id = 'mk1' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <svg width={size} height={size} viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <mask id={id}>
           <circle cx="187" cy="254" r="107" fill="white"/>
@@ -21,48 +31,61 @@ export function KeySVG({ size = 20, id = 'mk1' }) {
   )
 }
 
+// ── Nav + footer shared by every marketing and legal page ──
+export function MarketingNav({ cta, showLinks = true, id = 'navkey' }) {
+  return (
+    <nav className="mkt-nav">
+      <div className="mkt-wrap mkt-nav-inner">
+        <Link href="/" className="mkt-logo">
+          <KeySVG size={18} id={id}/>
+          <span>CLAVIS</span>
+        </Link>
+        {showLinks && (
+          <div className="mkt-nav-links">
+            <a href="#demo" className="mkt-nav-link">Try it</a>
+            <a href="#credits" className="mkt-nav-link">Credits</a>
+            <a href="#numbers" className="mkt-nav-link">Where the numbers come from</a>
+            <a href="#data" className="mkt-nav-link">Your data</a>
+          </div>
+        )}
+        <a href={cta.href} className="pill-dark">{cta.label}</a>
+      </div>
+    </nav>
+  )
+}
+
+export function MarketingFooter({ id = 'ftkey' }) {
+  return (
+    <footer className="mkt-footer">
+      <div className="mkt-wrap mkt-footer-inner">
+        <div className="mkt-footer-links">
+          <Link href="/" className="mkt-logo mkt-logo-sm">
+            <KeySVG size={16} id={id}/>
+            <span>CLAVIS</span>
+          </Link>
+          <Link href="/faq" className="mkt-footer-link">FAQ</Link>
+          <Link href="/privacy" className="mkt-footer-link">Privacy</Link>
+          <Link href="/terms" className="mkt-footer-link">Terms</Link>
+        </div>
+        <span className="mkt-footer-note">© {new Date().getFullYear()} Clavis · Your data is never sold.</span>
+      </div>
+    </footer>
+  )
+}
+
 // ── Shared layout for legal/info pages (Privacy, Terms, FAQ) ──
 export function LegalLayout({ title, meta, children, navId = 'lglkey', ftId = 'lglftkey' }) {
   return (
     <>
       <style>{marketingStyles}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
-        <nav style={{
-          position: 'sticky', top: 0, zIndex: 100,
-          background: 'rgba(9,9,12,0.85)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-        }}>
-          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-              <KeySVG size={18} id={navId}/>
-              <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
-            </a>
-            <a href="/dashboard" className="pill-dark" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px' }}>
-              ← Dashboard
-            </a>
-          </div>
-        </nav>
-
-        <div style={{ maxWidth: '720px', margin: '0 auto', padding: '64px 24px 96px' }}>
+      <div className="mkt-page">
+        <MarketingNav cta={{ href: '/dashboard', label: 'Dashboard' }} showLinks={false} id={navId}/>
+        <main style={{ maxWidth: '720px', margin: '0 auto', padding: '64px 16px 96px' }}>
           <h1 className="display-lg" style={{ marginBottom: '8px' }}>{title}</h1>
-          {meta && <p style={{ fontSize: '13px', color: 'var(--text-faintest)', marginBottom: '40px' }}>{meta}</p>}
+          {meta && <p style={{ fontSize: '14px', color: 'var(--muted)', marginBottom: '40px' }}>{meta}</p>}
           {children}
-        </div>
-
-        <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)', margin: 0 }}/>
-        <footer style={{ padding: '32px 24px' }}>
-          <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <KeySVG size={16} id={ftId}/>
-              <span style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '0.08em', color: 'rgba(221,221,228,0.35)' }}>CLAVIS</span>
-            </div>
-            <span style={{ fontSize: '11px', color: 'rgba(221,221,228,0.2)' }}>
-              © {new Date().getFullYear()} Clavis · One card. Every reward.
-            </span>
-          </div>
-        </footer>
+        </main>
+        <MarketingFooter id={ftId}/>
       </div>
     </>
   )
@@ -70,180 +93,346 @@ export function LegalLayout({ title, meta, children, navId = 'lglkey', ftId = 'l
 
 // ── Content primitives for legal/info pages ──────────────
 export function LegalH2({ children }) {
-  return <h2 style={{ fontSize: '19px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.01em', marginTop: '40px', marginBottom: '14px' }}>{children}</h2>
+  return <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: '40px', marginBottom: '14px' }}>{children}</h2>
 }
 
 export function LegalP({ children }) {
-  return <p style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-secondary)', marginBottom: '14px' }}>{children}</p>
+  return <p style={{ fontSize: '16px', lineHeight: '1.7', color: 'var(--ink-2)', marginBottom: '14px' }}>{children}</p>
 }
 
 export function LegalList({ items }) {
   return (
     <ul style={{ margin: '0 0 14px', paddingLeft: '22px' }}>
       {items.map((item, i) => (
-        <li key={i} style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-secondary)', marginBottom: '6px' }}>{item}</li>
+        <li key={i} style={{ fontSize: '16px', lineHeight: '1.7', color: 'var(--ink-2)', marginBottom: '6px' }}>{item}</li>
       ))}
     </ul>
   )
 }
 
-// ── Hero card-stack illustration ──────────────────────────
-export function HeroArt() {
-  const bars   = [12, 20, 16, 28, 14, 18]
-  const groups = [0, 1, 2, 3]
-  const dots   = [0, 1, 2, 3]
-
-  return (
-    <svg
-      viewBox="0 0 520 420"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      style={{ width: '100%', maxWidth: '520px', display: 'block' }}
-    >
-      <defs>
-        <linearGradient id="msGold" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%"   stopColor="#B8911F"/>
-          <stop offset="100%" stopColor="#C9A227"/>
-        </linearGradient>
-        <pattern id="msDots" width="28" height="28" patternUnits="userSpaceOnUse">
-          <circle cx="1" cy="1" r="1" fill="rgba(0,0,0,0.04)"/>
-        </pattern>
-      </defs>
-
-      <rect width="520" height="420" fill="url(#msDots)"/>
-
-      {/* Card C — back */}
-      <g transform="rotate(-14 240 215)">
-        <rect x="60" y="108" width="300" height="188" rx="10" fill="#F3F4F6" stroke="rgba(0,0,0,0.06)" strokeWidth="1"/>
-      </g>
-
-      {/* Card B — middle */}
-      <g transform="rotate(-6 240 215)">
-        <rect x="60" y="108" width="300" height="188" rx="10" fill="#F9FAFB" stroke="rgba(0,0,0,0.07)" strokeWidth="1"/>
-        <rect x="84" y="132" width="26" height="20" rx="3" fill="#E5E7EB"/>
-      </g>
-
-      {/* Card A — front, gold-bordered */}
-      <rect x="60" y="108" width="300" height="188" rx="10" fill="#FFFFFF" stroke="rgba(201,162,39,0.5)" strokeWidth="1.5"/>
-      <rect x="60" y="108" width="5" height="188" rx="2.5" fill="url(#msGold)"/>
-
-      {/* Chip */}
-      <rect x="83" y="131" width="28" height="22" rx="4" fill="#F3F4F6" stroke="rgba(201,162,39,0.3)" strokeWidth="1"/>
-      <line x1="83"  y1="139" x2="111" y2="139" stroke="rgba(201,162,39,0.18)" strokeWidth="0.8"/>
-      <line x1="83"  y1="145" x2="111" y2="145" stroke="rgba(201,162,39,0.18)" strokeWidth="0.8"/>
-      <line x1="97"  y1="131" x2="97"  y2="153" stroke="rgba(201,162,39,0.12)" strokeWidth="0.8"/>
-
-      {/* PAN dots */}
-      {groups.map(g => dots.map(d => (
-        <circle key={`${g}-${d}`} cx={83 + g * 30 + d * 6} cy={186} r="2.4" fill="rgba(17,24,39,0.15)"/>
-      )))}
-
-      {/* Cardholder bars */}
-      <rect x="83" y="204" width="78" height="6" rx="2" fill="rgba(17,24,39,0.07)"/>
-      <rect x="83" y="214" width="55" height="5" rx="2" fill="rgba(17,24,39,0.04)"/>
-
-      {/* Network circles */}
-      <circle cx="330" cy="134" r="17" fill="rgba(201,162,39,0.08)" stroke="rgba(201,162,39,0.25)"  strokeWidth="1"/>
-      <circle cx="318" cy="134" r="11" fill="rgba(201,162,39,0.05)" stroke="rgba(201,162,39,0.18)" strokeWidth="1"/>
-
-      {/* Rate badge */}
-      <rect x="374" y="90" width="100" height="66" rx="6" fill="#FFFFFF" stroke="rgba(0,0,0,0.08)" strokeWidth="1"/>
-      <rect x="385" y="100" width="44" height="5"  rx="2" fill="rgba(17,24,39,0.06)"/>
-      <rect x="385" y="114" width="76" height="4"  rx="2" fill="rgba(201,162,39,0.12)"/>
-      <text x="385" y="148" fontSize="30" fontWeight="700" fill="#C9A227" fontFamily="system-ui,sans-serif">4×</text>
-      <text x="416" y="148" fontSize="11"              fill="rgba(17,24,39,0.35)" fontFamily="system-ui,sans-serif"> pts</text>
-
-      {/* Dashed connector */}
-      <line x1="360" y1="133" x2="375" y2="124" stroke="rgba(201,162,39,0.25)" strokeWidth="1" strokeDasharray="3 3"/>
-      <circle cx="360" cy="134" r="2.5" fill="rgba(201,162,39,0.5)"/>
-
-      {/* Recommended pill */}
-      <rect x="374" y="172" width="116" height="34" rx="6" fill="rgba(201,162,39,0.06)" stroke="rgba(201,162,39,0.28)" strokeWidth="1"/>
-      <circle cx="393" cy="189" r="7" fill="#C9A227"/>
-      <path d="M390 189 L392.5 191.5 L397 186" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-      <rect x="406" y="185" width="52" height="4"  rx="2" fill="rgba(201,162,39,0.5)"/>
-      <rect x="406" y="193" width="36" height="3"  rx="1.5" fill="rgba(201,162,39,0.22)"/>
-
-      {/* Stats panel */}
-      <rect x="60" y="318" width="300" height="74" rx="6" fill="#FFFFFF" stroke="rgba(0,0,0,0.07)" strokeWidth="1"/>
-      <rect x="76" y="330" width="54" height="5"   rx="2" fill="rgba(17,24,39,0.06)"/>
-
-      {/* Bar chart */}
-      {bars.map((h, i) => (
-        <rect key={i} x={76 + i * 28} y={374 - h} width="16" height={h} rx="2"
-          fill={i === 3 ? '#C9A227' : 'rgba(201,162,39,0.15)'}/>
-      ))}
-
-      {/* Right stat */}
-      <text x="294" y="356" fontSize="19" fontWeight="700" fill="rgba(201,162,39,0.9)" fontFamily="system-ui,sans-serif">7.2¢</text>
-      <rect x="294" y="362" width="50" height="4" rx="2" fill="rgba(17,24,39,0.05)"/>
-      <text x="294" y="378" fontSize="9"            fill="rgba(17,24,39,0.3)" fontFamily="system-ui,sans-serif">per dollar</text>
-    </svg>
-  )
+// ── Demo data ─────────────────────────────────────────────
+// Scored as of the 1st of this month, so monthly credits read as freshly
+// reset and the ranking doesn't depend on what day someone visits.
+function useDemoWallet() {
+  return useMemo(() => {
+    const now = new Date()
+    const asOf = new Date(now.getFullYear(), now.getMonth(), 1)
+    return { asOf, wallet: buildDemoWallet(asOf) }
+  }, [])
 }
 
-// ── Card comparison table ─────────────────────────────────
-export function ComparisonArt() {
-  const rows = [
-    { name: 'Chase Sapphire Reserve', rate: '4×',   val: '7.2¢', highlight: true  },
-    { name: 'Amex Gold Card',         rate: '4×',   val: '7.2¢', highlight: false },
-    { name: 'Capital One Venture X',  rate: '2×',   val: '3.7¢', highlight: false },
-    { name: 'Freedom Unlimited',      rate: '1.5×', val: '1.5¢', highlight: false },
-  ]
+const CATEGORY_LABEL = { dining: 'Dining', grocery: 'Grocery', gas: 'Gas', streaming: 'Streaming', retail: 'Shopping', other: 'Everything else' }
+
+function Swatch({ name }) {
+  return <span className="swatch" style={{ background: getCardDesign(name).gradient[0] }} aria-hidden="true"/>
+}
+
+function rateLabel(card, mult) {
+  return isCashBack(card) ? `${mult}% cash back` : `${mult}x points`
+}
+
+// ── Live demo: real ranking code on a real-shaped wallet ──
+export function LiveDemo() {
+  const { asOf, wallet } = useDemoWallet()
+  const [query, setQuery] = useState('DoorDash')
+  const [merchant, setMerchant] = useState(DEMO_MERCHANTS[1])
+  const [category, setCategory] = useState('dining')
+  const [amount, setAmount] = useState(40)
+
+  const suggestions = query && (!merchant || merchant.name !== query) ? searchMerchants(query) : []
+  const unsupported = suggestions.length > 0 && suggestions.every(s => !DEMO_CATEGORIES.includes(s.category))
+  const pickable = suggestions.filter(s => DEMO_CATEGORIES.includes(s.category)).slice(0, 5)
+
+  const choose = m => { setMerchant(m); setQuery(m.name); setCategory(m.category) }
+  const chooseCategory = c => { setCategory(c); setMerchant(null); setQuery('') }
+
+  // Self-playing demo: types each merchant and lets the ranking update, on a
+  // loop, while the demo is on screen. Modes:
+  //   playing      the demo drives itself
+  //   interacting  the visitor clicked or typed in it; it resumes after they
+  //                click outside, or after RESUME_IDLE_MS with no interaction
+  //                while they aren't hovering it or typing in it
+  //   paused       the visitor pressed Pause; only Play resumes it
+  //   off          prefers-reduced-motion
+  const RESUME_IDLE_MS = 15000
+  const RESUME_AFTER_OUTSIDE_MS = 1500
+  const rootRef = useRef(null)
+  const [mode, setMode] = useState('off')
+  const autoplay = mode === 'playing'
+  const [visible, setVisible] = useState(false)
+  const lastInteraction = useRef(0)
+  const hovering = useRef(false)
+  const [cursor, setCursor] = useState({ show: false, x: 0, y: 0, ms: 0, down: false })
+
+  useEffect(() => {
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setMode('playing')
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.4 })
+    if (rootRef.current) io.observe(rootRef.current)
+    return () => io.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!autoplay || !visible) return
+    let cancelled = false
+    const timers = []
+    const wait = ms => new Promise(r => timers.push(setTimeout(r, ms)))
+    // A pointer that moves like a person: to the field, click, type, click
+    // the suggestion, then over to the result
+    const root = rootRef.current
+    const moveTo = async (el, fx = 0.2, fy = 0.5, ms = 650) => {
+      if (!el || !root) return
+      const r = el.getBoundingClientRect(), base = root.getBoundingClientRect()
+      setCursor(c => ({ ...c, show: true, ms, x: r.left - base.left + r.width * fx, y: r.top - base.top + r.height * fy }))
+      await wait(ms + 80)
+    }
+    const click = async () => {
+      setCursor(c => ({ ...c, down: true })); await wait(160)
+      setCursor(c => ({ ...c, down: false })); await wait(120)
+    }
+    const run = async () => {
+      let i = DEMO_MERCHANTS.findIndex(m => m.name === merchant?.name) + 1
+      await moveTo(root?.querySelector('.demo-best-value'), 0.5, 0.4, 0)
+      while (!cancelled) {
+        await wait(2200)
+        if (cancelled || document.hidden) continue
+        const m = DEMO_MERCHANTS[i % DEMO_MERCHANTS.length]
+        await moveTo(root.querySelector('#demo-merchant'), 0.12, 0.55)
+        await click()
+        setMerchant(null); setQuery('')
+        await wait(200)
+        for (let n = 1; n <= m.name.length && !cancelled; n++) {
+          setQuery(m.name.slice(0, n))
+          await wait(85)
+        }
+        await wait(300)
+        const option = [...root.querySelectorAll('.demo-suggest-item')].find(o => o.firstChild?.textContent === m.name)
+        await moveTo(option, 0.25, 0.5, 450)
+        await click()
+        if (cancelled) break
+        choose(m)
+        await wait(250)
+        await moveTo(root.querySelector('.demo-best-value'), 0.5, 0.4, 700)
+        i++
+      }
+    }
+    run()
+    return () => { cancelled = true; timers.forEach(clearTimeout) }
+    // Restart only when play state or visibility changes, not on every step
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoplay, visible])
+
+  // Visitor interacts: hand over control, and remember when
+  const takeOver = () => {
+    lastInteraction.current = Date.now()
+    if (mode === 'playing') {
+      setMode('interacting')
+      setCursor(c => ({ ...c, show: false }))
+    }
+  }
+
+  useEffect(() => {
+    if (mode !== 'interacting') return
+    let resumeTimer
+    // Clicking or tapping anywhere outside the demo hands it back
+    const onOutside = e => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) {
+        clearTimeout(resumeTimer)
+        resumeTimer = setTimeout(() => setMode(m => (m === 'interacting' ? 'playing' : m)), RESUME_AFTER_OUTSIDE_MS)
+      }
+    }
+    // Or a quiet spell, as long as they aren't reading or typing in it
+    const idle = setInterval(() => {
+      const typing = rootRef.current?.contains(document.activeElement)
+      if (!hovering.current && !typing && Date.now() - lastInteraction.current > RESUME_IDLE_MS) setMode('playing')
+    }, 1000)
+    document.addEventListener('pointerdown', onOutside)
+    return () => { document.removeEventListener('pointerdown', onOutside); clearInterval(idle); clearTimeout(resumeTimer) }
+  }, [mode])
+
+  const spend = Math.max(0, Number(amount) || 0)
+  const ranked = rankCards(wallet, { category, merchant: merchant?.name || '', now: asOf })
+  const best = ranked[0]
+  const credit = best.merchantPerk ? Math.min(spend, best.merchantPerk.total_amount - best.merchantPerk.used_amount) : 0
+  const others = ranked.slice(1).sort((a, b) => b.dollarVal - a.dollarVal)
+  const rowRef = useReorder([best, ...others].map(r => r.card.id))
+
   return (
-    <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-        {['Card','Rate','Value'].map(h => (
-          <span key={h} style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: h === 'Card' ? 'left' : 'right' }}>{h}</span>
+    <div className="demo" ref={rootRef} onPointerDown={takeOver} onKeyDown={takeOver}
+      onPointerEnter={() => { hovering.current = true }} onPointerLeave={() => { hovering.current = false; lastInteraction.current = Date.now() }}>
+      {autoplay && cursor.show && (
+        <span className={`demo-cursor${cursor.down ? ' is-down' : ''}`} aria-hidden="true"
+          style={{ transform: `translate(${cursor.x - 5}px, ${cursor.y - 3}px)`, transitionDuration: `${cursor.ms}ms` }}>
+          <svg width="22" height="22" viewBox="0 0 24 24"><path d="M5 3l14 8.2-6.1 1.5-3.2 5.8z" fill="#111827" stroke="#FFFFFF" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+        </span>
+      )}
+      <div className="demo-controls">
+        <div className="demo-field">
+          <label htmlFor="demo-merchant" className="demo-label">Where are you paying?</label>
+          <input id="demo-merchant" className="input demo-input" value={query} autoComplete="off"
+            placeholder="Try Chipotle, Target, Shell…"
+            onChange={e => { setQuery(e.target.value); setMerchant(null) }}/>
+          {pickable.length > 0 && (
+            <div className="demo-suggest" role="listbox" aria-label="Matching merchants">
+              {pickable.map(s => (
+                <button key={s.name} role="option" aria-selected="false" className="demo-suggest-item" onClick={() => choose(s)}>
+                  {s.name}<span>{CATEGORY_LABEL[s.category]}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {unsupported && <p className="demo-note">Travel rates depend on where you book, so this demo covers everyday spending. The app handles travel.</p>}
+        </div>
+        <div className="demo-field demo-field-amount">
+          <label htmlFor="demo-amount" className="demo-label">Amount</label>
+          <div className="demo-amount">
+            <span>$</span>
+            <input id="demo-amount" className="input" type="number" inputMode="decimal" min="0" value={amount} onChange={e => setAmount(e.target.value)}/>
+          </div>
+        </div>
+      </div>
+
+      <div className="demo-try">
+        <span>Try</span>
+        {DEMO_MERCHANTS.map(m => (
+          <button key={m.name} className={`demo-chip${merchant?.name === m.name ? ' is-active' : ''}`} onClick={() => choose(m)}>{m.name}</button>
+        ))}
+        {mode === 'playing' && (
+          <button className="demo-pause" onPointerDown={e => e.stopPropagation()} onClick={() => { setMode('paused'); setCursor(c => ({ ...c, show: false })) }} aria-label="Pause the demo">
+            <span aria-hidden="true" className="demo-pause-dot"/> Demo playing · Pause
+          </button>
+        )}
+        {(mode === 'interacting' || mode === 'paused') && (
+          <button className="demo-pause" onPointerDown={e => e.stopPropagation()} onClick={() => setMode('playing')} aria-label="Resume the demo">
+            {mode === 'interacting' ? 'Your turn · Resume demo' : 'Paused · Play demo'}
+          </button>
+        )}
+      </div>
+
+      <div role="radiogroup" aria-label="Or pick a category" className="segmented demo-segmented">
+        {DEMO_CATEGORIES.map(c => (
+          <button key={c} role="radio" aria-checked={!merchant && category === c} className={`segmented-item${!merchant && category === c ? ' is-active' : ''}`} onClick={() => chooseCategory(c)}>
+            {CATEGORY_LABEL[c]}
+          </button>
         ))}
       </div>
-      {rows.map((row, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '13px 16px', borderBottom: i < rows.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none', background: row.highlight ? 'rgba(201,162,39,0.04)' : 'transparent' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '3px', height: '16px', borderRadius: '2px', background: row.highlight ? '#C9A227' : 'transparent', flexShrink: 0 }}/>
-            <span style={{ fontSize: '12px', fontWeight: row.highlight ? '600' : '400', color: row.highlight ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
+
+      <div className="demo-results" aria-live="polite">
+        <div className="demo-best" ref={rowRef(best.card.id)}>
+          <div className="demo-best-card">
+            <Swatch name={best.card.name}/>
+            <div>
+              <div className="demo-best-label">Use this card{merchant ? ` at ${merchant.name}` : ''}</div>
+              <div className="demo-best-name">{best.card.name}</div>
+              <div className="demo-meta">{rateLabel(best.card, best.mult)}</div>
+              {best.merchantPerk && (
+                <div className="demo-note-chip">
+                  Unused {moneyWhole(best.merchantPerk.total_amount - best.merchantPerk.used_amount)} {best.merchantPerk.name.replace(/ Restaurant Promo$/, ' promo')} applies here
+                </div>
+              )}
+            </div>
           </div>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: row.highlight ? '#C9A227' : 'var(--text-faintest)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.rate}</span>
-          <span style={{ fontSize: '12px', fontWeight: '500', color: row.highlight ? 'rgba(201,162,39,0.8)' : 'var(--text-faintest)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.val}</span>
+          <div className="demo-best-value">
+            <div className="demo-big">{money(best.dollarVal * spend + credit)}</div>
+            <div className="demo-meta">
+              {credit > 0 ? `${money(best.dollarVal * spend)} points + ${money(credit)} credit` : `on ${money(spend)}`}
+            </div>
+          </div>
         </div>
-      ))}
-      <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', background: 'rgba(201,162,39,0.03)' }}>
-        <span style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.05em', color: '#C9A227' }}>◉ &nbsp;Recommended · Chase Sapphire Reserve</span>
+        <div className="demo-others-label">Your other cards</div>
+        {others.map(r => (
+          <div key={r.card.id} className="demo-row" ref={rowRef(r.card.id)}>
+            <span className="demo-row-name"><Swatch name={r.card.name}/>{r.card.name}</span>
+            <span className="demo-row-rate">{rateLabel(r.card, r.mult)}</span>
+            <span className="demo-row-val">{money(r.dollarVal * spend)}</span>
+          </div>
+        ))}
+        <p className="demo-foot">Demo wallet · Issuer rates, checked {RATES_VERIFIED_LABEL} · Points at 1.0¢</p>
       </div>
     </div>
   )
 }
 
-// ── Perk tracker visual ───────────────────────────────────
-export function PerkArt() {
-  const perks = [
-    { name: 'Travel Credit',  total: 300, used: 240, warn: false, done: false },
-    { name: 'Dining Credit',  total: 120, used: 120, warn: false, done: true  },
-    { name: 'Streaming',      total: 15,  used: 8,   warn: true,  done: false },
-    { name: 'Global Entry',   total: 100, used: 100, warn: false, done: true  },
-  ]
+// ── Credits panel: the demo wallet's monthly credits ──────
+export function CreditsPanel() {
+  const { wallet } = useDemoWallet()
+  const days = daysUntilReset(monthEnd(new Date()))
+  const rows = wallet.flatMap(c => c.perks.map(p => ({ ...p, card: c.name })))
+  const unused = rows.reduce((s, p) => s + (p.total_amount - p.used_amount), 0)
   return (
-    <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Perk Tracker</span>
-        <span style={{ fontSize: '10px', fontWeight: '600', color: '#C9A227' }}>4 active</span>
+    <div className="ui-panel">
+      <div className="ui-panel-head">
+        <span>Credits this month</span>
+        <span><strong>{moneyWhole(unused)}</strong> unused</span>
       </div>
-      {perks.map((p, i) => {
-        const pct = Math.min(100, (p.used / p.total) * 100)
-        return (
-          <div key={i} style={{ padding: '14px 16px', borderBottom: i < perks.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {p.warn && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#B45309', display: 'inline-block', flexShrink: 0 }}/>}
-                <span style={{ fontSize: '12px', fontWeight: '500', color: p.warn ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{p.name}</span>
-                {p.warn && <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#B45309', background: 'rgba(180,83,9,0.08)', padding: '1px 6px', borderRadius: '9999px' }}>3d left</span>}
+      <div className="credit-grid">
+        {rows.map(p => {
+          const done = p.used_amount >= p.total_amount
+          return (
+            <div key={p.id} className="credit">
+              <div className="credit-top">
+                <div style={{ minWidth: 0 }}>
+                  <div className="credit-name">{p.name}</div>
+                  <div className="credit-meta">{p.card} · {done ? 'used this month' : `resets in ${days} days`}</div>
+                </div>
+                <span className={`credit-amt${done ? ' is-done' : ''}`}>{moneyWhole(p.used_amount)} / {moneyWhole(p.total_amount)}</span>
               </div>
-              <span style={{ fontSize: '11px', fontWeight: '600', color: p.done ? '#0F9B65' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>${p.used}/${p.total}</span>
+              <div className="bar"><div style={{ width: `${(p.used_amount / p.total_amount) * 100}%`, background: done ? 'var(--gain)' : 'var(--ink)' }}/></div>
             </div>
-            <div style={{ height: '3px', background: 'rgba(0,0,0,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${pct}%`, borderRadius: '2px', background: p.done ? '#0F9B65' : p.warn ? '#B45309' : '#C9A227' }}/>
-            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function monthEnd(d) {
+  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+  return `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`
+}
+
+// ── History panel: demo purchases through the real analysis ──
+export function HistoryPanel() {
+  const { wallet } = useDemoWallet()
+  const { taps, earned, missed } = useMemo(() => {
+    const byId = Object.fromEntries(wallet.map(c => [c.id, c]))
+    const taps = DEMO_PURCHASES.map(([merchant, category, amount, cardId], i) => {
+      const card = byId[cardId]
+      const mult = card.multipliers.find(m => m.category === category)?.multiplier || 1
+      return { id: `t${i}`, merchant, category, amount, card_id: cardId, card_name: card.name, estimated_value: dollarValuePerDollar(card, mult) * amount }
+    })
+    const missed = analyzeRetroactiveTaps(taps, wallet)
+    return { taps, earned: taps.reduce((s, t) => s + t.estimated_value, 0), missed }
+  }, [wallet])
+  const missedTotal = missed.reduce((s, m) => s + m.missedTotal, 0)
+  const missedById = Object.fromEntries(missed.map(m => [m.tap.id, m]))
+  return (
+    <div className="ui-panel">
+      <div className="history-sum">
+        <div>
+          <div className="credit-meta">Earned on {taps.length} purchases, last 7 weeks</div>
+          <div className="demo-big">{money(earned)}</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div className="credit-meta">Missed by using the wrong card</div>
+          <div className="history-missed">{money(missedTotal)}</div>
+        </div>
+      </div>
+      {taps.slice(0, 7).map(t => {
+        const m = missedById[t.id]
+        return (
+          <div key={t.id} className="history-row">
+            <span className="demo-row-name"><Swatch name={t.card_name}/>
+              <span style={{ minWidth: 0 }}>
+                <span className="credit-name">{t.merchant}</span>
+                <span className="credit-meta" style={{ display: 'block' }}>
+                  {t.card_name}{m ? ` · ${m.bestCard.name} would have earned ${money(m.missedTotal)} more` : ''}
+                </span>
+              </span>
+            </span>
+            <span style={{ textAlign: 'right' }}>
+              <span className="demo-row-val" style={{ display: 'block' }}>{money(t.amount)}</span>
+              <span className="credit-meta" style={{ color: 'var(--gain)' }}>{money(t.estimated_value, { sign: true })}</span>
+            </span>
           </div>
         )
       })}
@@ -251,354 +440,251 @@ export function PerkArt() {
   )
 }
 
-// ── Rewards bar chart ─────────────────────────────────────
-export function ChartArt() {
-  const months = ['J','F','M','A','M','J','J','A','S','O','N','D']
-  const vals   = [42, 58, 67, 71, 89, 94, 78, 112, 98, 103, 88, 64]
-  const max    = Math.max(...vals)
-
-  return (
-    <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', padding: '20px', width: '100%', maxWidth: '440px' }}>
-      <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <div>
-          <div style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Earned this year</div>
-          <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>$847<span style={{ fontSize: '18px', color: 'var(--text-muted)' }}>.20</span></div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(15,155,101,0.08)', border: '1px solid rgba(15,155,101,0.2)', borderRadius: '9999px', padding: '4px 10px' }}>
-          <span style={{ fontSize: '10px', fontWeight: '700', color: '#0F9B65' }}>↑ 23%</span>
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '72px', marginTop: '16px', marginBottom: '6px' }}>
-        {vals.map((v, i) => (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }}>
-            <div style={{ width: '100%', height: `${(v / max) * 100}%`, borderRadius: '2px 2px 0 0', background: i === 7 ? '#C9A227' : 'rgba(201,162,39,0.15)' }}/>
-          </div>
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: '4px' }}>
-        {months.map((m, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '8px', fontWeight: '600', color: i === 7 ? '#C9A227' : 'var(--text-faintest)' }}>{m}</div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── Shared section styles injected via <style> ────────────
 export const marketingStyles = `
-  .mkt-nav-link {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: color 0.15s;
-    letter-spacing: 0.01em;
-  }
-  .mkt-nav-link:hover { color: var(--text-primary); }
+  .mkt-page { min-height: 100vh; background: var(--paper); color: var(--ink); }
+  .mkt-wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
-  .mkt-section {
-    padding: 96px 24px;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
+  .mkt-nav { position: sticky; top: 0; z-index: 100; background: var(--paper); border-bottom: 1px solid var(--hairline); }
+  .mkt-nav-inner { height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  .mkt-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink); font-size: 14px; font-weight: 600; letter-spacing: 0.06em; }
+  .mkt-logo-sm { font-size: 12px; color: var(--ink-2); }
+  .mkt-nav-links { display: flex; gap: 28px; }
+  .mkt-nav-link { font-size: 14px; font-weight: 500; color: var(--ink-2); text-decoration: none; }
+  .mkt-nav-link:hover { color: var(--ink); }
 
-  .mkt-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
-  }
+  .mkt-footer { border-top: 1px solid var(--hairline); padding: 32px 0; }
+  .mkt-footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .mkt-footer-links { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .mkt-footer-link { font-size: 14px; color: var(--ink-2); text-decoration: none; }
+  .mkt-footer-link:hover { color: var(--ink); text-decoration: underline; }
+  .mkt-footer-note { font-size: 12px; color: var(--muted); }
 
-  .mkt-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--gold);
-    margin-bottom: 16px;
-  }
+  .mkt-section { padding-block: 120px; }
+  .mkt-lede { font-size: 18px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty; }
+  .mkt-body { font-size: 16px; line-height: 1.65; color: var(--ink-2); text-wrap: pretty; }
+  .mkt-body + .mkt-body { margin-top: 16px; }
+  .mkt-body strong { color: var(--ink); font-weight: 600; }
+  .mkt-link { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 
-  .mkt-body {
-    font-size: 16px;
-    line-height: 1.65;
-    color: var(--text-secondary);
-    font-weight: 400;
-    margin-top: 16px;
-  }
+  /* Hero */
+  .mkt-hero { padding-block: 96px 56px; }
+  .mkt-hero h1 { max-width: 760px; }
+  .mkt-hero .mkt-lede { max-width: 560px; margin-top: 24px; }
+  .mkt-hero-ctas { display: flex; align-items: center; gap: 16px; margin-top: 32px; flex-wrap: wrap; }
+  .mkt-hero-note { font-size: 14px; color: var(--muted); }
 
-  .mkt-divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 0;
-  }
+  /* Live demo */
+  .demo { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-container); box-shadow: 0 1px 2px rgba(17,24,39,0.04), 0 32px 64px -32px rgba(17,24,39,0.20); font-variant-numeric: tabular-nums; }
+  .demo-controls { display: grid; grid-template-columns: 1fr 160px; gap: 16px; padding: 24px 24px 0; }
+  .demo-field { position: relative; }
+  .demo-label { display: block; font-size: 12px; font-weight: 500; color: var(--ink-2); margin-bottom: 8px; }
+  .demo-input { font-size: 16px; min-height: 48px; }
+  .demo-amount { display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--muted); }
+  .demo-amount .input { font-size: 16px; min-height: 48px; }
+  .demo-suggest { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-control); box-shadow: var(--shadow-overlay); padding: 4px; }
+  .demo-suggest-item { display: flex; justify-content: space-between; width: 100%; min-height: 40px; padding: 0 12px; border: none; background: none; border-radius: 4px; font: inherit; font-size: 14px; color: var(--ink); cursor: pointer; text-align: left; align-items: center; }
+  .demo-suggest-item span { color: var(--muted); font-size: 12px; }
+  .demo-suggest-item:hover { background: var(--sunken); }
+  .demo-note { font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+  .demo-try { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; padding: 12px 24px 0; font-size: 12px; color: var(--muted); }
+  .demo-chip { min-height: 32px; padding: 0 10px; border: 1px solid var(--hairline); border-radius: var(--radius-control); background: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--ink-2); cursor: pointer; }
+  .demo-chip:hover { color: var(--ink); border-color: var(--muted); }
+  .demo-chip.is-active { color: var(--ink); border-color: var(--ink); }
+  .demo-pause { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: none; background: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--ink-2); cursor: pointer; border-radius: var(--radius-control); }
+  .demo-pause:hover { background: var(--sunken); color: var(--ink); }
+  .demo-pause-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ink); animation: demo-blink 1.6s ease-in-out infinite; }
+  @keyframes demo-blink { 50% { opacity: 0.25; } }
+  .demo { position: relative; }
+  .demo-cursor { position: absolute; left: 0; top: 0; z-index: 20; pointer-events: none; transition-property: transform; transition-timing-function: cubic-bezier(0.25, 0.8, 0.25, 1); will-change: transform; filter: drop-shadow(0 2px 3px rgba(17,24,39,0.25)); }
+  .demo-cursor::before { content: ''; position: absolute; left: -6px; top: -8px; width: 22px; height: 22px; border-radius: 50%; background: rgba(17,24,39,0.18); transform: scale(0); opacity: 0; }
+  .demo-cursor.is-down svg { transform: scale(0.88); transform-origin: 5px 3px; }
+  .demo-cursor.is-down::before { animation: demo-click 380ms ease-out; }
+  @keyframes demo-click { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
+  .demo-segmented { margin: 16px 24px 0; }
+  .demo-results { margin-top: 24px; border-top: 1px solid var(--hairline); }
+  .demo-best { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 28px 24px 28px 28px; box-shadow: inset 4px 0 0 var(--accent); background: var(--accent-wash); border-bottom: 1px solid var(--hairline); }
+  .demo-best-card { display: flex; gap: 16px; align-items: center; min-width: 0; }
+  .demo-best-card .swatch { width: 56px; height: 38px; border-radius: 6px; }
+  .demo-best-label { font-size: 12px; font-weight: 500; color: var(--accent-ink); }
+  .demo-best-name { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin-top: 2px; }
+  .demo-meta { font-size: 14px; color: var(--ink-2); margin-top: 4px; }
+  .demo-best-value { text-align: right; flex-shrink: 0; }
+  .demo-big { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; }
+  .demo-others-label { padding: 16px 24px 4px; font-size: 12px; font-weight: 500; color: var(--muted); }
+  .demo-row { display: grid; grid-template-columns: 1fr 140px 90px; gap: 12px; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--hairline-soft); font-size: 14px; color: var(--ink-2); }
+  .demo-row-name { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .demo-row-rate { color: var(--muted); }
+  .demo-row-val { text-align: right; color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .demo-foot { padding: 16px 24px 20px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+  .swatch { display: inline-block; width: 28px; height: 19px; border-radius: 3px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
+  .steps { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 14px; font-weight: 500; color: var(--ink); }
+  .steps li { display: flex; align-items: center; gap: 8px; }
+  .steps span { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--hairline); font-size: 12px; color: var(--ink-2); }
+  .demo-note-chip { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: var(--radius-control); background: var(--surface); border: 1px solid var(--hairline); font-size: 12px; font-weight: 500; color: var(--ink); }
+  .mkt-caption { font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 40px 0 32px; }
+  .stats div { border-top: 1px solid var(--ink); padding-top: 16px; }
+  .stats dt { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+  .stats dd { margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
 
-  @media (max-width: 768px) {
-    .mkt-grid { grid-template-columns: 1fr; gap: 48px; }
-    .mkt-grid-reverse { direction: ltr; }
-    .mkt-section { padding: 64px 20px; }
-    .display-xl { font-size: 2.2rem !important; }
-    .display-lg { font-size: 1.65rem !important; }
-    .hero-ctas { flex-direction: column !important; align-items: flex-start !important; }
-    .nav-links { display: none !important; }
+  /* Product panels */
+  .ui-panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-container); overflow: hidden; box-shadow: 0 1px 2px rgba(17,24,39,0.04), 0 24px 48px -32px rgba(17,24,39,0.16); font-variant-numeric: tabular-nums; }
+  .ui-panel-head { display: flex; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid var(--hairline); font-size: 14px; font-weight: 500; color: var(--ink-2); }
+  .ui-panel-head strong { color: var(--ink); font-weight: 600; }
+  .credit-grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .credit { padding: 20px 24px; border-bottom: 1px solid var(--hairline-soft); }
+  .credit:nth-child(odd) { border-right: 1px solid var(--hairline-soft); }
+  .credit-top { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .credit-name { font-size: 16px; font-weight: 500; color: var(--ink); }
+  .credit-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .credit-amt { font-size: 14px; font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+  .credit-amt.is-done { color: var(--gain); }
+  .bar { height: 4px; background: var(--sunken); border-radius: 2px; overflow: hidden; margin-top: 12px; }
+  .bar > div { height: 100%; }
+  .history-sum { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 24px; border-bottom: 1px solid var(--hairline); }
+  .history-missed { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; margin-top: 4px; }
+  .history-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 14px 24px; border-bottom: 1px solid var(--hairline-soft); }
+
+  /* Section layouts: each one different */
+  .split-head { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: end; margin-bottom: 48px; }
+  .side-by-side { display: grid; grid-template-columns: 5fr 7fr; gap: 72px; align-items: start; }
+  .sticky-col { position: sticky; top: 108px; }
+  .facts { border-top: 1px solid var(--ink); margin-top: 40px; }
+  .fact { display: grid; grid-template-columns: 240px 1fr; gap: 32px; padding: 20px 0; border-bottom: 1px solid var(--hairline); }
+  .fact dt { font-size: 16px; font-weight: 600; }
+  .fact dd { margin: 0; }
+  .sources { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+  .sources a { font-size: 14px; }
+  .data-band { background: var(--surface); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+  .data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 40px; margin-top: 40px; }
+  .data-item { padding: 20px 0; border-top: 1px solid var(--hairline); }
+  .data-item h3 { font-size: 16px; font-weight: 600; }
+  .data-item p { font-size: 14px; line-height: 1.6; color: var(--ink-2); margin-top: 4px; }
+  .mkt-close { padding-block: 128px; text-align: center; }
+
+  @media (max-width: 860px) {
+    .mkt-nav-links { display: none; }
+    .split-head, .side-by-side { grid-template-columns: 1fr; gap: 20px; }
+    .data-grid { grid-template-columns: 1fr 1fr; gap: 0 24px; }
+    .stats { grid-template-columns: 1fr; gap: 16px; margin: 28px 0 24px; }
+    .sticky-col { position: static; }
+    .fact { grid-template-columns: 1fr; gap: 8px; }
+  }
+  @media (max-width: 640px) {
+    .mkt-wrap { padding: 0 16px; }
+    .mkt-section { padding-block: 80px; }
+    .mkt-hero { padding-block: 56px 40px; }
+    .demo-controls { grid-template-columns: 1fr; padding: 16px 16px 0; }
+    .demo-try { padding: 12px 16px 0; }
+    .demo-segmented { margin: 12px 16px 0; }
+    .demo-best { flex-direction: column; align-items: flex-start; padding: 20px 16px 20px 20px; gap: 16px; }
+    .demo-best-value { text-align: left; }
+    .demo-best-name { font-size: 20px; }
+    .demo-big { font-size: 32px; }
+    .demo-row { grid-template-columns: 1fr auto; padding: 14px 16px; }
+    .demo-row-rate { display: none; }
+    .demo-others-label, .demo-foot { padding-left: 16px; padding-right: 16px; }
+    .credit-grid { grid-template-columns: 1fr; }
+    .credit:nth-child(odd) { border-right: none; }
+    .credit, .ui-panel-head, .history-sum, .history-row { padding-left: 16px; padding-right: 16px; }
+    .mkt-close { padding-block: 88px; }
+    .data-grid { grid-template-columns: 1fr; }
   }
 `
 
 // ── The full marketing body (sections below nav) ──────────
-export function MarketingBody() {
+// cta: primary action; it differs for signed-in (/about) and logged-out (/)
+export function MarketingBody({ cta, secondaryCta }) {
   return (
-    <>
-      {/* Hero */}
-      <section style={{ padding: '80px 24px 96px', maxWidth: '1100px', margin: '0 auto' }}>
-        <div className="mkt-grid" style={{ gap: '60px' }}>
-          <div>
-            <div className="mkt-label">Free to use</div>
-            <h1 className="display-xl">
-              Which card<br/>
-              <span className="gradient-text">should I use?</span>
-            </h1>
-            <p className="mkt-body" style={{ maxWidth: '420px' }}>
-              Clavis looks at every card in your wallet and tells you which one earns the most at wherever you are shopping. Add your cards once and it handles the rest.
-            </p>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <HeroArt/>
-          </div>
+    <main>
+      {/* Hero: the question, then the product answering it */}
+      <section className="mkt-wrap mkt-hero">
+        <h1 className="display-xl">Which card should I <em>use?</em></h1>
+        <p className="mkt-lede">Every card in your wallet, ranked for each purchase. Credits included.</p>
+        <div className="mkt-hero-ctas">
+          <a href={cta.href} className="pill-dark">{cta.label}</a>
+          <span className="mkt-hero-note">Free · No bank login</span>
         </div>
       </section>
 
-      <hr className="mkt-divider"/>
+      <section id="demo" className="mkt-wrap" style={{ scrollMarginTop: '80px' }}>
+        <ol className="steps" aria-label="How it works">
+          <li><span>1</span>Add your cards once</li>
+          <li><span>2</span>Type where you&apos;re paying</li>
+          <li><span>3</span>Pay with the top card</li>
+        </ol>
+        <LiveDemo/>
+      </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="mkt-section">
-        <div style={{ textAlign: 'center', maxWidth: '560px', margin: '0 auto 64px' }}>
-          <div className="mkt-label">How it works</div>
-          <h2 className="display-lg">Set up in minutes.</h2>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-          {[
-            { step: '01', title: 'Add your cards',     body: 'Enter the cards you already have. Clavis fills in the reward rates and perks for you based on the card name.' },
-            { step: '02', title: 'Search a merchant',  body: 'Type where you are shopping or pick a category like dining, travel, or grocery. Clavis figures out the rest.' },
-            { step: '03', title: 'Use the right card', body: 'Clavis ranks every card by how much you will actually earn and highlights the best pick. Tap to log the purchase.' },
-          ].map((item, i) => (
-            <div key={i} style={{ padding: '32px 28px', background: 'var(--bg-card)' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.16em', color: 'rgba(201,162,39,0.5)', marginBottom: '16px' }}>{item.step}</div>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '10px', lineHeight: '1.3' }}>{item.title}</div>
-              <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>{item.body}</div>
-            </div>
-          ))}
+      {/* Credits: three numbers over a full-width panel */}
+      <section id="credits" className="mkt-wrap mkt-section" style={{ scrollMarginTop: '40px' }}>
+        <h2 className="display-lg">Every credit, tracked to the reset.</h2>
+        <dl className="stats">
+          <div><dt>$27 a month</dt><dd>in Amex Gold monthly credits</dd></div>
+          <div><dt>To the day</dt><dd>countdown for every credit</dd></div>
+          <div><dt>First in line</dt><dd>the card whose credit covers the store</dd></div>
+        </dl>
+        <CreditsPanel/>
+      </section>
+
+      {/* History: short column beside a larger panel */}
+      <section className="mkt-wrap mkt-section" style={{ paddingTop: 0 }}>
+        <div className="side-by-side">
+          <div className="sticky-col">
+            <h2 className="display-lg">What every purchase earned.</h2>
+            <p className="mkt-lede" style={{ marginTop: '16px' }}>And what a better card would have.</p>
+            <p className="mkt-caption">Demo wallet, last 7 weeks</p>
+          </div>
+          <HistoryPanel/>
         </div>
       </section>
 
-      <hr className="mkt-divider"/>
-
-      {/* Feature 1: Smart selection */}
-      <section id="features" className="mkt-section">
-        <div className="mkt-grid">
-          <div>
-            <div className="mkt-label">Smart selection</div>
-            <h2 className="display-lg">Never guess<br/><span className="gradient-text">again.</span></h2>
-            <p className="mkt-body">At Chipotle your Amex Gold earns 4x. At Target your Freedom earns 5%. Clavis knows the difference and tells you before you pay, not after.</p>
-            <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Shows real dollar value, not just points', 'Factors in expiring credits automatically', 'You can always override and pick manually'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
-                  {item}
-                </li>
-              ))}
-            </ul>
+      {/* Where the numbers come from: one line per fact */}
+      <section id="numbers" className="mkt-wrap mkt-section" style={{ paddingTop: 0, scrollMarginTop: '40px' }}>
+        <h2 className="display-lg">Where the numbers come from.</h2>
+        <dl className="facts">
+          <div className="fact">
+            <dt>Reward rates</dt>
+            <dd>
+              <p className="mkt-body">Issuer terms, checked <time dateTime={RATES_VERIFIED}>{RATES_VERIFIED_LABEL}</time>.</p>
+              <ul className="sources">
+                {SOURCES.map(s => <li key={s.card}><a className="mkt-link" href={s.url} target="_blank" rel="noopener noreferrer">{s.card}</a></li>)}
+              </ul>
+            </dd>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}><ComparisonArt/></div>
+          <div className="fact"><dt>Point values</dt><dd><p className="mkt-body">1.0¢ per point by default. Set your own per card.</p></dd></div>
+          <div className="fact"><dt>Credits</dt><dd><p className="mkt-body">Issuer terms. Annual credits reset Dec 31.</p></dd></div>
+          <div className="fact"><dt>Rankings</dt><dd><p className="mkt-body">Cents earned per dollar. A credit that covers the store goes first.</p></dd></div>
+          <div className="fact"><dt>Limits</dt><dd><p className="mkt-body">Estimates. Your issuer decides each purchase&apos;s category.</p></dd></div>
+        </dl>
+      </section>
+
+      {/* Your data: bold phrase, one short line each */}
+      <section id="data" className="data-band" style={{ scrollMarginTop: '40px' }}>
+        <div className="mkt-wrap mkt-section">
+          <h2 className="display-lg">Your data.</h2>
+          <div className="data-grid">
+            <div className="data-item"><h3>No bank login</h3><p>You add cards by hand.</p></div>
+            <div className="data-item"><h3>No card numbers</h3><p>Last four digits at most, if you choose.</p></div>
+            <div className="data-item"><h3>Never sold</h3><p>Shared only with Supabase, Vercel and Resend, to run Clavis.</p></div>
+            <div className="data-item"><h3>Unknown cards</h3><p>Only the card&apos;s name goes to Claude (Anthropic) to look up rates.</p></div>
+            <div className="data-item"><h3>Delete anytime</h3><p>Removes your cards, credits, purchases and settings.</p></div>
+            <div className="data-item"><h3>Card links</h3><p>Some issuer links pay us a commission. Rankings ignore it.</p></div>
+          </div>
+          <p className="mkt-caption" style={{ marginTop: '24px' }}>Full details: <Link className="mkt-link" href="/privacy">privacy policy</Link></p>
         </div>
       </section>
 
-      <hr className="mkt-divider"/>
-
-      {/* Feature 2: Perk tracking (flipped) */}
-      <section className="mkt-section">
-        <div className="mkt-grid mkt-grid-reverse" style={{ direction: 'rtl' }}>
-          <div style={{ direction: 'ltr' }}>
-            <div className="mkt-label">Perk tracking</div>
-            <h2 className="display-lg">Stop losing<br/><span className="gradient-text">benefits you paid for.</span></h2>
-            <p className="mkt-body">Most cards come with travel credits, dining credits, and streaming perks that reset every year. Clavis tracks all of them and reminds you before they expire.</p>
-            <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Alerts 14 days before a perk expires', 'See every unused credit across all your cards', 'Weekly email so nothing slips through'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ direction: 'ltr', display: 'flex', justifyContent: 'center' }}><PerkArt/></div>
+      {/* Closing CTA */}
+      <section className="mkt-wrap mkt-close">
+        <h2 className="display-lg">Start getting more from every purchase.</h2>
+        <p className="mkt-caption" style={{ marginTop: '16px' }}>Free · No bank login</p>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '32px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href={cta.href} className="pill-dark">{cta.label}</a>
+          {secondaryCta && <a href={secondaryCta.href} className="pill-outline">{secondaryCta.label}</a>}
         </div>
       </section>
-
-      <hr className="mkt-divider"/>
-
-      {/* Feature 3: Insights */}
-      <section id="insights" className="mkt-section">
-        <div className="mkt-grid">
-          <div>
-            <div className="mkt-label">Insights</div>
-            <h2 className="display-lg">See what you<br/><span className="gradient-text">are actually earning.</span></h2>
-            <p className="mkt-body">Track every purchase and the rewards it earned. Clavis also shows you past purchases where a different card would have done better, so you can improve over time.</p>
-            <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {['Total rewards earned by month', 'See which past purchases used the wrong card', 'Spot which categories you are missing out on'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}><ChartArt/></div>
-        </div>
-      </section>
-    </>
-  )
-}
-
-// ── Tour slide icons (SVG, consistent stroke style) ──────
-function TourIconTap() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-    </svg>
-  )
-}
-function TourIconWallet() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="5" width="20" height="14" rx="2"/>
-      <path d="M16 13a1 1 0 1 0 2 0 1 1 0 0 0-2 0"/>
-      <path d="M2 10h20"/>
-    </svg>
-  )
-}
-function TourIconPerks() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 12 20 22 4 22 4 12"/>
-      <rect x="2" y="7" width="20" height="5"/>
-      <path d="M12 22V7"/>
-      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/>
-      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
-    </svg>
-  )
-}
-function TourIconHistory() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <polyline points="12 6 12 12 16 14"/>
-    </svg>
-  )
-}
-function TourIconInsights() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#C9A227" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10"/>
-      <line x1="12" y1="20" x2="12" y2="4"/>
-      <line x1="6" y1="20" x2="6" y2="14"/>
-    </svg>
-  )
-}
-
-// ── Standalone tour modal (no auth required) ──────────────
-const TOUR_SLIDES = [
-  { Icon: TourIconTap,      tab: 'Tap',      title: 'Which card should I use?',       text: "This is the main screen. Type the store or restaurant where you are paying and Clavis looks at every card you have and tells you which one earns the most. At Chipotle, your Amex Gold earns 4x. At Target, your Freedom earns 5%. Clavis figures that out instantly so you never leave rewards on the table." },
-  { Icon: TourIconWallet,   tab: 'Wallet',   title: 'All your cards in one place',     text: "Add each card you own once and Clavis remembers it. It knows the rewards rates, the annual fee, and how much you have earned. You do not need to check each card's app separately." },
-  { Icon: TourIconPerks,    tab: 'Perks',    title: 'Stop losing benefits you paid for', text: "Most cards come with free credits — things like $120 in dining credit or $50 toward hotels. They expire if you do not use them. Clavis tracks what you have left and reminds you before they disappear." },
-  { Icon: TourIconHistory,  tab: 'History',  title: 'A record of every purchase',      text: "Every time you tap a card in Clavis, it logs the store, the card you used, and how much you earned. You can see your full spending history and even export it." },
-  { Icon: TourIconInsights, tab: 'Insights', title: 'Tips to get more from your wallet', text: "Clavis watches your spending and spots things you might be missing — a perk about to expire, a card that would earn you more at a store you visit often, or a benefit you are not using. It is like having someone look over your wallet for you." },
-]
-
-export function TourModal({ onClose }) {
-  const [index, setIndex] = useState(0)
-  const slide = TOUR_SLIDES[index]
-  const isLast = index === TOUR_SLIDES.length - 1
-
-  return (
-    <div
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 300,
-        background: 'rgba(0,0,0,0.55)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '1.5rem',
-      }}>
-      <div style={{
-        background: '#fff',
-        borderRadius: '14px',
-        padding: '2rem',
-        width: '100%',
-        maxWidth: '420px',
-        position: 'relative',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.18)',
-      }}>
-        {/* Close */}
-        <button
-          onClick={onClose}
-          style={{ position: 'absolute', top: '14px', right: '14px', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, padding: '4px', color: '#999' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-
-        {/* Progress dots */}
-        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '28px' }}>
-          {TOUR_SLIDES.map((_, i) => (
-            <div key={i} onClick={() => setIndex(i)} style={{
-              width: i === index ? '20px' : '6px', height: '6px', borderRadius: '3px',
-              background: i === index ? '#C9A227' : 'rgba(0,0,0,0.12)',
-              transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', cursor: 'pointer',
-            }} />
-          ))}
-        </div>
-
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '64px', height: '64px', borderRadius: '16px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', margin: '0 auto 16px' }}>
-            <slide.Icon />
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: '#C9A227', marginBottom: '6px' }}>
-            {slide.tab} tab
-          </div>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: '22px', fontWeight: '700', color: '#111', marginBottom: '10px', letterSpacing: '-0.01em' }}>
-            {slide.title}
-          </div>
-          <div style={{ fontSize: '14px', color: '#555', lineHeight: '1.65', marginBottom: '28px', minHeight: '88px' }}>
-            {slide.text}
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {index > 0 && (
-              <button
-                onClick={() => setIndex(i => i - 1)}
-                style={{ padding: '11px 18px', borderRadius: '8px', border: '1px solid #e5e7eb', background: '#fff', color: '#333', fontWeight: '600', fontSize: '14px', cursor: 'pointer', flexShrink: 0 }}>
-                ← Back
-              </button>
-            )}
-            {!isLast ? (
-              <button
-                onClick={() => setIndex(i => i + 1)}
-                style={{ flex: 1, padding: '11px 18px', borderRadius: '8px', border: 'none', background: '#111', color: '#fff', fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>
-                Next →
-              </button>
-            ) : (
-              <a
-                href="/auth"
-                style={{ flex: 1, padding: '11px 18px', borderRadius: '8px', border: 'none', background: '#111', color: '#fff', fontWeight: '600', fontSize: '14px', cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                Get started free →
-              </a>
-            )}
-          </div>
-
-          <button
-            onClick={onClose}
-            style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', fontSize: '13px', color: '#aaa', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+    </main>
   )
 }

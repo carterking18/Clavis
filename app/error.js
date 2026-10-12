@@ -7,7 +7,7 @@ export default function Error({ error, reset }) {
   }, [error])
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-page)', textAlign: 'center' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--paper)', textAlign: 'center' }}>
       <div style={{ width: '100%', maxWidth: '420px' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
           <svg width="40" height="40" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
@@ -25,10 +25,10 @@ export default function Error({ error, reset }) {
           </svg>
         </div>
 
-        <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '28px', fontWeight: '700', letterSpacing: '-0.01em', color: 'var(--text-primary)', marginBottom: '10px' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '10px' }}>
           Something went <span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>sideways.</span>
         </h1>
-        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '28px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '28px' }}>
           That wasn&apos;t supposed to happen. Your data is safe — try reloading this screen, or head back to the dashboard.
         </p>
 
@@ -42,7 +42,7 @@ export default function Error({ error, reset }) {
         </div>
 
         {error?.digest && (
-          <div style={{ marginTop: '20px', fontSize: '11px', color: 'var(--text-faintest)' }}>
+          <div style={{ marginTop: '20px', fontSize: '12px', color: 'var(--muted)' }}>
             Error ref: {error.digest}
           </div>
         )}

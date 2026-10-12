@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Audit screenshots (may contain personal account data)
+audit/before/
+audit/after/

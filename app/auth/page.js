@@ -57,7 +57,7 @@ export default function Auth() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-page)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--paper)' }}>
       <div style={{ width: '100%', maxWidth: '460px' }}>
 
         {/* Logo */}
@@ -75,13 +75,13 @@ export default function Auth() {
               </defs>
               <rect width="512" height="512" fill="#C9A227" mask="url(#akey)"/>
             </svg>
-            <span style={{ fontSize: '15px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>CLAVIS</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', letterSpacing: '0.08em', color: 'var(--muted)' }}>CLAVIS</span>
           </a>
 
-          <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '42px', fontWeight: '700', letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)', marginBottom: '12px', whiteSpace: 'nowrap' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', lineHeight: '1.1', color: 'var(--ink)', marginBottom: '12px', whiteSpace: 'nowrap' }}>
             {heading[mode]}
           </h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', fontWeight: '400', lineHeight: '1.5' }}>
+          <p style={{ fontSize: '14px', color: 'var(--ink-2)', fontWeight: '400', lineHeight: '1.5' }}>
             {subtext[mode]}
           </p>
         </div>
@@ -113,9 +113,9 @@ export default function Auth() {
                 {mode === 'login' && (
                   <button
                     onClick={() => switchMode('forgot')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'inherit', padding: 0, transition: 'color 0.15s' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}>
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: 'var(--muted)', fontFamily: 'inherit', padding: 0, transition: 'color 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--ink-2)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}>
                     Forgot password?
                   </button>
                 )}
@@ -152,11 +152,11 @@ export default function Auth() {
         )}
 
         {mode === 'signup' && (
-          <p style={{ marginTop: '20px', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.6', textAlign: 'center' }}>
+          <p style={{ marginTop: '20px', fontSize: '12px', color: 'var(--muted)', lineHeight: '1.6', textAlign: 'center' }}>
             By creating an account you agree to our{' '}
-            <a href="/terms" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Terms of Service</a>
+            <a href="/terms" style={{ color: 'var(--ink-2)', textDecoration: 'underline' }}>Terms of Service</a>
             {' '}and{' '}
-            <a href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'underline' }}>Privacy Policy</a>.
+            <a href="/privacy" style={{ color: 'var(--ink-2)', textDecoration: 'underline' }}>Privacy Policy</a>.
           </p>
         )}
 

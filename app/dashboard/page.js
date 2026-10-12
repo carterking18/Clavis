@@ -2,12 +2,16 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring, savePointValueOverrides, updateCardOpenedOn } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers, searchCardCatalog } from '../../lib/cardRewards'
-import { getSuggestedPerks, calculateResetsAt } from '../../lib/cardPerks'
+import { getSuggestedPerks, calculateResetsAt, daysUntilReset, isResetDue } from '../../lib/cardPerks'
 import { searchMerchants } from '../../lib/merchants'
-import { dollarValuePerDollar, formatValuePerDollar, getPointValuation } from '../../lib/pointValues'
+import { dollarValuePerDollar, formatValuePerDollar, getPointValuation, setPointValueOverrides, getPointValueOverrides, valuationNote, isCashCard } from '../../lib/pointValues'
+import { money, moneyWhole, centsPerDollar, NUM } from '../../lib/format'
+import { useReorder } from '../../lib/useReorder'
+import { rankCards } from '../../lib/ranking'
+import { bookingRequirement } from '../../lib/bookingRates'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
@@ -24,7 +28,7 @@ const CAT_META = {
   hotel:     { label: 'Hotel' },
   grocery:   { label: 'Grocery' },
   gas:       { label: 'Gas' },
-  streaming: { label: 'Stream' },
+  streaming: { label: 'Streaming' },
   retail:    { label: 'Retail' },
   other:     { label: 'Other' },
 }
@@ -37,25 +41,31 @@ function getSavedCategory() {
   return 'dining'
 }
 
-function CardArt({ name, style = {} }) {
+// Flat mini-card in the issuer's color. Small sizes are a swatch for list rows;
+// the large size shows the card name and last four. No network wordmarks or
+// fake chips, and never a recreated issuer logo.
+const CARD_ART_SIZES = { sm: { width: '36px', height: '24px' }, md: { width: '48px', height: '32px' } }
+
+function CardArt({ name, lastFour, size, style = {} }) {
   const design = getCardDesign(name)
+  const large = !size
   return (
-    <div style={{
-      borderRadius: '4px',
-      background: `linear-gradient(135deg, ${design.gradient[0]}, ${design.gradient[1]})`,
-      padding: '8px 10px',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
+    <div aria-hidden="true" style={{
+      borderRadius: large ? 'var(--radius-container)' : '4px',
+      background: design.gradient[0],
+      boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.12)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px',
+      padding: large ? '12px 14px' : 0,
+      color: 'rgba(255,255,255,0.92)',
+      ...(CARD_ART_SIZES[size] || {}),
+      flexShrink: 0,
       ...style
     }}>
-      {design.chip && (
-        <div style={{ width: '20px', height: '14px', borderRadius: '3px', background: 'rgba(0,0,0,0.06)', border: '0.5px solid rgba(255,255,255,0.25)' }} />
-      )}
-      {design.network && (
-        <div style={{ alignSelf: 'flex-end', fontSize: '9px', fontWeight: '700', color: 'var(--text-secondary)', letterSpacing: '0.04em', marginTop: 'auto' }}>
-          {design.network}
-        </div>
+      {large && (
+        <>
+          <span style={{ fontSize: '14px', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+          {lastFour && <span style={{ fontSize: '12px', ...NUM }}>•••• {lastFour}</span>}
+        </>
       )}
     </div>
   )
@@ -63,13 +73,13 @@ function CardArt({ name, style = {} }) {
 
 function InsightSection({ label, summary, isOpen, onToggle, children }) {
   return (
-    <div style={{ marginBottom: '14px', border: '1px solid var(--border-subtle)', borderRadius: '8px', overflow: 'hidden' }}>
-      <button onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', background: 'var(--bg-elevated)', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+    <div style={{ marginBottom: '14px', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', overflow: 'hidden' }}>
+      <button onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', background: 'var(--sunken)', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: summary ? '4px' : 0 }}>{label}</div>
-          {summary && <div style={{ fontSize: '13px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</div>}
+          <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: summary ? '4px' : 0 }}>{label}</div>
+          {summary && <div style={{ fontSize: '14px', color: 'var(--ink-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{summary}</div>}
         </div>
-        <span style={{ fontSize: '10px', color: 'var(--text-faintest)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▾</span>
+        <span style={{ fontSize: '12px', color: 'var(--muted)', flexShrink: 0, transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▾</span>
       </button>
       {isOpen && <div style={{ padding: '16px' }}>{children}</div>}
     </div>
@@ -109,9 +119,9 @@ function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClo
     left: rect.left - pad,
     width: rect.width + pad * 2,
     height: rect.height + pad * 2,
-    borderRadius: '8px',
-    boxShadow: '0 0 0 9999px rgba(15,15,20,0.6)',
-    border: '2px solid var(--gold)',
+    borderRadius: 'var(--radius-container)',
+    boxShadow: '0 0 0 9999px var(--scrim)',
+    border: '2px solid var(--ink)',
     pointerEvents: 'none',
     zIndex: 250,
     transition: 'top 0.3s cubic-bezier(0.16,1,0.3,1), left 0.3s cubic-bezier(0.16,1,0.3,1), width 0.3s cubic-bezier(0.16,1,0.3,1)',
@@ -127,11 +137,11 @@ function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClo
     top: tooltipTop,
     left: tooltipLeft,
     width: tooltipWidth,
-    background: 'var(--bg-card)',
-    border: '1px solid var(--border)',
-    borderRadius: '12px',
+    background: 'var(--surface)',
+    border: '1px solid var(--hairline)',
+    borderRadius: 'var(--radius-container)',
     padding: '18px',
-    boxShadow: '0 16px 48px rgba(0,0,0,0.3)',
+    boxShadow: 'var(--shadow-overlay)',
     zIndex: 251,
     textAlign: 'left',
   }
@@ -140,26 +150,26 @@ function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClo
     <>
       <div style={spotStyle} />
       <div style={tooltipStyle}>
-        <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>
+        <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink)', marginBottom: '6px' }}>
           {slide.tab} tab · {step + 1}/{slides.length}
         </div>
-        <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '8px' }}>
           {slide.icon} {slide.title}
         </div>
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '16px' }}>
+        <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '16px' }}>
           {slide.text}
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           {step > 0 && (
-            <button className="btn-secondary" onClick={onBack} style={{ width: 'auto', flexShrink: 0, padding: '9px 14px', fontSize: '13px' }}>
+            <button className="btn-secondary" onClick={onBack} style={{ width: 'auto', flexShrink: 0, padding: '9px 14px', fontSize: '14px' }}>
               ← Back
             </button>
           )}
-          <button className="btn-primary" onClick={step < slides.length - 1 ? onNext : onFinish} style={{ flex: 1, padding: '9px 14px', fontSize: '13px' }}>
+          <button className="btn-primary" onClick={step < slides.length - 1 ? onNext : onFinish} style={{ flex: 1, padding: '9px 14px', fontSize: '14px' }}>
             {step < slides.length - 1 ? 'Next →' : 'Done'}
           </button>
         </div>
-        <button onClick={onClose} style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', fontSize: '12px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+        <button onClick={onClose} style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', fontSize: '12px', color: 'var(--muted)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
           Skip tour
         </button>
       </div>
@@ -180,9 +190,13 @@ function TimeAgo({ dateStr }) {
   return <span>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
 }
 
+// Missed rewards below this (per period) are reported as 'close to optimal'
+const MEANINGFUL_MISSED = 5
+
 function formatResetDate(dateStr) {
   if (!dateStr) return 'end of period'
-  const d = new Date(dateStr + 'T00:00:00')
+  // Stored dates may be full timestamps; only the calendar date matters
+  const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00')
   if (isNaN(d.getTime())) return 'end of period'
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
@@ -208,6 +222,8 @@ export default function Dashboard() {
   const [editingCard, setEditingCard] = useState(null)
   const [editMultipliers, setEditMultipliers] = useState({})
   const [editAnnualFee, setEditAnnualFee] = useState('')
+  const [editOpenedOn, setEditOpenedOn] = useState('')
+  const [editError, setEditError] = useState('')
   const [showCorrectionForm, setShowCorrectionForm] = useState(false)
   const [correctionField, setCorrectionField] = useState('Annual fee')
   const [correctionValue, setCorrectionValue] = useState('')
@@ -230,6 +246,10 @@ export default function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [weeklyDigest, setWeeklyDigest] = useState(true)
+  const [showPointValues, setShowPointValues] = useState(false)
+  const [pointDraft, setPointDraft] = useState({})
+  const [pointSaveError, setPointSaveError] = useState('')
+  const [pointValuesVersion, setPointValuesVersion] = useState(0)
   const [digestSaving, setDigestSaving] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
   const [taps, setTaps] = useState([])
@@ -269,7 +289,7 @@ export default function Dashboard() {
   const cardFetchTimer = useRef(null)
 
   const [newPerk, setNewPerk] = useState({
-    name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: ''
+    name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: '', resets_on: 'calendar'
   })
 
   const loadCards = useCallback(async () => {
@@ -277,16 +297,20 @@ export default function Dashboard() {
       const data = await getUserCards()
       setCards(data)
 
-      // Auto-reset perks whose period has rolled over (resets_at is in the past)
-      const today = new Date().toISOString().split('T')[0]
+      // Roll forward every perk whose period has ended, used or not, so no
+      // perk ever shows a reset date in the past
+      let rolled = false
       for (const card of data) {
         for (const perk of card.perks || []) {
-          if (perk.resets_at && perk.resets_at < today && perk.used_amount > 0) {
-            const newResetsAt = calculateResetsAt(perk.period)
-            await updatePerk(perk.id, { used_amount: 0, resets_at: newResetsAt })
+          if (isResetDue(perk.resets_at)) {
+            const update = { used_amount: 0, resets_at: calculateResetsAt(perk.period, new Date(), { basis: perk.resets_on, openedOn: card.opened_on }) }
+            await updatePerk(perk.id, update)
+            Object.assign(perk, update)
+            rolled = true
           }
         }
       }
+      if (rolled) setCards([...data])
 
       // Check catalog for perk changes on cards that have perks tracked
       const dismissed = JSON.parse(localStorage.getItem('clavis_dismissed_perk_updates') || '{}')
@@ -332,6 +356,8 @@ export default function Dashboard() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
+      setPointValueOverrides(session.user.user_metadata?.point_values)
+      setPointValuesVersion(v => v + 1)
       getWeeklyDigestPref().then(setWeeklyDigest).catch(() => {})
       getRecurring().then(setRecurring).catch(() => {})
       // Auto-launch tour for first-time visitors or if ?tour=1 is in the URL
@@ -358,24 +384,13 @@ export default function Dashboard() {
     if (tab === 'history') loadTaps()
   }, [tab, loadTaps])
 
-  // Scroll reveal
-  useEffect(() => {
-    const els = document.querySelectorAll('[data-reveal]')
-    if (!els.length) return
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); obs.unobserve(e.target) } })
-    }, { threshold: 0.08, rootMargin: '0px 0px -24px 0px' })
-    els.forEach(el => obs.observe(el))
-    return () => obs.disconnect()
-  }, [tab, cards, showAddCard, showAddPerk, taps])
-
   useEffect(() => () => { if (cardFetchTimer.current) clearTimeout(cardFetchTimer.current) }, [])
 
   // Insights computed from current wallet + history
-  const perkInsights = useMemo(() => generateInsights(cards, taps), [cards, taps])
-  const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards])
+  const perkInsights = useMemo(() => generateInsights(cards, taps), [cards, taps, pointValuesVersion])
+  const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards, pointValuesVersion])
   const totalMissed = useMemo(() => retroactiveMissed.reduce((s, m) => s + m.missedTotal, 0), [retroactiveMissed])
-  const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps])
+  const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps, pointValuesVersion])
 
   // Monthly missed breakdown
   const missedByMonth = useMemo(() => {
@@ -424,31 +439,6 @@ export default function Dashboard() {
     if (typeof window !== 'undefined') localStorage.setItem('clavis_last_cat', cat)
   }
 
-  // Generic words that show up in perk names but aren't merchant identifiers —
-  // stripped out before matching a perk name against what the user typed, so
-  // e.g. "Resy Dining Credit" reduces to "resy" rather than matching every
-  // "dining" search.
-  const PERK_GENERIC_WORDS = new Set([
-    'credit', 'credits', 'dining', 'travel', 'hotel', 'hotels', 'airline', 'airlines',
-    'fee', 'fees', 'digital', 'entertainment', 'property', 'eligible', 'stays', 'stay',
-    'global', 'entry', 'tsa', 'precheck', 'in-flight', 'inflight', 'wifi', 'wi-fi',
-    'rideshare', 'resort', 'resorts', 'fine', 'dashpass', 'plus', 'membership',
-    'annual', 'monthly', 'semi-annual', 'and', 'the', 'amex', 'chase', 'card', 'bonus',
-  ])
-
-  // Does this perk look like it's tied to a specific merchant the user is
-  // shopping at right now? (e.g. a "Peloton Credit" perk when the user types
-  // "Peloton") — these are typically use-it-here-or-lose-it statement credits
-  // that only get captured by spending at that exact merchant.
-  function perkMatchesMerchant(perkName, merchantStr) {
-    if (!merchantStr) return false
-    const m = merchantStr.toLowerCase().trim()
-    if (m.length < 3) return false
-    const words = perkName.toLowerCase().replace(/[^\w\s+'-]/g, ' ').split(/\s+/)
-      .filter(w => w.length > 2 && !PERK_GENERIC_WORDS.has(w))
-    return words.some(w => m.includes(w) || w.includes(m))
-  }
-
   function isCashBack(card) { return card?.balance_unit === 'cash back' || card?.balance_unit === 'dollars' }
   function getMultiplier(card) {
     if (!card) return 0
@@ -459,96 +449,18 @@ export default function Dashboard() {
     return isCashBack(card) ? `${mult}%` : `${mult}x pts`
   }
 
-  function scoreCard(card) {
-    const mult = getMultiplier(card)
-    const dollarVal = isCashBack(card) ? mult / 100 : dollarValuePerDollar(card, mult)
-
-    const perks = card.perks || []
-    const activePerks = perks.filter(p => p.used_amount < p.total_amount)
-    const expiringPerks = activePerks.filter(p => {
-      if (!p.resets_at) return false
-      const days = Math.ceil((new Date(p.resets_at) - new Date()) / (1000 * 60 * 60 * 24))
-      return days <= 14 && days > 0
-    })
-    // Dollar value still sitting unused on this card — this is what actually
-    // determines how much "weight" a perk should carry against a marginal
-    // rewards-rate difference. A flat per-perk bump would let a $5 perk and a
-    // $300 perk nudge the score by the same amount, which doesn't reflect
-    // what's really at stake for the user.
-    const activePerksValue = activePerks.reduce((s, p) => s + Math.max(0, (p.total_amount || 0) - (p.used_amount || 0)), 0)
-    const expiringPerksValue = expiringPerks.reduce((s, p) => s + Math.max(0, (p.total_amount || 0) - (p.used_amount || 0)), 0)
-    const isGiftWithBalance = card.type === 'gift' && (card.balance || 0) > 0
-
-    // Check if this gift card is linked to the merchant being typed
-    const tapMerchant = (detectedMerchant?.name || merchantQuery || '').toLowerCase().trim()
-    const giftMerchantLinked = isGiftWithBalance && tapMerchant && (() => {
-      const linked = (card.merchant || '').toLowerCase()
-      const cardName = card.name.toLowerCase()
-      // Match against the explicit merchant field, or infer from card name
-      return (linked && (linked.includes(tapMerchant) || tapMerchant.includes(linked))) ||
-             cardName.includes(tapMerchant) ||
-             tapMerchant.includes(cardName.replace(/\s*(gift\s*card|gc)\s*/gi, '').trim())
-    })()
-
-    // A merchant-specific perk you'd otherwise likely never use: a $60
-    // Peloton credit only has value if you're shopping at Peloton — the
-    // rewards-rate math doesn't matter if this is the one shot you have to
-    // capture it. Surface (and prioritize) the card whose unused perk best
-    // matches where the user is tapping.
-    const merchantPerkMatch = tapMerchant
-      ? activePerks
-          .filter(p => perkMatchesMerchant(p.name, tapMerchant))
-          .sort((a, b) => (b.total_amount - b.used_amount) - (a.total_amount - a.used_amount))[0]
-      : null
-
-    let score = dollarVal * 100
-    // Small steady nudge for cards carrying unused perk value, plus a
-    // sharper urgency nudge — scaled by dollars, not just perk count — for
-    // perks about to reset. A $5 credit barely moves the needle; a $200
-    // credit expiring this week can (and should) outweigh a modest
-    // rewards-rate edge from another card.
-    score += activePerks.length * 0.3 + activePerksValue / 50
-    score += expiringPerks.length * 1 + expiringPerksValue / 15
-    if (isGiftWithBalance) score += 5
-    // A merchant-matched perk beats ordinary rewards-rate math — this may be
-    // the only purchase all year where this credit is even capturable. It
-    // sits just below a linked gift card balance (money you've already spent).
-    if (merchantPerkMatch) score = Math.max(score, 500 + (merchantPerkMatch.total_amount - merchantPerkMatch.used_amount))
-    if (giftMerchantLinked) score = 9999
-
-    const reasons = []
-    if (merchantPerkMatch) {
-      const remaining = merchantPerkMatch.total_amount - merchantPerkMatch.used_amount
-      reasons.push(`Use here — captures your $${remaining % 1 === 0 ? remaining.toFixed(0) : remaining.toFixed(2)} ${merchantPerkMatch.name.replace(/\s*credit\s*$/i, '')} credit`)
-    }
-    if (mult > 0) {
-      const fvpd = formatValuePerDollar(card, mult)
-      reasons.push(isCashBack(card) ? `${mult}% back` : `${mult}x pts${fvpd ? ` (${fvpd})` : ''}`)
-    }
-    if (expiringPerks.length > 0) reasons.push(`${expiringPerks.length} perk${expiringPerks.length > 1 ? 's' : ''} expiring soon`)
-    else if (activePerks.length > 0 && !merchantPerkMatch) reasons.push(`${activePerks.length} active perk${activePerks.length > 1 ? 's' : ''}`)
-    if (isGiftWithBalance) reasons.push(`$${card.balance} gift balance`)
-    if (giftMerchantLinked) reasons.unshift(`Use here`)
-
-    return { card, score, dollarVal, reasons }
-  }
-
   // Ranking is recomputed often (every render the Tap tab is active, plus
   // whenever the rankings modal opens) — memoize it so we score/sort the
   // wallet once per relevant state change instead of 2-4x per render.
-  const rankedCards = useMemo(() => {
-    return [...cards]
-      .filter(c => !(c.type === 'gift' && (c.balance || 0) <= 0))
-      .map(scoreCard)
-      .sort((a, b) => {
-        const d = b.score - a.score
-        if (Math.abs(d) > 0.001) return d
-        return (b.card.annual_fee || 0) - (a.card.annual_fee || 0)
-      })
+  const rankedCards = useMemo(
+    () => rankCards(cards, { category: selectedCat, merchant: detectedMerchant?.name || merchantQuery }),
+    // pointValuesVersion: rankings depend on the user's point valuations
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cards, selectedCat, detectedMerchant, merchantQuery])
+    [cards, selectedCat, detectedMerchant, merchantQuery, pointValuesVersion]
+  )
 
   function getRankedCards() { return rankedCards }
+  const runnerRef = useReorder(rankedCards.map(r => r.card.id))
   function getBestCard() { return rankedCards[0]?.card || null }
   function getActiveCard() {
     if (selectedCardId) return cards.find(c => c.id === selectedCardId) || getBestCard()
@@ -604,9 +516,9 @@ export default function Dashboard() {
       const newBalance = Math.max(0, currentBalance - charge)
       await updateCardBalance(card.id, newBalance)
       await loadCards()
-      confirmMsg = `Tapped ${card.name} · $${charge.toFixed(2)} charged · $${newBalance.toFixed(2)} remaining`
+      confirmMsg = `Logged on ${card.name} · ${money(charge)} charged · ${money(newBalance)} remaining`
     } else {
-      confirmMsg = `Tapped as ${card.name} · ${rate ? `${rate} on $${selectedAmt}` : 'card charged'} · Transaction complete`
+      confirmMsg = `Logged on ${card.name} · ${rate ? `${rate} on ${money(selectedAmt)}` : 'no rewards rate'}`
     }
 
     try {
@@ -746,7 +658,7 @@ export default function Dashboard() {
     try {
       for (const i of selectedPerkIndices) {
         const p = suggestedPerks[i]
-        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period), card_id: pendingCardId })
+        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period), card_id: pendingCardId, ...(p.resetsOn === 'anniversary' ? { resets_on: 'anniversary' } : {}) })
       }
       await loadCards()
     } catch (e) { console.error(e) }
@@ -756,9 +668,19 @@ export default function Dashboard() {
   async function handleAddPerk() {
     if (!newPerk.name || !newPerk.total_amount || !addingToCardId) return
     try {
-      await addPerk({ ...newPerk, card_id: addingToCardId, total_amount: parseFloat(newPerk.total_amount), used_amount: parseFloat(newPerk.used_amount) || 0 })
+      const card = cards.find(c => c.id === addingToCardId)
+      const anniversary = newPerk.period === 'annual' && newPerk.resets_on === 'anniversary'
+      const { resets_on: _basis, ...fields } = newPerk
+      await addPerk({
+        ...fields,
+        card_id: addingToCardId,
+        total_amount: parseFloat(newPerk.total_amount),
+        used_amount: parseFloat(newPerk.used_amount) || 0,
+        resets_at: newPerk.resets_at || calculateResetsAt(newPerk.period, new Date(), { basis: anniversary ? 'anniversary' : 'calendar', openedOn: card?.opened_on }),
+        ...(anniversary ? { resets_on: 'anniversary' } : {}),
+      })
       await loadCards(); setShowAddPerk(false)
-      setNewPerk({ name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: '' })
+      setNewPerk({ name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: '', resets_on: 'calendar' })
     } catch (e) { console.error(e) }
   }
 
@@ -767,6 +689,8 @@ export default function Dashboard() {
     CATEGORIES.forEach(cat => { const m = card.multipliers?.find(m => m.category === cat); mults[cat] = m ? String(m.multiplier) : '' })
     setEditMultipliers(mults)
     setEditAnnualFee(card.annual_fee != null ? String(card.annual_fee) : '')
+    setEditOpenedOn(card.opened_on ? String(card.opened_on).slice(0, 7) : '')
+    setEditError('')
     setShowCorrectionForm(false)
     setCorrectionField('Annual fee')
     setCorrectionValue('')
@@ -849,9 +773,18 @@ export default function Dashboard() {
       await updateCardMultipliers(editingCard.id, editMultipliers)
       const fee = parseFloat(editAnnualFee)
       if (!isNaN(fee) && fee !== (editingCard.annual_fee || 0)) await updateCardFee(editingCard.id, fee)
+      const previousOpened = editingCard.opened_on ? String(editingCard.opened_on).slice(0, 7) : ''
+      if (editOpenedOn !== previousOpened) {
+        const openedOn = editOpenedOn ? `${editOpenedOn}-01` : null
+        await updateCardOpenedOn(editingCard.id, openedOn)
+        // Move anniversary credits to the new card year
+        await Promise.all((editingCard.perks || [])
+          .filter(p => p.period === 'annual' && p.resets_on === 'anniversary')
+          .map(p => updatePerk(p.id, { resets_at: calculateResetsAt('annual', new Date(), { basis: 'anniversary', openedOn }) })))
+      }
       await loadCards()
       setEditingCard(null)
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setEditError(e.message || 'Could not save. Try again.') }
   }
 
   // Cards whose annual fee no longer matches the latest known rate in our
@@ -878,9 +811,9 @@ export default function Dashboard() {
           id: `perk-${insight.id}`,
           urgent: insight.days <= 7,
           icon: '◷',
-          color: insight.days <= 7 ? 'var(--red)' : 'var(--orange)',
+          color: insight.days <= 7 ? 'var(--loss)' : 'var(--ink)',
           title: `${insight.perk.name} expires in ${insight.days}d`,
-          detail: `$${insight.remaining.toFixed(0)} unused on your ${insight.card.name}`,
+          detail: `${money(insight.remaining)} unused on your ${insight.card.name}`,
           tab: 'perks',
         })
       }
@@ -890,9 +823,9 @@ export default function Dashboard() {
         id: `fee-${u.id}`,
         urgent: u.newFee > u.oldFee,
         icon: '✦',
-        color: u.newFee > u.oldFee ? 'var(--orange)' : 'var(--green)',
+        color: u.newFee > u.oldFee ? 'var(--ink)' : 'var(--gain)',
         title: `${u.name} annual fee changed`,
-        detail: `$${u.oldFee} → $${u.newFee}`,
+        detail: `${moneyWhole(u.oldFee)} → ${moneyWhole(u.newFee)}`,
         tab: 'wallet',
       })
     }
@@ -932,7 +865,7 @@ export default function Dashboard() {
     try {
       // Add brand-new perks
       for (const p of newPerks) {
-        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period), card_id: card.id })
+        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period, new Date(), { basis: p.resetsOn, openedOn: card.opened_on }), card_id: card.id, ...(p.resetsOn === 'anniversary' ? { resets_on: 'anniversary' } : {}) })
       }
       // Update total_amount on changed perks (preserve used_amount)
       for (const cp of changedPerks) {
@@ -960,9 +893,8 @@ export default function Dashboard() {
   const activeCard = getActiveCard()
   const allPerks = cards.flatMap(c => c.perks || [])
   const expiringPerks = allPerks.filter(p => {
-    if (!p.resets_at) return false
-    const days = Math.ceil((new Date(p.resets_at) - new Date()) / (1000 * 60 * 60 * 24))
-    return days <= 14 && days > 0
+    const days = daysUntilReset(p.resets_at)
+    return days !== null && days <= 14
   })
 
   const totalEarned = taps.reduce((s, t) => s + (t.estimated_value || 0), 0)
@@ -975,14 +907,14 @@ export default function Dashboard() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Loading your wallet...</p>
+      <p style={{ color: 'var(--ink-2)', fontSize: '14px' }}>Loading your wallet...</p>
     </div>
   )
 
   const sheetStyle = {
-    background: 'var(--bg-card)', borderRadius: '8px 8px 0 0', padding: '1.5rem',
+    background: 'var(--surface)', borderRadius: 'var(--radius-container) var(--radius-container) 0 0', padding: '1.5rem',
     width: '100%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto',
-    border: '1px solid var(--border-subtle)', borderBottom: 'none',
+    border: '1px solid var(--hairline-soft)', borderBottom: 'none',
   }
 
   const insightCount = perkInsights.length + retroactiveMissed.length + cardRecs.length
@@ -999,23 +931,22 @@ export default function Dashboard() {
         marginLeft: 'calc(-50vw + 50%)',
         marginRight: 'calc(-50vw + 50%)',
         width: '100vw',
-        background: 'rgba(9,9,12,0.85)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        background: 'var(--paper)',
+        borderBottom: '1px solid var(--hairline)',
       }}>
-        <div className="dash-nav-inner" style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', minHeight: '60px', rowGap: '4px' }}>
+        {/* Same column as the content below, so the nav and page edges line up */}
+        <div className="dash-nav-inner" style={{ maxWidth: 'var(--content-width)', margin: '0 auto', padding: '10px 1.25rem 0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Logo */}
           <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
             <KeySVG size={18} id="dashkey"/>
-            <span className="dash-logo-text" style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
+            <span className="dash-logo-text" style={{ fontSize: '14px', fontWeight: '600', letterSpacing: '0.06em', color: 'var(--ink)' }}>CLAVIS</span>
           </a>
 
           {/* About / Sign out */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0, order: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, order: 2 }}>
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowNotifications(v => !v)} aria-label="Notifications"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative', display: 'flex', alignItems: 'center', padding: '4px', color: '#dddde4', lineHeight: 1 }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', color: 'var(--ink-2)', lineHeight: 1, borderRadius: 'var(--radius-control)' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -1023,8 +954,8 @@ export default function Dashboard() {
                 {notifications.length > 0 && (
                   <span style={{
                     position: 'absolute', top: '-2px', right: '-2px', minWidth: '15px', height: '15px', borderRadius: '50%',
-                    background: urgentNotifCount > 0 ? 'var(--red)' : 'var(--gold)', color: '#fff', fontSize: '9px', fontWeight: '700',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '1.5px solid rgba(9,9,12,0.85)',
+                    background: urgentNotifCount > 0 ? 'var(--loss)' : 'var(--ink)', color: 'var(--surface)', fontSize: '12px', fontWeight: '600',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '1.5px solid var(--paper)',
                   }}>
                     {notifications.length > 9 ? '9+' : notifications.length}
                   </span>
@@ -1035,21 +966,21 @@ export default function Dashboard() {
                   <div onClick={() => setShowNotifications(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
                   <div style={{
                     position: 'absolute', top: 'calc(100% + 12px)', right: 0, width: '320px', maxHeight: '420px', overflowY: 'auto',
-                    background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px', boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
+                    background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-overlay)',
                     zIndex: 200, padding: '14px',
                   }}>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px' }}>Notifications</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '10px' }}>Notifications</div>
                     {notifications.length === 0 ? (
-                      <div style={{ fontSize: '12.5px', color: 'var(--text-faintest)', padding: '12px 2px', lineHeight: '1.5' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', padding: '12px 2px', lineHeight: '1.5' }}>
                         You're all caught up — no expiring perks or fee changes to flag right now.
                       </div>
                     ) : notifications.map(n => (
                       <button key={n.id} onClick={() => { setTab(n.tab); setShowNotifications(false) }}
-                        style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '9px 4px', borderBottom: '1px solid var(--border-subtle)' }}>
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '9px 4px', borderBottom: '1px solid var(--hairline-soft)' }}>
                         <span style={{ color: n.color, fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>{n.icon}</span>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>
-                          <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '1px' }}>{n.detail}</div>
+                          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '1px' }}>{n.detail}</div>
                         </div>
                       </button>
                     ))}
@@ -1057,11 +988,9 @@ export default function Dashboard() {
                 </>
               )}
             </div>
-            <button onClick={() => setTourStep(0)} className="mkt-nav-link dash-about-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Take a tour</button>
-            <a href="/about" className="mkt-nav-link dash-about-link">About</a>
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowAccountMenu(v => !v)}
-                className="pill-dark dash-sign-out" style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                className="pill-outline dash-sign-out" aria-expanded={showAccountMenu} style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 Account
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showAccountMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
                   <path d="M6 9l6 6 6-6" />
@@ -1072,23 +1001,47 @@ export default function Dashboard() {
                   <div onClick={() => setShowAccountMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 199 }} />
                   <div style={{
                     position: 'absolute', top: 'calc(100% + 10px)', right: 0, minWidth: '180px',
-                    background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '10px',
-                    boxShadow: '0 12px 40px rgba(0,0,0,0.18)', zIndex: 200, padding: '6px', overflow: 'hidden',
+                    background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)',
+                    boxShadow: 'var(--shadow-overlay)', zIndex: 200, padding: '6px', overflow: 'hidden',
                   }}>
                     {user?.email && (
-                      <div style={{ padding: '8px 10px 9px', fontSize: '11.5px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-subtle)', marginBottom: '4px' }}>
+                      <div style={{ padding: '8px 10px 9px', fontSize: '12px', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: '1px solid var(--hairline-soft)', marginBottom: '4px' }}>
                         {user.email}
                       </div>
                     )}
+                    <button onClick={() => { setShowAccountMenu(false); setTourStep(0) }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: '500', color: 'var(--ink-2)', padding: '10px', borderRadius: 'var(--radius-control)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      Take a tour
+                    </button>
+                    <a href="/about"
+                      style={{ display: 'block', width: '100%', textAlign: 'left', textDecoration: 'none', fontSize: '14px', fontWeight: '500', color: 'var(--ink-2)', padding: '10px', borderRadius: 'var(--radius-control)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      About Clavis
+                    </a>
+                    <button onClick={() => {
+                        setShowAccountMenu(false)
+                        const current = getPointValueOverrides()
+                        setPointDraft(Object.fromEntries(Object.entries(current).map(([k, v]) => [k, String(v)])))
+                        setPointSaveError('')
+                        setShowPointValues(true)
+                      }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: '500', color: 'var(--ink-2)', padding: '10px', borderRadius: 'var(--radius-control)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      Point values
+                    </button>
                     <button onClick={() => { setShowAccountMenu(false); supabase.auth.signOut().then(() => router.push('/auth')) }}
-                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '600', color: 'var(--text-secondary)', padding: '9px 10px', borderRadius: '6px' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: '500', color: 'var(--ink-2)', padding: '10px', borderRadius: 'var(--radius-control)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       Sign out
                     </button>
                     <button onClick={() => { setShowAccountMenu(false); setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteAccountError('') }}
-                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '600', color: 'var(--red)', padding: '9px 10px', borderRadius: '6px' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(217,82,82,0.08)'}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: '500', color: 'var(--loss)', padding: '10px', borderRadius: 'var(--radius-control)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--loss-wash)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       Delete account
                     </button>
@@ -1099,7 +1052,7 @@ export default function Dashboard() {
           </div>
 
           {/* Center links — dashboard tabs (own row on narrow screens, scrollable) */}
-          <div className="dash-nav-tabs" style={{ display: 'flex', alignItems: 'center', gap: '28px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: 0, flex: '1 1 auto', justifyContent: 'center', order: 1 }}>
+          <div className="dash-nav-tabs" role="tablist" style={{ display: 'flex', alignItems: 'flex-end', gap: '24px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: 0, flex: '1 1 100%', order: 3, marginTop: '6px' }}>
             {[
               { key: 'tap',      label: 'Tap' },
               { key: 'wallet',   label: 'Wallet' },
@@ -1108,15 +1061,12 @@ export default function Dashboard() {
               { key: 'insights', label: 'Insights' },
             ].map(({ key, label }) => (
               <button key={key} ref={el => { tourTabRefs.current[key] = el }} onClick={() => setTab(key)}
-                className="mkt-nav-link"
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
-                  whiteSpace: 'nowrap', flexShrink: 0,
-                  color: tab === key ? '#dddde4' : (key === 'insights' && insightCount > 0 ? 'var(--gold)' : undefined),
-                }}>
+                role="tab" aria-selected={tab === key}
+                className={`tab-btn${tab === key ? ' active' : ''}`}
+                style={{ flex: 'none', padding: '10px 0 12px', minHeight: '44px' }}>
                 {label}
                 {key === 'insights' && insightCount > 0 && tab !== key && (
-                  <span style={{ display: 'inline-block', width: '5px', height: '5px', background: '#c9a227', borderRadius: '50%', marginLeft: '5px', verticalAlign: 'middle', marginBottom: '2px' }} />
+                  <span style={{ display: 'inline-block', width: '5px', height: '5px', background: 'var(--ink)', borderRadius: '50%', marginLeft: '5px', verticalAlign: 'middle', marginBottom: '2px' }} />
                 )}
               </button>
             ))}
@@ -1133,10 +1083,10 @@ export default function Dashboard() {
           {/* 0 ── Recurring quick-taps */}
           {recurring.length > 0 && (
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faintest)', marginBottom: '10px' }}>Recurring</div>
+              <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '10px' }}>Recurring</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {recurring.map(r => (
-                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '10px 14px' }}>
+                  <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '10px 14px' }}>
                     <button onClick={() => {
                       setMerchantQuery(r.merchant)
                       const m = searchMerchants(r.merchant)[0]
@@ -1144,11 +1094,11 @@ export default function Dashboard() {
                       else if (r.category) pickCategory(r.category)
                       if (r.card_id) setSelectedCardId(r.card_id)
                     }} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
-                      <div style={{ fontSize: '13.5px', fontWeight: '600', color: 'var(--text-primary)' }}>{r.name}</div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>{r.card_name}{r.category ? ` · ${r.category}` : ''}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{r.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{r.card_name}{r.category ? ` · ${r.category}` : ''}</div>
                     </button>
                     <button onClick={() => deleteRecurring(r.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faintest)', fontSize: '14px', padding: '2px 4px', lineHeight: 1 }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '14px', padding: '2px 4px', lineHeight: 1 }}
                       title="Remove">✕</button>
                   </div>
                 ))}
@@ -1160,17 +1110,17 @@ export default function Dashboard() {
           <div style={{ position: 'relative', marginBottom: '12px' }}>
             <div style={{
               background: 'transparent',
-              borderRadius: '4px',
+              borderRadius: 'var(--radius-container)',
               padding: '14px 18px',
               border: detectedMerchant
-                ? '1px solid rgba(29,184,122,0.4)'
-                : '1px solid var(--border)',
+                ? '1px solid var(--hairline)'
+                : '1px solid var(--hairline)',
               transition: 'border-color 0.2s',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
             }}>
-              <span style={{ fontSize: '12px', fontWeight: '700', letterSpacing: '0.06em', color: 'var(--text-faintest)', flexShrink: 0, textTransform: 'uppercase' }}>
+              <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', flexShrink: 0 }}>
                 {detectedMerchant ? CAT_META[detectedMerchant.category]?.label : 'Merchant'}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -1184,27 +1134,27 @@ export default function Dashboard() {
                     setMerchantSuggestions(searchMerchants(q))
                     if (!q) setDetectedMerchant(null)
                   }}
-                  style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '16px', fontWeight: '500', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+                  style={{ width: '100%', background: 'transparent', border: 'none', fontSize: '16px', fontWeight: '500', color: 'var(--ink)', fontFamily: 'inherit', outline: 'none' }}
                 />
               </div>
               {merchantQuery && (
                 <button
                   onClick={() => { setMerchantQuery(''); setDetectedMerchant(null); setMerchantSuggestions([]); setSelectedCardId(null) }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '14px', flexShrink: 0, lineHeight: 1, padding: '0 2px' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '14px', flexShrink: 0, lineHeight: 1, padding: '0 2px' }}>
                   ×
                 </button>
               )}
             </div>
             {merchantSuggestions.length > 0 && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 200, overflow: 'hidden', maxHeight: '260px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderTop: 'none', borderRadius: '0 0 var(--radius-control) var(--radius-control)', zIndex: 200, overflow: 'hidden', maxHeight: '260px', overflowY: 'auto', boxShadow: 'var(--shadow-overlay)' }}>
                 {merchantSuggestions.map(m => (
                   <div key={m.name}
                     onClick={() => { pickCategory(m.category); setMerchantQuery(m.name); setDetectedMerchant(m); setMerchantSuggestions([]) }}
-                    style={{ padding: '11px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                    style={{ padding: '11px 14px', fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--hairline-soft)', transition: 'background 0.1s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                    <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{m.name}</span>
-                    <span style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '9999px' }}>{CAT_META[m.category]?.label}</span>
+                    <span style={{ fontWeight: '500', color: 'var(--ink)' }}>{m.name}</span>
+                    <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink-2)', border: '1px solid var(--hairline-soft)', padding: '2px 8px', borderRadius: 'var(--radius-control)' }}>{CAT_META[m.category]?.label}</span>
                   </div>
                 ))}
               </div>
@@ -1220,29 +1170,21 @@ export default function Dashboard() {
               value={tapNote}
               maxLength={150}
               onChange={e => setTapNote(e.target.value)}
-              style={{ resize: 'none', lineHeight: '1.5', fontSize: '13px', paddingTop: '9px', paddingBottom: '9px', overflow: 'hidden' }}
+              style={{ resize: 'none', lineHeight: '1.5', fontSize: '14px', paddingTop: '9px', paddingBottom: '9px', overflow: 'hidden' }}
               onInput={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
             />
             {tapNote.length > 0 && (
-              <div style={{ textAlign: 'right', fontSize: '11px', color: tapNote.length >= 140 ? 'var(--red)' : 'var(--text-faintest)', marginTop: '4px' }}>
+              <div style={{ textAlign: 'right', fontSize: '12px', color: tapNote.length >= 140 ? 'var(--loss)' : 'var(--muted)', marginTop: '4px' }}>
                 {tapNote.length}/150
               </div>
             )}
           </div>
 
-          {/* 2 ── Category selector */}
-          <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '20px', paddingBottom: '2px', scrollbarWidth: 'none' }}>
+          {/* 2 ── Category selector: one segmented control instead of pill chips */}
+          <div role="radiogroup" aria-label="Spending category" className="segmented" style={{ marginBottom: '20px' }}>
             {CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => pickCategory(cat)}
-                style={{
-                  flexShrink: 0, padding: '8px 17px',
-                  borderRadius: '9999px',
-                  border: selectedCat === cat ? '1px solid rgba(201,162,39,0.5)' : '1px solid var(--border-subtle)',
-                  background: selectedCat === cat ? 'rgba(201,162,39,0.1)' : 'transparent',
-                  color: selectedCat === cat ? '#c9a227' : 'var(--text-muted)',
-                  fontSize: '12px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase',
-                  cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
-                }}>
+              <button key={cat} role="radio" aria-checked={selectedCat === cat} onClick={() => pickCategory(cat)}
+                className={`segmented-item${selectedCat === cat ? ' is-active' : ''}`}>
                 {CAT_META[cat].label}
               </button>
             ))}
@@ -1250,7 +1192,7 @@ export default function Dashboard() {
 
           {/* 3 ── Hero card */}
           {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontSize: '13px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}>
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--muted)', fontSize: '14px', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)' }}>
               No cards yet — add one in Wallet.
             </div>
           ) : (() => {
@@ -1268,66 +1210,84 @@ export default function Dashboard() {
               : null
 
             return (
-              <div style={{ border: '1px solid var(--border)', borderRadius: '4px', marginBottom: '10px', overflow: 'hidden' }}>
+              <div style={{
+                border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', marginBottom: '10px', overflow: 'hidden',
+                // The single accent moment on this screen: Clavis's own pick
+                boxShadow: label === 'Recommended' ? 'inset 3px 0 0 var(--accent)' : 'none',
+              }}>
                 {/* Card header row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <CardArt name={activeCard?.name || ''} style={{ width: '60px', height: '40px', flexShrink: 0 }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px', borderBottom: '1px solid var(--hairline-soft)' }}>
+                  <CardArt name={activeCard?.name || ''} size="md" />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '10.5px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '500', color: label === 'Recommended' ? 'var(--accent-ink)' : 'var(--ink-2)', marginBottom: '4px' }}>
                       {label}
                     </div>
-                    <div style={{ fontSize: '18px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {activeCard?.name || '—'}
                     </div>
                     {activeCard?.last_four && (
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px', letterSpacing: '0.1em', fontVariantNumeric: 'tabular-nums' }}>
                         •••• {activeCard.last_four}
                       </div>
                     )}
                   </div>
                   {selectedCardId && (
                     <button onClick={() => setSelectedCardId(null)}
-                      style={{ fontSize: '10.5px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: '9999px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
                       Auto
                     </button>
                   )}
                 </div>
                 {/* Rate row */}
-                <div style={{ padding: '20px 20px 22px', background: 'var(--bg-elevated)' }}>
+                <div style={{ padding: '20px 20px 22px', background: 'var(--sunken)' }}>
                   {isGift ? (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                      <span style={{ fontSize: '46px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                        ${(activeCard.balance || 0).toFixed(2)}
+                      <span style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                        {money(activeCard.balance || 0)}
                       </span>
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>remaining</span>
+                      <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: '500' }}>remaining</span>
                     </div>
                   ) : isDebit ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-muted)' }}>No rewards</span>
-                      <span style={{ fontSize: '12px', color: 'var(--text-faintest)' }}>Debit cards don't earn points or cash back</span>
+                      <span style={{ fontSize: '16px', fontWeight: '600', color: 'var(--muted)' }}>No rewards</span>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Debit cards don't earn points or cash back</span>
                     </div>
                   ) : (
                     <div>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-                          <span style={{ fontSize: '46px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                          <span style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                             {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1×'}
                           </span>
                           {valuePer && mult > 0 && (
-                            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{valuePer}</span>
+                            <span style={{ fontSize: '14px', color: 'var(--ink-2)', fontWeight: '500' }}>
+                              {valuePer}
+                              {valuationNote(activeCard) && <span style={{ color: 'var(--muted)', fontWeight: '400' }}> · {valuationNote(activeCard)}</span>}
+                            </span>
                           )}
                         </div>
                         {estimatedOnAmt > 0 && (
-                          <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
-                            +${estimatedOnAmt.toFixed(2)}
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--gain)', fontVariantNumeric: 'tabular-nums' }}>
+                            {money(estimatedOnAmt, { sign: true })}
                           </span>
                         )}
                       </div>
+                      {(() => {
+                        // This rate only applies when booked a certain way: say how, and what it earns otherwise
+                        const req = activeCard && mult > 0 ? bookingRequirement(activeCard.name, selectedCat, mult) : null
+                        if (!req) return null
+                        return (
+                          <div role="note" style={{ marginTop: '12px', fontSize: '14px', color: 'var(--ink)', background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '10px 12px', lineHeight: 1.45 }}>
+                            <strong style={{ fontWeight: '600' }}>{req.how}</strong> to earn {mult}x.
+                            <span style={{ color: 'var(--ink-2)' }}> Otherwise {req.base}x.</span>
+                          </div>
+                        )
+                      })()}
                       {portalTip && dismissedPortalTip !== portalTip && (
-                        <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-secondary)', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '8px 12px', lineHeight: '1.5', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--ink-2)', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '8px 12px', lineHeight: '1.5', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                           <span style={{ flex: 1 }}>💡 {portalTip}</span>
                           <button onClick={() => setDismissedPortalTip(portalTip)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faintest)', fontSize: '13px', padding: 0, lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>✕</button>
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: '14px', padding: 0, lineHeight: 1, flexShrink: 0, marginTop: '1px' }}>✕</button>
                         </div>
                       )}
                     </div>
@@ -1339,30 +1299,49 @@ export default function Dashboard() {
 
           {/* 4 ── Tap button */}
           <button className="btn-primary" onClick={simulateTap} disabled={!activeCard} style={{ marginBottom: '8px' }}>
-            ◉ &nbsp;Tap Clavis
+            Log purchase
           </button>
 
           {/* 5 ── Amount input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '13px 16px', marginBottom: '8px' }}>
-            <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
-            <span style={{ fontSize: '15px', color: 'var(--text-muted)', fontWeight: '600' }}>$</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '13px 16px', marginBottom: '8px' }}>
+            <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: '500', flexShrink: 0 }}>Amount</span>
+            <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: '600' }}>$</span>
             <input type="number" min="0" placeholder="0.00" value={selectedAmt || ''}
               onChange={e => setSelectedAmt(parseFloat(e.target.value) || 0)}
-              style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--text-primary)', fontSize: '17px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
+              style={{ flex: 1, background: 'transparent', border: 'none', color: 'var(--ink)', fontSize: '16px', fontWeight: '600', fontFamily: 'inherit', outline: 'none' }} />
             {selectedAmt > 0 && (
-              <button onClick={() => setSelectedAmt(0)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '14px', padding: '0 2px' }}>✕</button>
+              <button onClick={() => setSelectedAmt(0)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '14px', padding: '0 2px' }}>✕</button>
             )}
           </div>
 
-          {/* 6 ── See all cards */}
-          {cards.length > 1 && (
-            <button onClick={() => setShowRankings(true)}
-              style={{ width: '100%', background: 'none', border: 'none', fontSize: '10px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faintest)', cursor: 'pointer', padding: '8px', transition: 'color 0.15s', fontFamily: 'inherit' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
-              View all {cards.length} cards →
-            </button>
-          )}
+          {/* 6 ── Runner-up cards: the list that slides when the merchant or category changes */}
+          {cards.length > 1 && (() => {
+            const others = rankedCards.filter(r => r.card.id !== getActiveCard()?.id).slice(0, 3)
+            return (
+              <div style={{ marginTop: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '4px' }}>Next best</div>
+                <div className="card" style={{ padding: '0 16px' }}>
+                  {others.map((r, i) => (
+                    <div key={r.card.id} ref={runnerRef(r.card.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: i < others.length - 1 ? '1px solid var(--hairline-soft)' : 'none', background: 'var(--surface)' }}>
+                      <CardArt name={r.card.name} size="sm" />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: '14px', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.card.name}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)', flexShrink: 0 }}>
+                        {formatRate(r.card, getMultiplier(r.card)) || 'no bonus'}
+                        {bookingRequirement(r.card.name, selectedCat, getMultiplier(r.card)) && <span title={bookingRequirement(r.card.name, selectedCat, getMultiplier(r.card)).how}> · booking rules</span>}
+                      </span>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--ink)', minWidth: '64px', textAlign: 'right', flexShrink: 0, ...NUM }}>
+                        {selectedAmt > 0 ? money(r.dollarVal * selectedAmt) : `${centsPerDollar(r.dollarVal)}/$`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn-ghost" onClick={() => setShowRankings(true)} style={{ width: '100%', marginTop: '4px' }}>
+                  See why · all {cards.length} cards
+                </button>
+              </div>
+            )
+          })()}
 
           {tapConfirm && (
             <div className="success" style={{ marginTop: '10px', textAlign: 'center' }}>{tapConfirm}</div>
@@ -1372,15 +1351,15 @@ export default function Dashboard() {
           )}
 
           {showSaveRecurring && (
-            <div style={{ marginTop: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', flex: 1, minWidth: '120px' }}>Save <strong style={{ color: 'var(--text-primary)' }}>{recurringName}</strong> as a recurring purchase?</span>
+            <div style={{ marginTop: '10px', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '14px', color: 'var(--ink-2)', flex: 1, minWidth: '120px' }}>Save <strong style={{ color: 'var(--ink)' }}>{recurringName}</strong> as a recurring purchase?</span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button onClick={handleSaveRecurring}
-                  style={{ fontSize: '11.5px', fontWeight: '700', padding: '6px 14px', background: 'var(--text-primary)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ fontSize: '12px', fontWeight: '600', padding: '6px 14px', background: 'var(--ink)', color: 'var(--surface)', border: 'none', borderRadius: 'var(--radius-control)', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Save
                 </button>
                 <button onClick={() => setShowSaveRecurring(false)}
-                  style={{ fontSize: '11.5px', fontWeight: '600', padding: '6px 12px', background: 'none', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ fontSize: '12px', fontWeight: '600', padding: '6px 12px', background: 'none', color: 'var(--muted)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', cursor: 'pointer', fontFamily: 'inherit' }}>
                   No thanks
                 </button>
               </div>
@@ -1388,20 +1367,20 @@ export default function Dashboard() {
           )}
 
           {missedInsight && (
-            <div style={{ marginTop: '8px', background: 'rgba(180,83,9,0.08)', border: '1px solid rgba(180,83,9,0.28)', borderRadius: '4px', padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{ marginTop: '8px', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
               <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--orange)', marginBottom: '2px' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '2px' }}>
                   {missedInsight.missedOnAmt
-                    ? `$${missedInsight.missedOnAmt.toFixed(2)} more with ${missedInsight.cardName}`
+                    ? `${money(missedInsight.missedOnAmt)} more with ${missedInsight.cardName}`
                     : `${missedInsight.missedPerDollar}¢/$ more with ${missedInsight.cardName}`}
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
                   {missedInsight.cardName} earns {missedInsight.rate} here
                   {missedInsight.missedOnAmt ? ` · ${missedInsight.missedPerDollar}¢ more per dollar` : ''}
                 </div>
               </div>
-              <button onClick={() => setMissedInsight(null)} style={{ background: 'none', border: 'none', color: 'var(--text-faintest)', cursor: 'pointer', fontSize: '14px', padding: '0', flexShrink: 0 }}>✕</button>
+              <button onClick={() => setMissedInsight(null)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '14px', padding: '0', flexShrink: 0 }}>✕</button>
             </div>
           )}
         </div>
@@ -1414,17 +1393,22 @@ export default function Dashboard() {
             const totalFees = cards.reduce((s, c) => s + (c.annual_fee || 0), 0)
             const totalPerksVal = cards.flatMap(c => c.perks || []).reduce((s, p) => s + (p.used_amount || 0), 0)
             const totalTapVal = taps.reduce((s, t) => s + (t.estimated_value || 0), 0)
-            const netValue = totalPerksVal + totalTapVal - totalFees
+            // Fees are a cost you chose, not a loss: show them next to what you've
+            // captured and what's still available, instead of one net figure that
+            // starts every new user deep in the red
+            const capturedValue = totalPerksVal + totalTapVal
+            const unusedCredits = cards.flatMap(c => c.perks || []).reduce((s, p) => s + Math.max(0, (p.total_amount || 0) - (p.used_amount || 0)), 0)
             return (
-              <div data-reveal style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
+              <div className="stat-grid-3" style={{ marginBottom: '1.5rem' }}>
                 {[
-                  { label: 'Cards', value: cards.length, color: 'var(--text-primary)' },
-                  { label: 'Annual fees', value: totalFees > 0 ? `$${totalFees.toFixed(0)}` : '$0', color: totalFees > 0 ? 'var(--red)' : 'var(--text-faintest)' },
-                  { label: 'Net value', value: `${netValue >= 0 ? '+' : ''}$${netValue.toFixed(0)}`, color: netValue >= 0 ? 'var(--green)' : 'var(--red)' },
+                  { label: 'Annual fees', sub: `${cards.length} card${cards.length !== 1 ? 's' : ''}`, value: moneyWhole(totalFees), color: 'var(--ink)' },
+                  { label: 'Captured so far', sub: 'credits used + rewards', value: moneyWhole(capturedValue), color: capturedValue > 0 ? 'var(--gain)' : 'var(--ink)' },
+                  { label: 'Credits still available', sub: 'resets on schedule', value: moneyWhole(unusedCredits), color: 'var(--ink)' },
                 ].map(m => (
-                  <div key={m.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '18px 12px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px', fontWeight: '700', color: m.color, marginBottom: '5px' }}>{m.value}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>{m.label}</div>
+                  <div key={m.label} style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '18px 12px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '28px', fontWeight: '600', color: m.color, marginBottom: '5px' }}>{m.value}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--ink-2)', fontWeight: '500' }}>{m.label}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{m.sub}</div>
                   </div>
                 ))}
               </div>
@@ -1432,32 +1416,32 @@ export default function Dashboard() {
           })()}
 
           {feeUpdates.length > 0 && !feeSyncDismissed && (
-            <div style={{ marginBottom: '1.25rem', border: '1px solid rgba(37,99,235,0.18)', background: 'rgba(37,99,235,0.05)', borderRadius: '8px', padding: '14px 16px' }}>
+            <div style={{ marginBottom: '1.25rem', border: '1px solid var(--hairline)', background: 'var(--sunken)', borderRadius: 'var(--radius-container)', padding: '14px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '600' }}>
+                <div style={{ fontSize: '14px', color: 'var(--ink)', fontWeight: '600' }}>
                   ✦ {feeUpdates.length === 1 ? 'An annual fee has' : `${feeUpdates.length} annual fees have`} changed since you added {feeUpdates.length === 1 ? 'this card' : 'these cards'}
                 </div>
-                <button onClick={() => setFeeSyncDismissed(true)} style={{ background: 'none', border: 'none', color: 'var(--text-faintest)', cursor: 'pointer', fontSize: '14px', padding: 0, flexShrink: 0 }}>✕</button>
+                <button onClick={() => setFeeSyncDismissed(true)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '14px', padding: 0, flexShrink: 0 }}>✕</button>
               </div>
               <div style={{ marginBottom: '12px' }}>
                 {feeUpdates.map(u => (
-                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', padding: '4px 0' }}>
-                    <span>{u.name} — ${u.oldFee}/yr → <strong style={{ color: 'var(--text-primary)' }}>${u.newFee}/yr</strong></span>
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '14px', color: 'var(--ink-2)', padding: '4px 0' }}>
+                    <span>{u.name} — {moneyWhole(u.oldFee)}/yr → <strong style={{ color: 'var(--ink)' }}>{moneyWhole(u.newFee)}/yr</strong></span>
                     <button onClick={() => syncOneFee(u)} disabled={syncingFees}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--blue)', padding: '2px 6px', flexShrink: 0 }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--ink)', padding: '2px 6px', flexShrink: 0 }}>
                       Update
                     </button>
                   </div>
                 ))}
               </div>
-              <button className="btn-primary" onClick={syncAllFees} disabled={syncingFees} style={{ width: 'auto', padding: '9px 16px', fontSize: '13px' }}>
+              <button className="btn-primary" onClick={syncAllFees} disabled={syncingFees} style={{ width: 'auto', padding: '9px 16px', fontSize: '14px' }}>
                 {syncingFees ? 'Syncing…' : `Update all ${feeUpdates.length === 1 ? '' : feeUpdates.length}`.trim()}
               </button>
             </div>
           )}
 
           {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '14px', marginBottom: '1rem' }}>No cards yet. Add your first one below.</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)', fontSize: '14px', marginBottom: '1rem' }}>No cards yet. Add your first one below.</div>
           ) : (
             <div style={{ marginBottom: '1.5rem' }}>
               {cards.map(card => {
@@ -1485,106 +1469,99 @@ export default function Dashboard() {
                 const isPaidOff = fee > 0 && roiPct >= 100
 
                 return (
-                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: '4px', border: isPaidOff ? '1.5px solid rgba(29,184,122,0.3)' : '1px solid var(--border-subtle)', background: isPaidOff ? 'rgba(15,155,101,0.04)' : 'var(--bg-card)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
+                  <div key={card.id} style={{ marginBottom: '8px', borderRadius: 'var(--radius-container)', border: isPaidOff ? '1.5px solid var(--hairline)' : '1px solid var(--hairline-soft)', background: isPaidOff ? 'var(--gain-wash)' : 'var(--surface)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '17px 16px', cursor: fee > 0 ? 'pointer' : 'default' }}
                       onClick={() => fee > 0 && setExpandedRoiId(isExpanded ? null : card.id)}>
-                      <CardArt name={card.name} style={{ width: '54px', height: '36px', flexShrink: 0 }} />
+                      <CardArt name={card.name} size="sm" />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          {card.type}{fee > 0 ? ` · $${fee}/yr fee` : ''}
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+                          {card.type}{fee > 0 ? ` · ${moneyWhole(fee)}/yr fee` : ''}
                         </div>
                       </div>
                       {fee > 0 ? (
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           {isPaidOff ? (
-                            <div style={{ fontSize: '12.5px', fontWeight: '700', color: 'var(--green)', background: 'rgba(29,184,122,0.15)', borderRadius: '9999px', padding: '4px 11px' }}>✓ Paid off</div>
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--gain)', background: 'var(--gain-wash)', borderRadius: 'var(--radius-control)', padding: '4px 11px' }}>✓ Paid off</div>
                           ) : (
                             <>
-                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
-                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
+                              <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
+                              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '1px', ...NUM }}>{moneyWhole(remaining)} to go</div>
                             </>
                           )}
                         </div>
                       ) : (
-                        <div style={{ fontSize: '12px', color: 'var(--text-faintest)', padding: '0 4px' }}>no fee</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', padding: '0 4px' }}>no fee</div>
                       )}
                     </div>
 
                     {fee > 0 && (
                       <div style={{ padding: '0 14px', marginBottom: isExpanded ? '0' : '12px' }}>
-                        <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? 'var(--green)' : roiPct > 60 ? 'var(--gold)' : 'rgba(201,162,39,0.45)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
+                        <div style={{ height: '4px', background: 'var(--sunken)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '4px', borderRadius: '3px', width: roiPct + '%', background: isPaidOff ? 'var(--gain)' : roiPct > 60 ? 'var(--ink)' : 'var(--muted)', transition: 'width 0.5s cubic-bezier(0.16,1,0.3,1)' }} />
                         </div>
                         {!isExpanded && breakEvenLabel && (
-                          <div style={{ fontSize: '10px', color: 'var(--text-faintest)', marginTop: '5px', marginBottom: '2px' }}>{breakEvenLabel}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '5px', marginBottom: '2px' }}>{breakEvenLabel}</div>
                         )}
                       </div>
                     )}
 
                     {fee > 0 && isExpanded && (
-                      <div style={{ margin: '0 14px 14px', background: 'var(--bg-elevated)', borderRadius: '4px', padding: '12px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ margin: '0 14px 14px', background: 'var(--sunken)', borderRadius: 'var(--radius-container)', padding: '12px', border: '1px solid var(--hairline-soft)' }}>
                         {[
-                          { label: 'Perks captured', value: perksValue, color: 'var(--blue)' },
-                          { label: 'Tap rewards', value: tapValue, color: 'var(--green)' },
+                          { label: 'Perks captured', value: perksValue, color: 'var(--ink)' },
+                          { label: 'Tap rewards', value: tapValue, color: 'var(--gain)' },
                         ].map(row => (
                           <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                               <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: row.color, flexShrink: 0 }} />
-                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{row.label}</span>
+                              <span style={{ fontSize: '12px', color: 'var(--ink-2)' }}>{row.label}</span>
                             </div>
-                            <span style={{ fontSize: '13px', fontWeight: '600', color: row.value > 0 ? row.color : 'var(--text-faintest)' }}>
-                              {row.value > 0 ? `+$${row.value.toFixed(2)}` : '—'}
+                            <span style={{ fontSize: '14px', fontWeight: '600', color: row.value > 0 ? row.color : 'var(--muted)' }}>
+                              {row.value > 0 ? money(row.value, { sign: true }) : '—'}
                             </span>
                           </div>
                         ))}
-                        <div style={{ height: '1px', background: 'var(--bg-elevated)', margin: '8px 0' }} />
+                        <div style={{ height: '1px', background: 'var(--sunken)', margin: '8px 0' }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
-                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Annual fee</span>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--red)' }}>−${fee.toFixed(2)}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--ink-2)' }}>Annual fee</span>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--loss)', ...NUM }}>{money(-fee)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
-                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>Net value</span>
-                          <span style={{ fontSize: '14px', fontWeight: '700', color: totalValue >= fee ? 'var(--green)' : 'var(--gold)', letterSpacing: '-0.02em' }}>
-                            {totalValue >= fee ? '+' : ''}${(totalValue - fee).toFixed(2)}
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)' }}>Net so far</span>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: totalValue >= fee ? 'var(--gain)' : 'var(--ink)', letterSpacing: '-0.02em', ...NUM }}>
+                            {money(totalValue - fee, { sign: true })}
                           </span>
                         </div>
                         {breakEvenLabel && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '4px', fontSize: '11px', color: '#c9a227', fontWeight: '500' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', fontSize: '12px', color: 'var(--ink)', fontWeight: '500' }}>
                             — {breakEvenLabel}
                           </div>
                         )}
                         {isPaidOff && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(15,155,101,0.08)', border: '1px solid rgba(15,155,101,0.25)', borderRadius: '4px', fontSize: '11px', color: 'var(--green)', fontWeight: '600' }}>
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'var(--gain-wash)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', fontSize: '12px', color: 'var(--gain)', fontWeight: '600' }}>
                             ✓ This card has fully paid for its annual fee
                           </div>
                         )}
                         {!isPaidOff && tapValue === 0 && perksValue === 0 && (
-                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'rgba(217,82,82,0.08)', border: '1px solid rgba(217,82,82,0.2)', borderRadius: '4px', fontSize: '11px', color: 'var(--red)', fontWeight: '500' }}>
-                            No value captured yet — use Smart Tap or mark perks used
+                          <div style={{ marginTop: '8px', padding: '7px 10px', background: 'var(--loss-wash)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', fontSize: '12px', color: 'var(--loss)', fontWeight: '500' }}>
+                            Nothing captured yet. Log a purchase or mark a credit used.
                           </div>
                         )}
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '5px', padding: '0 14px 14px' }}>
-                      <button onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}
-                        style={{ flex: 1, padding: '6px 4px', fontSize: '11px', border: '1px solid var(--border)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}>
-                        + perk
+                    {/* Quiet actions: one row of text buttons, 40px targets */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', padding: '0 8px 8px' }}>
+                      <button className="btn-ghost" onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}>
+                        Add credit
                       </button>
-                      <button onClick={() => openEditCard(card)}
-                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid var(--border)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' }}>
-                        edit
+                      <button className="btn-ghost" onClick={() => openEditCard(card)}>
+                        Edit
                       </button>
-                      <button onClick={() => deleteCard(card.id).then(loadCards)}
-                        style={{ padding: '6px 9px', fontSize: '11px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--red)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
-                        ×
+                      <button className="btn-ghost btn-ghost-danger" aria-label={`Remove ${card.name}`}
+                        onClick={() => { if (window.confirm(`Remove ${card.name}? Its credits are removed too.`)) deleteCard(card.id).then(loadCards) }}>
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -1596,8 +1573,8 @@ export default function Dashboard() {
           <button className="btn-primary" onClick={() => setShowAddCard(true)}>+ Add card</button>
 
           {showAddCard && (
-            <div data-reveal style={{ marginTop: '14px', background: 'var(--bg-card)', borderRadius: '4px', padding: '1.25rem', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '1.125rem' }}>Add a card</div>
+            <div style={{ marginTop: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-container)', padding: '1.25rem', border: '1px solid var(--hairline)' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '1.125rem' }}>Add a card</div>
 
               <div style={{ marginBottom: '12px' }}>
                 <label className="label">Card name</label>
@@ -1611,26 +1588,26 @@ export default function Dashboard() {
                     onBlur={() => setTimeout(() => setCardCatalogSuggestions([]), 150)}
                   />
                   {fetchingCardData && (
-                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: 'var(--text-muted)' }}>
+                    <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: 'var(--muted)' }}>
                       Looking up...
                     </div>
                   )}
                   {cardCatalogSuggestions.length > 0 && (
-                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, overflow: 'hidden' }}>
-                      <div style={{ fontSize: '10px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-faintest)', padding: '8px 12px 4px' }}>From card database</div>
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', boxShadow: 'var(--shadow-overlay)', zIndex: 50, overflow: 'hidden' }}>
+                      <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', padding: '8px 12px 4px' }}>From card database</div>
                       {cardCatalogSuggestions.map((c, i) => (
                         <div key={i}
                           onMouseDown={() => {
                             handleNewCardNameChange(c.name)
                             setCardCatalogSuggestions([])
                           }}
-                          style={{ padding: '9px 12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                          style={{ padding: '9px 12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--hairline-soft)', transition: 'background 0.1s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{c.name}</span>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{c.name}</span>
                           {c.annualFee > 0
-                            ? <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>${c.annualFee}/yr</span>
-                            : <span style={{ fontSize: '11px', color: 'var(--green)' }}>No annual fee</span>
+                            ? <span style={{ fontSize: '12px', color: 'var(--muted)' }}>{moneyWhole(c.annualFee)}/yr</span>
+                            : <span style={{ fontSize: '12px', color: 'var(--muted)' }}>No annual fee</span>
                           }
                         </div>
                       ))}
@@ -1650,7 +1627,7 @@ export default function Dashboard() {
                 </select>
               </div>
 
-              {newCard.name && <div style={{ marginBottom: '12px' }}><CardArt name={newCard.name} style={{ height: '64px' }} /></div>}
+              {newCard.name && <div style={{ marginBottom: '12px' }}><CardArt name={newCard.name} lastFour={newCard.last_four} style={{ height: '72px' }} /></div>}
 
               {newCard.type === 'gift' && (
                 <>
@@ -1672,19 +1649,19 @@ export default function Dashboard() {
                       }}
                     />
                     {giftMerchantSuggestions.length > 0 && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 4px 4px', zIndex: 200, overflow: 'hidden', maxHeight: '260px', overflowY: 'auto', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--hairline)', borderTop: 'none', borderRadius: '0 0 var(--radius-control) var(--radius-control)', zIndex: 200, overflow: 'hidden', maxHeight: '260px', overflowY: 'auto', boxShadow: 'var(--shadow-overlay)' }}>
                         {giftMerchantSuggestions.map(m => (
                           <div key={m.name}
                             onClick={() => { setNewCard(prev => ({ ...prev, merchant: m.name })); setGiftMerchantSuggestions([]) }}
-                            style={{ padding: '10px 14px', fontSize: '13px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.1s' }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                            style={{ padding: '10px 14px', fontSize: '14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--hairline-soft)', transition: 'background 0.1s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{m.name}</span>
+                            <span style={{ fontWeight: '500', color: 'var(--ink)' }}>{m.name}</span>
                           </div>
                         ))}
                       </div>
                     )}
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '5px' }}>When you type this merchant at checkout, the gift card will always be picked first.</p>
+                    <p style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '5px' }}>Picked first when you shop here.</p>
                   </div>
                 </>
               )}
@@ -1717,7 +1694,7 @@ export default function Dashboard() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                         <label className="label" style={{ margin: 0 }}>Rewards unit</label>
                         <button onClick={() => setShowRewardsInfo(v => !v)}
-                          style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '9999px', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', padding: 0, fontFamily: 'inherit', flexShrink: 0 }}>
+                          style={{ background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: 'var(--muted)', padding: 0, fontFamily: 'inherit', flexShrink: 0 }}>
                           ?
                         </button>
                       </div>
@@ -1730,20 +1707,20 @@ export default function Dashboard() {
                   </div>
 
                   {showRewardsInfo && (
-                    <div style={{ marginBottom: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '8px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px' }}>What's the difference?</div>
+                    <div style={{ marginBottom: '12px', background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '10px' }}>What's the difference?</div>
                       {[
-                        { label: 'Cash back', color: 'var(--green)', desc: 'A percentage of your purchase returned as real money. Simple and always worth the same — 1.5% back on a $100 purchase = $1.50. Examples: Chase Freedom Unlimited, Citi Double Cash.' },
-                        { label: 'Points', color: 'var(--purple)', desc: 'A currency issued by your bank (Chase Ultimate Rewards, Amex Membership Rewards, etc.). Worth 1¢ each if redeemed for cash, but can be worth 1.5–2¢+ when transferred to airlines or hotels. Examples: Chase Sapphire, Amex Gold.' },
-                        { label: 'Miles', color: 'var(--blue)', desc: 'Similar to points but typically tied to a specific airline or travel program. Value depends on how you redeem — flights usually beat cash. Examples: Delta SkyMiles, United MileagePlus, Capital One Venture.' },
+                        { label: 'Cash back', color: 'var(--ink)', desc: 'Money back. 1.5% on $100 = $1.50. Freedom Unlimited, Double Cash.' },
+                        { label: 'Points', color: 'var(--ink)', desc: 'Bank points. About 1¢ each as cash, more via travel partners. Sapphire, Amex Gold.' },
+                        { label: 'Miles', color: 'var(--ink)', desc: 'Travel points. Worth most on flights. SkyMiles, MileagePlus, Venture.' },
                       ].map(({ label, color, desc }) => (
                         <div key={label} style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color, minWidth: '60px', paddingTop: '1px' }}>{label}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>{desc}</div>
+                          <div style={{ fontSize: '12px', fontWeight: '600', color, minWidth: '60px', paddingTop: '1px' }}>{label}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--ink-2)', lineHeight: '1.6' }}>{desc}</div>
                         </div>
                       ))}
-                      <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)', fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-                        <strong style={{ color: 'var(--text-primary)' }}>Not sure?</strong> Check your card's rewards page or the back of your statement — it'll say "% cash back" or "X points per dollar."
+                      <div style={{ marginTop: '4px', paddingTop: '10px', borderTop: '1px solid var(--hairline-soft)', fontSize: '12px', color: 'var(--muted)', lineHeight: '1.5' }}>
+                        <strong style={{ color: 'var(--ink)' }}>Not sure?</strong> Check your card's rewards page or the back of your statement — it'll say "% cash back" or "X points per dollar."
                       </div>
                     </div>
                   )}
@@ -1755,25 +1732,25 @@ export default function Dashboard() {
 
                   <div style={{ marginBottom: '16px' }}>
                     <label className="label">Rewards rate</label>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', lineHeight: '1.5' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '10px', lineHeight: '1.5' }}>
                       Cash back: enter % (e.g. 1.5). Points: enter multiplier (e.g. 3 for 3x).
                     </div>
                     {newCard._suggestion && (
-                      <div style={{ marginBottom: '10px', fontSize: '12px', color: newCard._aiSuggestion ? 'var(--gold)' : 'var(--blue)', background: newCard._aiSuggestion ? 'rgba(201,162,39,0.08)' : 'rgba(37,99,235,0.06)', border: `1px solid ${newCard._aiSuggestion ? 'rgba(201,162,39,0.2)' : 'rgba(37,99,235,0.15)'}`, borderRadius: '4px', padding: '8px 12px' }}>
+                      <div style={{ marginBottom: '10px', fontSize: '12px', color: newCard._aiSuggestion ? 'var(--ink)' : 'var(--ink)', background: newCard._aiSuggestion ? 'var(--sunken)' : 'var(--sunken)', border: `1px solid ${newCard._aiSuggestion ? 'var(--hairline)' : 'var(--hairline)'}`, borderRadius: 'var(--radius-container)', padding: '8px 12px' }}>
                         {newCard._aiSuggestion ? '✦ AI-populated' : `✦ Rates${newCard._feeAutoFilled ? ' and annual fee' : ''} auto-filled`} — {newCard._suggestion}
                       </div>
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '10px 12px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', flexShrink: 0 }}>Apply to all categories</span>
-                      <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '5px 8px', fontSize: '13px', flex: 1 }}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '10px 12px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--ink-2)', flexShrink: 0 }}>Apply to all categories</span>
+                      <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '5px 8px', fontSize: '14px', flex: 1 }}
                         onChange={e => { const val = e.target.value; const filled = {}; CATEGORIES.forEach(cat => { filled[cat] = val }); setNewCard({ ...newCard, multipliers: filled }) }} />
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginBottom: '8px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Or per category:</div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '8px', fontWeight: '500' }}>Or per category:</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                       {CATEGORIES.map(cat => (
                         <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
-                          <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 8px', fontSize: '13px' }}
+                          <span style={{ fontSize: '12px', color: 'var(--ink-2)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                          <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 8px', fontSize: '14px' }}
                             value={newCard.multipliers[cat]} onChange={e => setNewCard({ ...newCard, multipliers: { ...newCard.multipliers, [cat]: e.target.value } })} />
                         </div>
                       ))}
@@ -1790,11 +1767,11 @@ export default function Dashboard() {
           )}
 
           {showAddPerk && (
-            <div data-reveal style={{ marginTop: '14px', background: 'var(--bg-card)', borderRadius: '4px', padding: '1.25rem', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>Add a perk</div>
+            <div style={{ marginTop: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-container)', padding: '1.25rem', border: '1px solid var(--hairline)' }}>
+              <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Add a perk</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.125rem' }}>
-                <CardArt name={cards.find(c => c.id === addingToCardId)?.name || ''} style={{ width: '28px', height: '20px', flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>{cards.find(c => c.id === addingToCardId)?.name}</span>
+                <CardArt name={cards.find(c => c.id === addingToCardId)?.name || ''} size="sm" />
+                <span style={{ fontSize: '14px', color: 'var(--ink-2)', fontWeight: '500' }}>{cards.find(c => c.id === addingToCardId)?.name}</span>
               </div>
               <div style={{ marginBottom: '12px' }}>
                 <label className="label">Perk name</label>
@@ -1820,10 +1797,20 @@ export default function Dashboard() {
                     <option value="annual">Annual</option>
                   </select>
                 </div>
-                <div>
-                  <label className="label">Expiry / reset date</label>
-                  <input className="input" type="date" value={newPerk.resets_at} onChange={e => setNewPerk({ ...newPerk, resets_at: e.target.value })} />
-                </div>
+                {newPerk.period === 'annual' ? (
+                  <div>
+                    <label className="label">Resets on</label>
+                    <select className="input" value={newPerk.resets_on} onChange={e => setNewPerk({ ...newPerk, resets_on: e.target.value })}>
+                      <option value="calendar">Dec 31 each year</option>
+                      <option value="anniversary">Card anniversary</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="label">Reset date (optional)</label>
+                    <input className="input" type="date" value={newPerk.resets_at} onChange={e => setNewPerk({ ...newPerk, resets_at: e.target.value })} />
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button className="btn-primary" onClick={handleAddPerk}>Save perk</button>
@@ -1838,7 +1825,7 @@ export default function Dashboard() {
       {tab === 'perks' && (
         <div>
           {expiringPerks.length > 0 && (
-            <div data-reveal style={{ background: 'rgba(180,83,9,0.08)', border: '1px solid rgba(180,83,9,0.3)', borderRadius: '4px', padding: '10px 14px', marginBottom: '1rem', fontSize: '13px', color: 'var(--orange)', fontWeight: '500' }}>
+            <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '10px 14px', marginBottom: '1rem', fontSize: '14px', color: 'var(--ink)', fontWeight: '500' }}>
               — {expiringPerks.length} credit{expiringPerks.length > 1 ? 's' : ''} expiring within 14 days — use them now.
             </div>
           )}
@@ -1849,24 +1836,113 @@ export default function Dashboard() {
             const totalAll = allPerks.reduce((s, p) => s + p.total_amount, 0)
             const usedPct = totalAll > 0 ? Math.round(((totalAll - totalRemaining) / totalAll) * 100) : 0
             return totalRemaining > 0 ? (
-              <div data-reveal style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '18px 20px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '18px 20px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '5px' }}>Uncaptured value</div>
-                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${totalRemaining.toFixed(0)}</div>
-                  <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px', marginTop: '9px' }}>
-                    <div style={{ height: '4px', borderRadius: '2px', width: usedPct + '%', background: 'var(--green)', transition: 'width 0.5s' }} />
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '500', marginBottom: '5px' }}>Uncaptured value</div>
+                  <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{moneyWhole(totalRemaining)}</div>
+                  <div style={{ height: '4px', background: 'var(--sunken)', borderRadius: '2px', marginTop: '9px' }}>
+                    <div style={{ height: '4px', borderRadius: '2px', width: usedPct + '%', background: 'var(--ink)', transition: 'width 0.5s' }} />
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '-0.02em' }}>{usedPct}%</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-faintest)', marginTop: '2px' }}>used</div>
+                  <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--muted)', letterSpacing: '-0.02em' }}>{usedPct}%</div>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>used</div>
                 </div>
               </div>
             ) : null
           })()}
 
-          <div style={{ marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px' }}>
-            <button className="btn-primary" onClick={sendEmail} disabled={emailSending}>
+
+          {cards.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--muted)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
+          ) : cards.map(card => {
+            const cardPerks = card.perks || []
+            const update = perkUpdates[card.id]
+            // Hide cards with no perks AND no available catalog perks
+            if (cardPerks.length === 0 && !update) return null
+            const activeCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) > 0)
+            const usedCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) <= 0)
+            return (
+              <div key={card.id} style={{ marginBottom: '1.5rem' }}>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <CardArt name={card.name} size="sm" />
+                  {card.name}
+                </div>
+
+                {/* Perk update nudge */}
+                {update && (
+                  <div style={{ background: 'var(--gain-wash)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--ink)', fontWeight: '600', lineHeight: '1.4' }}>
+                      {cardPerks.length === 0
+                        ? `${update.newPerks.length} perk${update.newPerks.length > 1 ? 's' : ''} available for this card`
+                        : <>
+                            {update.newPerks.length > 0 && `${update.newPerks.length} new perk${update.newPerks.length > 1 ? 's' : ''} found`}
+                            {update.newPerks.length > 0 && update.changedPerks.length > 0 && ' · '}
+                            {update.changedPerks.length > 0 && `${update.changedPerks.length} perk${update.changedPerks.length > 1 ? 's' : ''} updated`}
+                          </>
+                      }
+                      <span style={{ color: 'var(--muted)', fontWeight: '400' }}> · from latest card data</span>
+                    </div>
+                    <button
+                      onClick={() => setPerkUpdateModal({ card, ...update })}
+                      style={{ fontSize: '12px', padding: '4px 10px', background: 'var(--gain-wash)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', cursor: 'pointer', color: 'var(--ink)', fontWeight: '600', fontFamily: 'inherit', flexShrink: 0 }}>
+                      Review
+                    </button>
+                  </div>
+                )}
+
+                {cardPerks.length > 0 && <div className="card" style={{ padding: '0 1.125rem' }}>
+                  {activeCardPerks.length === 0 && usedCardPerks.length > 0 && (
+                    <div style={{ padding: '13px 0', fontSize: '14px', color: 'var(--muted)', textAlign: 'center' }}>All perks used this cycle ✓</div>
+                  )}
+                  {activeCardPerks.map((perk, pi) => {
+                    const remaining = perk.total_amount - perk.used_amount
+                    const pct = Math.min((perk.used_amount / perk.total_amount) * 100, 100)
+                    const daysLeft = daysUntilReset(perk.resets_at)
+                    const isExpiring = daysLeft !== null && daysLeft <= 14
+                    const isUrgent = daysLeft !== null && daysLeft <= 7
+                    const accent = isUrgent ? 'var(--loss)' : 'var(--ink)'
+                    return (
+                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>{perk.name}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '9px' }}>
+                            {perk.period === 'annual' && perk.resets_on === 'anniversary' ? (card.opened_on ? 'card year' : 'card year · add the open date in Edit') : perk.period}
+                            {daysLeft !== null ? ` · ${daysLeft === 0 ? 'last day' : isExpiring ? `${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
+                          </div>
+                          <div style={{ height: '4px', background: 'var(--sunken)', borderRadius: '2px' }}>
+                            <div style={{ height: '4px', borderRadius: '2px', width: pct + '%', background: accent, transition: 'width 0.4s' }} />
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: accent, marginBottom: '6px' }}>
+                            {`${moneyWhole(remaining)} left`}
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end', marginRight: '-12px' }}>
+                            <button className="btn-ghost" onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}>
+                              Mark used
+                            </button>
+                            <button className="btn-ghost btn-ghost-danger" aria-label={`Remove ${perk.name}`}
+                              onClick={() => { if (window.confirm(`Remove ${perk.name}?`)) deletePerk(perk.id).then(loadCards) }}>
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  {usedCardPerks.length > 0 && activeCardPerks.length > 0 && (
+                    <div style={{ padding: '8px 0', fontSize: '12px', color: 'var(--muted)', borderTop: '1px solid var(--hairline-soft)', marginTop: '4px' }}>
+                      {usedCardPerks.length} perk{usedCardPerks.length > 1 ? 's' : ''} used this cycle ✓
+                    </div>
+                  )}
+                </div>}
+              </div>
+            )
+          })}
+          {/* Email controls sit below the credits they summarize */}
+          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--hairline-soft)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <button className="btn-secondary" onClick={sendEmail} disabled={emailSending} style={{ width: 'auto' }}>
               {emailSending ? 'Sending...' : 'Email me my perk summary'}
             </button>
             <button
@@ -1880,113 +1956,20 @@ export default function Dashboard() {
               style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '6px 0', opacity: digestSaving ? 0.6 : 1 }}
             >
               <span style={{
-                position: 'relative', width: '34px', height: '20px', borderRadius: '10px', flexShrink: 0,
-                background: weeklyDigest ? 'var(--green)' : 'var(--border)', transition: 'background 0.15s',
+                position: 'relative', width: '34px', height: '20px', borderRadius: 'var(--radius-container)', flexShrink: 0,
+                background: weeklyDigest ? 'var(--ink)' : 'var(--hairline)', transition: 'background 0.15s',
               }}>
                 <span style={{
                   position: 'absolute', top: '2px', left: weeklyDigest ? '16px' : '2px', width: '16px', height: '16px',
-                  borderRadius: '50%', background: '#fff', transition: 'left 0.15s', boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  borderRadius: '50%', background: 'var(--surface)', transition: 'left 0.15s', boxShadow: '0 1px 2px var(--hairline)',
                 }} />
               </span>
-              <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: '12px', color: 'var(--ink-2)' }}>
                 Weekly summary emails {weeklyDigest ? 'on' : 'off'}
               </span>
             </button>
           </div>
           {emailMsg && <div className="success">{emailMsg}</div>}
-
-          {cards.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
-          ) : cards.map(card => {
-            const cardPerks = card.perks || []
-            const update = perkUpdates[card.id]
-            // Hide cards with no perks AND no available catalog perks
-            if (cardPerks.length === 0 && !update) return null
-            const activeCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) > 0)
-            const usedCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) <= 0)
-            return (
-              <div key={card.id} data-reveal style={{ marginBottom: '1.5rem' }}>
-                <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <CardArt name={card.name} style={{ width: '38px', height: '26px', flexShrink: 0 }} />
-                  {card.name}
-                </div>
-
-                {/* Perk update nudge */}
-                {update && (
-                  <div style={{ background: 'rgba(29,184,122,0.08)', border: '1px solid rgba(15,155,101,0.25)', borderRadius: '6px', padding: '10px 14px', marginBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                    <div style={{ fontSize: '12px', color: 'var(--green)', fontWeight: '600', lineHeight: '1.4' }}>
-                      {cardPerks.length === 0
-                        ? `${update.newPerks.length} perk${update.newPerks.length > 1 ? 's' : ''} available for this card`
-                        : <>
-                            {update.newPerks.length > 0 && `${update.newPerks.length} new perk${update.newPerks.length > 1 ? 's' : ''} found`}
-                            {update.newPerks.length > 0 && update.changedPerks.length > 0 && ' · '}
-                            {update.changedPerks.length > 0 && `${update.changedPerks.length} perk${update.changedPerks.length > 1 ? 's' : ''} updated`}
-                          </>
-                      }
-                      <span style={{ color: 'rgba(29,184,122,0.6)', fontWeight: '400' }}> · from latest card data</span>
-                    </div>
-                    <button
-                      onClick={() => setPerkUpdateModal({ card, ...update })}
-                      style={{ fontSize: '11px', padding: '4px 10px', background: 'rgba(29,184,122,0.15)', border: '1px solid rgba(15,155,101,0.35)', borderRadius: '9999px', cursor: 'pointer', color: 'var(--green)', fontWeight: '700', fontFamily: 'inherit', flexShrink: 0 }}>
-                      Review
-                    </button>
-                  </div>
-                )}
-
-                {cardPerks.length > 0 && <div className="card" style={{ padding: '0 1.125rem' }}>
-                  {activeCardPerks.length === 0 && usedCardPerks.length > 0 && (
-                    <div style={{ padding: '13px 0', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center' }}>All perks used this cycle ✓</div>
-                  )}
-                  {activeCardPerks.map((perk, pi) => {
-                    const remaining = perk.total_amount - perk.used_amount
-                    const pct = Math.min((perk.used_amount / perk.total_amount) * 100, 100)
-                    const daysLeft = perk.resets_at ? Math.ceil((new Date(perk.resets_at) - new Date()) / (1000 * 60 * 60 * 24)) : null
-                    const isExpiring = daysLeft !== null && daysLeft <= 14 && daysLeft > 0
-                    const isUrgent = daysLeft !== null && daysLeft <= 7 && daysLeft > 0
-                    const accent = isUrgent ? 'var(--red)' : isExpiring ? 'var(--orange)' : 'var(--green)'
-                    return (
-                      <div key={perk.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: pi < activeCardPerks.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>{perk.name}</div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '9px' }}>
-                            {perk.period}
-                            {daysLeft !== null ? ` · ${isUrgent ? `${daysLeft}d left` : isExpiring ? `${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
-                          </div>
-                          <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px' }}>
-                            <div style={{ height: '4px', borderRadius: '2px', width: pct + '%', background: accent, transition: 'width 0.4s' }} />
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '15px', fontWeight: '700', color: accent, marginBottom: '6px' }}>
-                            {`$${remaining.toFixed(0)} left`}
-                          </div>
-                          <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
-                            <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
-                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid var(--border)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
-                              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                              mark used
-                            </button>
-                            <button onClick={() => deletePerk(perk.id).then(loadCards)}
-                              style={{ fontSize: '11px', padding: '3px 8px', border: '1px solid rgba(217,82,82,0.3)', borderRadius: '9999px', background: 'transparent', cursor: 'pointer', color: 'var(--red)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.6)'}
-                              onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(217,82,82,0.3)'}>
-                              remove
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                  {usedCardPerks.length > 0 && activeCardPerks.length > 0 && (
-                    <div style={{ padding: '8px 0', fontSize: '11px', color: 'var(--text-muted)', borderTop: '1px solid var(--border-subtle)', marginTop: '4px' }}>
-                      {usedCardPerks.length} perk{usedCardPerks.length > 1 ? 's' : ''} used this cycle ✓
-                    </div>
-                  )}
-                </div>}
-              </div>
-            )
-          })}
         </div>
       )}
 
@@ -1996,65 +1979,65 @@ export default function Dashboard() {
           {taps.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginBottom: '1rem' }}>
               <button onClick={() => exportHistory('csv')}
-                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 14px', fontSize: '11.5px', fontWeight: '600', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                style={{ background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                 Export CSV
               </button>
               <button onClick={() => exportHistory('xlsx')}
-                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 14px', fontSize: '11.5px', fontWeight: '600', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                style={{ background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '6px 14px', fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.02em' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                 Export XLSX
               </button>
             </div>
           )}
-          <div data-reveal style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
-            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>This month</div>
-              <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${thisMonthEarned.toFixed(2)}</div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
+            <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '20px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '7px' }}>This month</div>
+              <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{money(thisMonthEarned)}</div>
+              <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '4px' }}>{thisMonthTaps.length} purchase{thisMonthTaps.length !== 1 ? 's' : ''}</div>
             </div>
-            <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '20px' }}>
-              <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>All time</div>
-              <div style={{ fontSize: '28px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em' }}>${totalEarned.toFixed(2)}</div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
+            <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '20px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '7px' }}>All time</div>
+              <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{money(totalEarned)}</div>
+              <div style={{ fontSize: '14px', color: 'var(--muted)', marginTop: '4px' }}>{taps.length} purchase{taps.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
 
           {tapsLoading ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '14px' }}>Loading...</div>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)', fontSize: '14px' }}>Loading...</div>
           ) : taps.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)', fontSize: '14px' }}>
-              No taps yet. Use Smart Tap to start tracking your rewards.
+            <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--muted)', fontSize: '14px' }}>
+              No purchases yet. Log one from Tap.
             </div>
           ) : (
             <div className="card" style={{ padding: '0 1.125rem' }}>
               {taps.map((tap, i) => (
-                <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < taps.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                  <CardArt name={tap.card_name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
+                <div key={tap.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < taps.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
+                  <CardArt name={tap.card_name} size="sm" />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {tap.merchant || tap.card_name}
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
                       {tap.card_name}{tap.category ? ` · ${tap.category}` : ''}
                       {' · '}<TimeAgo dateStr={tap.tapped_at} />
                     </div>
                     {tap.Note && (
-                      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         "{tap.Note}"
                       </div>
                     )}
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     {tap.amount > 0 && (
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>${tap.amount.toFixed(2)}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '2px', ...NUM }}>{money(tap.amount)}</div>
                     )}
                     {tap.estimated_value > 0 ? (
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--green)' }}>+${tap.estimated_value.toFixed(2)}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--gain)', ...NUM }}>{money(tap.estimated_value, { sign: true })}</div>
                     ) : (
-                      <div style={{ fontSize: '12px', color: 'var(--text-faintest)' }}>{tap.rewards_rate || '—'}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{tap.rewards_rate || '—'}</div>
                     )}
                   </div>
                 </div>
@@ -2075,9 +2058,9 @@ export default function Dashboard() {
             if (!hasExpiring && !hasMissed && !hasRecsSection) {
               return (
                 <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>No insights yet</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-faintest)', lineHeight: '1.6' }}>
-                    Add cards with perks and use Smart Tap to start seeing personalized optimization tips.
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink-2)', marginBottom: '8px' }}>No insights yet</div>
+                  <div style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: '1.6' }}>
+                    Add cards and log purchases to see insights here.
                   </div>
                 </div>
               )
@@ -2087,54 +2070,55 @@ export default function Dashboard() {
             const urgentExpiring = perkInsights.filter(i => i.days <= 7).length
             const soonExpiring = perkInsights.filter(i => i.days <= 14).length
             const expiringScore = urgentExpiring > 0 ? 3 : soonExpiring > 0 ? 2 : hasExpiring ? 1 : -1
-            const missedScore = hasMissed ? (totalMissed >= 50 ? 3 : totalMissed >= 10 ? 2 : 1) : -1
+            // A few cents of missed rewards isn't news: only lead with it when it adds up
+            const missedScore = hasMissed ? (totalMissed >= 50 ? 3 : totalMissed >= 10 ? 2 : totalMissed >= MEANINGFUL_MISSED ? 1 : 0) : -1
             const recsScore = cardRecs.length > 0 ? 1 : (hasRecsSection ? 0 : -1)
 
             const expiringSummary = hasExpiring
-              ? `${perkInsights.length} perk${perkInsights.length !== 1 ? 's' : ''} to use${urgentExpiring > 0 ? ` · ${urgentExpiring} expiring within a week` : ''}`
+              ? `${moneyWhole(perkInsights.reduce((s, i) => s + i.remaining, 0))} across ${perkInsights.length} credit${perkInsights.length !== 1 ? 's' : ''}${urgentExpiring > 0 ? ` · ${urgentExpiring} reset within a week` : ''}`
               : null
             const missedSummary = hasMissed
-              ? `$${totalMissed.toFixed(0)} left on the table across ${retroactiveMissed.length} purchase${retroactiveMissed.length !== 1 ? 's' : ''}`
+              ? (totalMissed >= MEANINGFUL_MISSED
+                  ? `${money(totalMissed)} more was possible on ${retroactiveMissed.length} purchase${retroactiveMissed.length !== 1 ? 's' : ''}`
+                  : 'Your card choices are close to the best in your wallet')
               : null
             const recsSummary = cardRecs.length > 0
               ? `${cardRecs.length} card${cardRecs.length !== 1 ? 's' : ''} could earn you more`
               : (cards.length > 0 ? 'Your wallet looks well-optimized' : null)
 
             // ── Section bodies ──
-            const renderExpiring = () => perkInsights.map(insight => {
-              const urgentColor = insight.days <= 7 ? 'var(--red)' : insight.days <= 14 ? 'var(--orange)' : 'var(--green)'
-              const urgentBg = insight.days <= 7 ? 'rgba(217,82,82,0.08)' : insight.days <= 14 ? 'rgba(196,124,42,0.08)' : 'rgba(29,184,122,0.06)'
-              const urgentBorder = insight.days <= 7 ? 'rgba(217,82,82,0.25)' : insight.days <= 14 ? 'rgba(196,124,42,0.25)' : 'rgba(29,184,122,0.2)'
-              return (
-                <div key={insight.id} style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: '4px', padding: '16px 16px 16px 14px', marginBottom: '9px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <CardArt name={insight.card.name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
-                      <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: '25px', fontWeight: '700', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                        ${insight.remaining.toFixed(0)}
+            const renderExpiring = () => (
+              <div className="card" style={{ padding: '0 16px' }}>
+                {perkInsights.map((insight, i) => {
+                  // Red only when the credit is about to be lost
+                  const urgent = insight.days <= 7
+                  return (
+                    <div key={insight.id} style={{ display: 'flex', gap: '12px', padding: '14px 0', borderBottom: i < perkInsights.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
+                      <CardArt name={insight.card.name} size="sm" style={{ marginTop: '2px' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--ink)' }}>{insight.perk.name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+                          {insight.card.name} · resets {formatResetDate(insight.resetDate)}
+                        </div>
+                        {insight.suggestion && (
+                          <div style={{ fontSize: '12px', color: 'var(--ink-2)', marginTop: '6px' }}>
+                            {insight.suggestionFromHistory
+                              ? `You've shopped at ${insight.suggestion} before. This credit covers it.`
+                              : `Use it on ${insight.suggestion}.`}
+                          </div>
+                        )}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>{insight.days}d left</div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: urgent ? 'var(--loss)' : 'var(--ink)', ...NUM }}>{moneyWhole(insight.remaining)}</div>
+                        <div style={{ fontSize: '12px', color: urgent ? 'var(--loss)' : 'var(--muted)', marginTop: '2px' }}>
+                          {insight.days === 0 ? 'last day' : `${insight.days} day${insight.days !== 1 ? 's' : ''} left`}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
-                    {'You have '}
-                    <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>${insight.remaining.toFixed(0)}</span>
-                    {' in '}
-                    <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{insight.perk.name}</span>
-                    {' until '}
-                    <span style={{ color: urgentColor, fontWeight: '600' }}>{formatResetDate(insight.resetDate)}</span>
-                    {insight.suggestion && (
-                      <> — based on your history, <span style={{ color: '#c9a227', fontWeight: '600' }}>{insight.suggestion}</span> would use this optimally</>
-                    )}
-                    {!insight.suggestion && '.'}
-                  </div>
-                </div>
-              )
-            })
+                  )
+                })}
+              </div>
+            )
 
             const renderMissed = () => (
               <>
@@ -2142,7 +2126,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '12px', paddingBottom: '2px' }}>
                     <button
                       onClick={() => setSelectedMonth(null)}
-                      style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: selectedMonth === null ? 'var(--text-primary)' : 'transparent', borderColor: selectedMonth === null ? 'var(--text-primary)' : 'var(--border)', color: selectedMonth === null ? '#fff' : 'var(--text-muted)' }}
+                      style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 'var(--radius-control)', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', background: selectedMonth === null ? 'var(--ink)' : 'transparent', borderColor: selectedMonth === null ? 'var(--ink)' : 'var(--hairline)', color: selectedMonth === null ? 'var(--surface)' : 'var(--muted)' }}
                     >
                       All time
                     </button>
@@ -2152,7 +2136,7 @@ export default function Dashboard() {
                       const active = selectedMonth === m.key
                       return (
                         <button key={m.key} onClick={() => setSelectedMonth(m.key)}
-                          style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-geist)', background: active ? 'var(--text-primary)' : 'transparent', borderColor: active ? 'var(--text-primary)' : 'var(--border)', color: active ? '#fff' : 'var(--text-muted)' }}
+                          style={{ flexShrink: 0, padding: '5px 12px', borderRadius: 'var(--radius-control)', border: '1px solid', fontSize: '12px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit', background: active ? 'var(--ink)' : 'transparent', borderColor: active ? 'var(--ink)' : 'var(--hairline)', color: active ? 'var(--surface)' : 'var(--muted)' }}
                         >
                           {label}
                         </button>
@@ -2170,6 +2154,14 @@ export default function Dashboard() {
                       })
                     : retroactiveMissed
                   const filteredTotal = filtered.reduce((s, m) => s + m.missedTotal, 0)
+                  const periodTaps = selectedMonth
+                    ? taps.filter(t => {
+                        const d = new Date(t.tapped_at)
+                        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth
+                      })
+                    : taps
+                  const periodEarned = periodTaps.reduce((s, t) => s + (t.estimated_value || 0), 0)
+                  const meaningful = filteredTotal >= MEANINGFUL_MISSED
                   const [yr, mo] = (selectedMonth || '').split('-')
                   const monthLabel = selectedMonth
                     ? new Date(+yr, +mo - 1).toLocaleString('default', { month: 'long', year: 'numeric' })
@@ -2177,46 +2169,47 @@ export default function Dashboard() {
 
                   return (
                     <>
-                      <div style={{ background: 'rgba(196,124,42,0.08)', border: '1px solid rgba(180,83,9,0.2)', borderRadius: '12px', padding: '20px 22px', marginBottom: '14px' }}>
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '7px' }}>
-                          {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
+                      <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '20px', marginBottom: '14px' }}>
+                        <div style={{ fontSize: '14px', color: 'var(--ink-2)' }}>
+                          Rewards earned {selectedMonth ? `in ${monthLabel}` : 'all time'}
                         </div>
-                        <div style={{ fontSize: '40px', fontWeight: '800', color: 'var(--orange)', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                          ${filteredTotal.toFixed(2)}
+                        <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--gain)', letterSpacing: '-0.02em', lineHeight: 1.2, marginTop: '4px', ...NUM }}>
+                          {money(periodEarned)}
                         </div>
-                        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '7px' }}>
-                          on the table across {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
-                          {!selectedMonth && ' in your history'}
+                        <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginTop: '8px', lineHeight: 1.5 }}>
+                          {meaningful
+                            ? <>Using the card Clavis recommended would have earned <strong style={{ color: 'var(--ink)', fontWeight: '600' }}>{money(filteredTotal)}</strong> more on {filtered.length} purchase{filtered.length !== 1 ? 's' : ''}.</>
+                            : <>Your card choices were close to the best in your wallet: {money(filteredTotal)} more was possible across {filtered.length} purchase{filtered.length !== 1 ? 's' : ''}.</>}
                         </div>
                       </div>
 
                       {filtered.length > 0 && (
                         <div className="card" style={{ padding: '0 1.125rem' }}>
                           {filtered.slice(0, 15).map((item, i) => (
-                            <div key={item.tap.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                              <CardArt name={item.bestCard.name} style={{ width: '46px', height: '31px', flexShrink: 0 }} />
+                            <div key={item.tap.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < Math.min(filtered.length, 15) - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
+                              <CardArt name={item.bestCard.name} size="sm" />
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {item.tap.merchant || item.tap.card_name}
-                                  {item.tap.amount > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
+                                  {item.tap.amount > 0 && <span style={{ color: 'var(--muted)', fontWeight: '400' }}> · {money(item.tap.amount)}</span>}
                                 </div>
-                                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                  <span style={{ color: 'var(--red)' }}>{item.usedCard.name}</span>
-                                  <span style={{ color: 'var(--text-faintest)' }}> → </span>
-                                  <span style={{ color: 'var(--green)' }}>{item.bestCard.name}</span>
-                                  {item.tap.category && <span style={{ color: 'var(--text-faintest)' }}> · {item.tap.category}</span>}
+                                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                                  <span>{item.usedCard.name}</span>
+                                  <span style={{ color: 'var(--muted)' }}> → </span>
+                                  <span style={{ color: 'var(--ink)' }}>{item.bestCard.name}</span>
+                                  {item.tap.category && <span style={{ color: 'var(--muted)' }}> · {item.tap.category}</span>}
                                 </div>
                               </div>
                               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--orange)' }}>+${item.missedTotal.toFixed(2)}</div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginTop: '2px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
+                                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', ...NUM }}>{money(item.missedTotal, { sign: true })}</div>
+                                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px', ...NUM }}>{centsPerDollar(item.missedPerDollar)}/$</div>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
                       {filtered.length > 15 && (
-                        <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-faintest)', marginTop: '10px' }}>
+                        <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--muted)', marginTop: '10px' }}>
                           +{filtered.length - 15} more transactions
                         </div>
                       )}
@@ -2228,25 +2221,25 @@ export default function Dashboard() {
 
             const renderRecs = () => (
               <>
-                <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginBottom: '12px', lineHeight: '1.5' }}>
+                <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '12px', lineHeight: '1.5' }}>
                   Based on your last {taps.length} purchase{taps.length !== 1 ? 's' : ''} · {taps.length < 10
-                    ? <span style={{ color: '#c9a227' }}>track more purchases to sharpen these picks</span>
+                    ? <span style={{ color: 'var(--ink)' }}>track more purchases to sharpen these picks</span>
                     : 'personalized to your spending'}
                 </div>
 
                 {taps.length < 5 && cards.length > 0 && (
-                  <div style={{ background: 'rgba(201,162,39,0.07)', border: '1px solid rgba(201,162,39,0.2)', borderRadius: '6px', padding: '12px 14px', marginBottom: '12px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#c9a227', marginBottom: '4px' }}>Log purchases to unlock personalized picks</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
+                  <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '12px 14px', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Log purchases to unlock personalized picks</div>
+                    <div style={{ fontSize: '12px', color: 'var(--ink-2)', lineHeight: '1.55' }}>
                       Clavis learns from every tap you log. The more you track, the more accurately it can find cards that match your real spending — not just guesses. Head to the Tap tab and start logging.
                     </div>
                   </div>
                 )}
 
                 {cardRecs.length === 0 ? (
-                  <div style={{ background: 'rgba(15,155,101,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderLeft: '3px solid var(--green)', borderRadius: '4px', padding: '14px 16px' }}>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--green)', marginBottom: '4px' }}>Your wallet is well-optimized</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '14px 16px' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Your wallet is well-optimized</div>
+                    <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.5' }}>
                       Based on your spending, no card on the market meaningfully outperforms what you already have. Nice setup.
                     </div>
                   </div>
@@ -2254,35 +2247,35 @@ export default function Dashboard() {
                   const affiliate = getAffiliateLink(rec.name)
                   const tierStyle = TIER_STYLES[rec.tier] || TIER_STYLES['no-fee']
                   return (
-                    <div key={rec.name} style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.16)', borderRadius: '6px', padding: '14px', marginBottom: '10px' }}>
+                    <div key={rec.name} style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '14px', marginBottom: '10px' }}>
 
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>{rec.name}</div>
+                          <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>{rec.name}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '11px', fontWeight: '700', color: tierStyle.color, background: tierStyle.bg, padding: '2px 7px', borderRadius: '9999px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: '600', color: tierStyle.color, background: tierStyle.bg, padding: '2px 7px', borderRadius: 'var(--radius-control)' }}>
                               {tierStyle.label}
                             </span>
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                              {rec.annualFee === 0 ? 'No annual fee' : `$${rec.annualFee}/yr`}
+                            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                              {rec.annualFee === 0 ? 'No annual fee' : `${moneyWhole(rec.annualFee)}/yr`}
                             </span>
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                            +${Math.round(netAnnualGain)}/yr
+                          <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                            {moneyWhole(netAnnualGain, { sign: true })}/yr
                           </div>
-                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>est. from your spend</div>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>est. from your spend</div>
                         </div>
                       </div>
 
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.55', marginBottom: '10px' }}>{rec.why}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--ink-2)', lineHeight: '1.55', marginBottom: '10px' }}>{rec.why}</div>
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
                         {improvements.slice(0, 4).map(imp => (
-                          <span key={imp.category} style={{ fontSize: '11px', fontWeight: '600', color: 'var(--blue)', background: 'rgba(37,99,235,0.1)', borderRadius: '4px', padding: '3px 7px' }}>
-                            {imp.category} +{(imp.gainPerDollar * 100).toFixed(1)}¢/$
-                            {imp.annualCatGain >= 10 && <span style={{ opacity: 0.6 }}> (${Math.round(imp.annualCatGain)}/yr)</span>}
+                          <span key={imp.category} style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink)', background: 'var(--sunken)', borderRadius: 'var(--radius-container)', padding: '3px 7px' }}>
+                            {imp.category} +{centsPerDollar(imp.gainPerDollar)}/$
+                            {imp.annualCatGain >= 10 && <span style={{ opacity: 0.6 }}> ({moneyWhole(imp.annualCatGain)}/yr)</span>}
                           </span>
                         ))}
                       </div>
@@ -2292,13 +2285,13 @@ export default function Dashboard() {
                           href={affiliate.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ display: 'block', textAlign: 'center', padding: '11px', background: 'var(--blue)', borderRadius: '6px', fontSize: '13px', fontWeight: '700', color: '#fff', textDecoration: 'none', letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
+                          style={{ display: 'block', textAlign: 'center', padding: '11px', background: 'var(--ink)', borderRadius: 'var(--radius-control)', fontSize: '14px', fontWeight: '600', color: 'var(--surface)', textDecoration: 'none', letterSpacing: '0.02em', transition: 'opacity 0.15s' }}
                           onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
                           onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
                           {affiliate.cta} →
                         </a>
                       ) : (
-                        <div style={{ textAlign: 'center', padding: '11px', background: 'var(--bg-elevated)', borderRadius: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                        <div style={{ textAlign: 'center', padding: '11px', background: 'var(--sunken)', borderRadius: 'var(--radius-control)', fontSize: '12px', color: 'var(--muted)' }}>
                           Search "{rec.name}" to apply
                         </div>
                       )}
@@ -2307,7 +2300,7 @@ export default function Dashboard() {
                 })}
 
                 {cardRecs.length > 0 && (
-                  <div style={{ fontSize: '10px', color: 'var(--text-faintest)', lineHeight: '1.55', marginTop: '8px', padding: '0 2px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: '1.55', marginTop: '8px', padding: '0 2px' }}>
                     {AFFILIATE_DISCLOSURE}
                   </div>
                 )}
@@ -2317,22 +2310,23 @@ export default function Dashboard() {
             const hasSpending = spendingBreakdown.totalSpend > 0
             const spendingScore = hasSpending ? 0.5 : -1
             const spendingSummary = hasSpending
-              ? `$${spendingBreakdown.totalSpend.toFixed(0)} tracked across ${spendingBreakdown.categories.length} categor${spendingBreakdown.categories.length !== 1 ? 'ies' : 'y'}`
+              ? `${moneyWhole(spendingBreakdown.totalSpend)} tracked across ${spendingBreakdown.categories.length} categor${spendingBreakdown.categories.length !== 1 ? 'ies' : 'y'}`
               : null
 
             const renderSpending = () => {
               const { categories, byCard, totalSpend, totalEarned } = spendingBreakdown
-              const CATEGORY_COLORS = ['var(--blue)', 'var(--gold)', 'var(--green)', 'var(--orange)', 'var(--red)', '#8B5CF6', '#06B6D4', '#EC4899']
+              // Ink for the largest bar, muted for the rest: no rainbow
+              const barColor = i => i === 0 ? 'var(--ink)' : 'var(--muted)'
               const Bar = ({ label, sub, value, max, color }) => (
                 <div style={{ marginBottom: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '5px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', textTransform: 'capitalize' }}>{label}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', textTransform: 'capitalize' }}>{label}</div>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>${value.toFixed(0)}</span>
-                      {sub && <span style={{ fontSize: '11px', color: 'var(--text-faintest)', marginLeft: '6px' }}>{sub}</span>}
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', ...NUM }}>{moneyWhole(value)}</span>
+                      {sub && <span style={{ fontSize: '12px', color: 'var(--muted)', marginLeft: '6px' }}>{sub}</span>}
                     </div>
                   </div>
-                  <div style={{ height: '6px', borderRadius: '3px', background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                  <div style={{ height: '6px', borderRadius: '3px', background: 'var(--sunken)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${max > 0 ? Math.max(3, (value / max) * 100) : 0}%`, borderRadius: '3px', background: color, transition: 'width 0.3s ease' }} />
                   </div>
                 </div>
@@ -2344,35 +2338,35 @@ export default function Dashboard() {
               return (
                 <>
                   <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-                    <div style={{ flex: 1, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.16)', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Total spend tracked</div>
-                      <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1 }}>${totalSpend.toFixed(0)}</div>
+                    <div style={{ flex: 1, background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>Total spend tracked</div>
+                      <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1, ...NUM }}>{moneyWhole(totalSpend)}</div>
                     </div>
-                    <div style={{ flex: 1, background: 'rgba(15,155,101,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderRadius: '10px', padding: '14px 16px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Rewards earned</div>
-                      <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--green)', letterSpacing: '-0.03em', lineHeight: 1 }}>${totalEarned.toFixed(0)}</div>
+                    <div style={{ flex: 1, background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '14px 16px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>Rewards earned</div>
+                      <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1, ...NUM }}>{money(totalEarned)}</div>
                     </div>
                   </div>
 
                   {categories.length > 0 && (
                     <>
-                      <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>By category</div>
+                      <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink-2)', marginBottom: '10px' }}>By category</div>
                       {categories.slice(0, 8).map((c, i) => (
-                        <Bar key={c.key} label={c.key} sub={`${c.count} purchase${c.count !== 1 ? 's' : ''}`} value={c.spend} max={maxCatSpend} color={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                        <Bar key={c.key} label={c.key} sub={`${c.count} purchase${c.count !== 1 ? 's' : ''}`} value={c.spend} max={maxCatSpend} color={barColor(i)} />
                       ))}
                     </>
                   )}
 
                   {byCard.length > 0 && (
                     <>
-                      <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', margin: '18px 0 10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>By card</div>
+                      <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink-2)', margin: '18px 0 10px' }}>By card</div>
                       {byCard.slice(0, 8).map((c, i) => (
-                        <Bar key={c.key} label={c.name} sub={`${c.count} tap${c.count !== 1 ? 's' : ''} · $${c.earned.toFixed(0)} earned`} value={c.spend} max={maxCardSpend} color={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                        <Bar key={c.key} label={c.name} sub={`${c.count} purchase${c.count !== 1 ? 's' : ''} · ${money(c.earned)} earned`} value={c.spend} max={maxCardSpend} color={barColor(i)} />
                       ))}
                     </>
                   )}
 
-                  <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginTop: '4px', lineHeight: '1.5' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px', lineHeight: '1.5' }}>
                     Based on {taps.length} logged purchase{taps.length !== 1 ? 's' : ''}. Log more taps to sharpen this picture.
                   </div>
                 </>
@@ -2380,8 +2374,8 @@ export default function Dashboard() {
             }
 
             const sections = [
-              hasExpiring    && { key: 'expiring', score: expiringScore, label: 'Use before they expire', summary: expiringSummary, render: renderExpiring },
-              hasMissed      && { key: 'missed',   score: missedScore,   label: 'Left on the table',     summary: missedSummary,   render: renderMissed },
+              hasExpiring    && { key: 'expiring', score: expiringScore, label: 'Credits to use',        summary: expiringSummary, render: renderExpiring },
+              hasMissed      && { key: 'missed',   score: missedScore,   label: 'Card choices',          summary: missedSummary,   render: renderMissed },
               hasRecsSection && { key: 'recs',     score: recsScore,     label: 'Cards worth adding',    summary: recsSummary,     render: renderRecs },
               hasSpending    && { key: 'spending', score: spendingScore, label: 'Spending breakdown',    summary: spendingSummary, render: renderSpending },
             ].filter(Boolean).sort((a, b) => b.score - a.score)
@@ -2407,7 +2401,7 @@ export default function Dashboard() {
       )}
 
       {/* ── FOOTER ────────────────────────────────────── */}
-      <div style={{ marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
+      <div style={{ marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid var(--hairline-soft)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
           {[
             { href: '/faq',     label: 'FAQ' },
@@ -2415,9 +2409,9 @@ export default function Dashboard() {
             { href: '/terms',   label: 'Terms' },
             { href: '/about',   label: 'About' },
           ].map(l => (
-            <a key={l.href} href={l.href} style={{ fontSize: '12px', color: 'var(--text-faintest)', textDecoration: 'none', transition: 'color 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faintest)'}>
+            <a key={l.href} href={l.href} style={{ fontSize: '12px', color: 'var(--muted)', textDecoration: 'none', transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--ink-2)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}>
               {l.label}
             </a>
           ))}
@@ -2434,9 +2428,9 @@ export default function Dashboard() {
                   navigator.clipboard.writeText(refUrl)
                   alert('Referral link copied!')
                 }
-              }} style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--text-muted)', background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(0,0,0,0.2)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+              }} style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '0 12px', minHeight: '40px', whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
                   <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
@@ -2445,7 +2439,7 @@ export default function Dashboard() {
               </button>
             )
           })()}
-          <span style={{ fontSize: '11px', color: 'var(--text-faintest)' }}>
+          <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
             © {new Date().getFullYear()} Clavis · Your data is never sold or shared
           </span>
         </div>
@@ -2453,20 +2447,75 @@ export default function Dashboard() {
 
       {/* ── MODALS ────────────────────────────────────── */}
 
+      {showPointValues && (() => {
+        const pointCards = cards.filter(c => !isCashCard(c) && c.type !== 'gift' && c.type !== 'debit')
+        const save = async () => {
+          const next = {}
+          for (const [id, raw] of Object.entries(pointDraft)) {
+            const v = parseFloat(raw)
+            if (raw !== '' && !(v > 0 && v <= 10)) { setPointSaveError('Enter a value between 0.1¢ and 10¢, or leave it blank for the default.'); return }
+            if (v > 0) next[id] = Math.round(v * 100) / 100
+          }
+          try {
+            setPointValueOverrides(await savePointValueOverrides(next))
+            setPointValuesVersion(v => v + 1)
+            setShowPointValues(false)
+          } catch (e) {
+            setPointSaveError(e.message || 'Could not save. Try again.')
+          }
+        }
+        return (
+          <div onClick={() => setShowPointValues(false)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+            <div role="dialog" aria-labelledby="pv-title" onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '1.5rem', width: '100%', maxWidth: '440px', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div id="pv-title" style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '6px' }}>Point values</div>
+              <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '16px' }}>
+                Clavis values points like cash back. Redeem through travel partners? Set your own value per card.
+              </div>
+              {pointCards.length === 0 && <div style={{ fontSize: '14px', color: 'var(--muted)' }}>None of your cards earn points.</div>}
+              {pointCards.map(c => {
+                const def = getPointValuation(c.name).centsPerPoint
+                return (
+                  <label key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid var(--hairline-soft)' }}>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--ink)' }}>{c.name}</span>
+                      <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)' }}>Default {def.toFixed(2).replace(/0$/, '')}¢ per point</span>
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <input className="input" type="number" inputMode="decimal" step="0.05" min="0.1" max="10"
+                        aria-label={`Cents per point for ${c.name}`}
+                        placeholder={def.toFixed(2).replace(/0$/, '')}
+                        value={pointDraft[c.id] ?? ''}
+                        onChange={e => setPointDraft(d => ({ ...d, [c.id]: e.target.value }))}
+                        style={{ width: '84px', textAlign: 'right' }} />
+                      <span style={{ fontSize: '14px', color: 'var(--muted)' }}>¢</span>
+                    </span>
+                  </label>
+                )
+              })}
+              {pointSaveError && <div style={{ fontSize: '12px', color: 'var(--loss)', marginTop: '12px' }}>{pointSaveError}</div>}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                <button className="btn-secondary" onClick={() => setPointDraft({})} style={{ width: 'auto' }}>Reset to defaults</button>
+                <button className="btn-primary" onClick={save} style={{ flex: 1 }}>Save</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {showDeleteAccount && (
-        <div onClick={() => !deletingAccount && setShowDeleteAccount(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '1.5rem', width: '100%', maxWidth: '420px' }}>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--red)', marginBottom: '8px' }}>Delete your account?</div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '14px' }}>
-              This permanently deletes your Clavis account and everything tied to it — cards, perks, purchase history, and email preferences. <strong style={{ color: 'var(--text-primary)' }}>This cannot be undone.</strong>
+        <div onClick={() => !deletingAccount && setShowDeleteAccount(false)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '1.5rem', width: '100%', maxWidth: '420px' }}>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--loss)', marginBottom: '8px' }}>Delete your account?</div>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '14px' }}>
+              This permanently deletes your Clavis account and everything tied to it — cards, perks, purchase history, and email preferences. <strong style={{ color: 'var(--ink)' }}>This cannot be undone.</strong>
             </div>
             <label className="label">Type DELETE to confirm</label>
             <input className="input" type="text" value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
               placeholder="DELETE" disabled={deletingAccount}
-              style={{ marginBottom: '12px', textTransform: 'uppercase' }} />
-            {deleteAccountError && <div style={{ fontSize: '12.5px', color: 'var(--red)', marginBottom: '12px' }}>{deleteAccountError}</div>}
+              style={{ marginBottom: '12px' }} />
+            {deleteAccountError && <div style={{ fontSize: '12px', color: 'var(--loss)', marginBottom: '12px' }}>{deleteAccountError}</div>}
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-primary" style={{ background: 'var(--red)' }}
+              <button className="btn-primary" style={{ background: 'var(--loss)' }}
                 disabled={deleteConfirmText.trim().toUpperCase() !== 'DELETE' || deletingAccount}
                 onClick={handleDeleteAccount}>
                 {deletingAccount ? 'Deleting…' : 'Permanently delete my account'}
@@ -2478,13 +2527,13 @@ export default function Dashboard() {
       )}
 
       {emptyGiftCards.length > 0 && emptyGiftCards[emptyGiftCardIndex] && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '6px', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
-            <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '64px', marginBottom: '1rem' }} />
-            <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: '1.6' }}>This gift card has a $0 balance. Would you like to remove it from your wallet?</div>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '1.5rem', width: '100%', maxWidth: '380px' }}>
+            <CardArt name={emptyGiftCards[emptyGiftCardIndex].name} style={{ height: '72px', marginBottom: '1rem' }} />
+            <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '6px' }}>{emptyGiftCards[emptyGiftCardIndex].name} is empty</div>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '1.25rem', lineHeight: '1.6' }}>Balance is $0. Remove it from your wallet?</div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-primary" style={{ background: 'var(--red)' }} onClick={async () => {
+              <button className="btn-primary" style={{ background: 'var(--loss)' }} onClick={async () => {
                 await deleteCard(emptyGiftCards[emptyGiftCardIndex].id); await loadCards()
                 const remaining = emptyGiftCards.filter((_, i) => i !== emptyGiftCardIndex)
                 setEmptyGiftCards(remaining); setEmptyGiftCardIndex(0)
@@ -2499,19 +2548,19 @@ export default function Dashboard() {
       )}
 
       {suggestedPerks && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div style={sheetStyle}>
-            <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>Known perks found</div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>Select the perks you have on this card. You can edit amounts later.</div>
+            <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Known perks found</div>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '1.25rem' }}>Select the perks you have on this card. You can edit amounts later.</div>
             {suggestedPerks.map((perk, i) => (
               <div key={i} onClick={() => setSelectedPerkIndices(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i])}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}>
-                <div style={{ width: '18px', height: '18px', borderRadius: '5px', border: selectedPerkIndices.includes(i) ? '2px solid var(--green)' : '1.5px solid var(--border)', background: selectedPerkIndices.includes(i) ? 'var(--green)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                  {selectedPerkIndices.includes(i) && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--hairline-soft)', cursor: 'pointer' }}>
+                <div style={{ width: '18px', height: '18px', borderRadius: 'var(--radius-control)', border: selectedPerkIndices.includes(i) ? '2px solid var(--ink)' : '1.5px solid var(--hairline)', background: selectedPerkIndices.includes(i) ? 'var(--ink)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  {selectedPerkIndices.includes(i) && <span style={{ color: 'var(--surface)', fontSize: '12px', fontWeight: '600' }}>✓</span>}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{perk.name}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{perk.period}{perk.total_amount > 0 ? ` · $${perk.total_amount}` : ''}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{perk.name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{perk.period}{perk.total_amount > 0 ? ` · ${moneyWhole(perk.total_amount)}` : ''}</div>
                 </div>
               </div>
             ))}
@@ -2524,17 +2573,17 @@ export default function Dashboard() {
       )}
 
       {showRankings && (
-        <div onClick={() => setShowRankings(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '440px', maxHeight: '70vh', overflowY: 'auto', border: '1px solid var(--border)' }}>
+        <div onClick={() => setShowRankings(false)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: 'var(--radius-container)', padding: '1.5rem', width: '100%', maxWidth: '440px', maxHeight: '70vh', overflowY: 'auto', border: '1px solid var(--hairline)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Card rankings</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
+                <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)' }}>Card rankings</div>
+                <div style={{ fontSize: '12px', color: 'var(--ink-2)', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · {money(selectedAmt)}</div>
               </div>
-              <button onClick={() => setShowRankings(false)} style={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setShowRankings(false)} style={{ background: 'var(--sunken)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--text-faintest)', marginBottom: '0.5rem' }}>
-              Tap a card to use it for this transaction instead — Clavis will remember your choice until you switch back to Auto.
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '0.5rem' }}>
+              Tap a card to use it instead. Switch back to Auto anytime.
             </div>
             {(() => {
               const ranked = getRankedCards()
@@ -2542,40 +2591,42 @@ export default function Dashboard() {
                 const mult = getMultiplier(card)
                 const tiedWithPrev = i > 0 && Math.abs(ranked[i - 1].score - score) <= 0.001
                 const tiedWithNext = i < ranked.length - 1 && Math.abs(ranked[i + 1].score - score) <= 0.001
-                const isTop = i === 0 || tiedWithPrev
-                const accentColor = isTop ? 'var(--gold)' : 'var(--border)'
+                // Top means tied with #1, not merely tied with the row above
+                const isTop = Math.abs(ranked[0].score - score) <= 0.001
+                const accentColor = isTop ? 'var(--accent-ink)' : 'var(--muted)'
                 const isSelected = selectedCardId === card.id
                 return (
                   <button key={card.id}
                     onClick={() => { setSelectedCardId(isSelected ? null : card.id); setShowRankings(false) }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 8px', margin: '0 -8px',
-                      borderBottom: '1px solid var(--border-subtle)', width: 'calc(100% + 16px)',
-                      background: isSelected ? 'rgba(37,99,235,0.06)' : 'none', border: 'none', borderRadius: '6px',
+                      borderBottom: '1px solid var(--hairline-soft)', width: 'calc(100% + 16px)',
+                      background: isSelected ? 'var(--sunken)' : 'none', border: 'none', borderRadius: 'var(--radius-control)',
+                      boxShadow: isTop ? 'inset 3px 0 0 var(--accent)' : 'none',
                       cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
                     }}>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: accentColor, width: '22px', flexShrink: 0, textAlign: 'center' }}>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: accentColor, width: '22px', flexShrink: 0, textAlign: 'center' }}>
                       {tiedWithPrev ? '=' : `#${i + 1}`}
                     </div>
-                    <CardArt name={card.name} style={{ width: '44px', height: '30px', flexShrink: 0 }} />
+                    <CardArt name={card.name} size="sm" />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         {card.name}
-                        {isSelected && <span style={{ fontSize: '9.5px', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--blue)', background: 'rgba(37,99,235,0.1)', borderRadius: '9999px', padding: '2px 7px', flexShrink: 0 }}>Selected</span>}
+                        {isSelected && <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink)', background: 'var(--sunken)', borderRadius: 'var(--radius-control)', padding: '2px 7px', flexShrink: 0 }}>Selected</span>}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                         {reasons.length > 0 ? reasons.join(' · ') : 'No rewards for this category'}
                         {tiedWithNext && !tiedWithPrev && (card.annual_fee || 0) > 0 && (
-                          <span style={{ color: 'rgba(201,162,39,0.55)' }}> · higher fee</span>
+                          <span style={{ color: 'var(--muted)' }}> · higher fee</span>
                         )}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: isTop ? '#c9a227' : 'var(--text-muted)' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: isTop ? 'var(--ink)' : 'var(--muted)' }}>
                         {mult > 0 ? formatRate(card, mult) : '—'}
                       </div>
                       {dollarVal > 0 && (
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>{formatValuePerDollar(card, mult)}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '1px' }}>{formatValuePerDollar(card, mult)}</div>
                       )}
                     </div>
                   </button>
@@ -2584,75 +2635,69 @@ export default function Dashboard() {
             })()}
 
             {/* How we rank — collapsible formula */}
-            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '0.75rem' }}>
+            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--hairline)', paddingTop: '0.75rem' }}>
               <button
                 onClick={() => setShowFormula(f => !f)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', fontFamily: 'inherit' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>How we rank cards</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', transition: 'transform 0.2s', display: 'inline-block', transform: showFormula ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
+                <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)' }}>How we rank cards</span>
+                <span style={{ fontSize: '12px', color: 'var(--muted)', transition: 'transform 0.2s', display: 'inline-block', transform: showFormula ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
               </button>
 
               {showFormula && (
                 <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    Every card gets a <strong style={{ color: 'var(--text-secondary)' }}>score</strong> for the current category and amount. The highest score wins.
+                  <div style={{ fontSize: '12px', color: 'var(--ink-2)', lineHeight: '1.6' }}>
+                    Each card gets a score. Highest wins.
                   </div>
 
                   {[
                     {
                       label: 'Rewards value',
                       formula: 'multiplier × cents-per-point × 100',
-                      detail: 'The base score. A 3x card at 1.8¢/pt scores 5.4. A 2% cash-back card scores 2.0. This is the dominant factor — everything else is a small nudge.',
-                      color: '#c9a227',
+                      detail: '3x at 1.0¢ = 3.0. 2% cash back = 2.0. This decides the ranking.',
+                      color: 'var(--ink)',
                     },
                     {
-                      label: 'Unused perks',
-                      formula: '+0.3/perk + (unused $ ÷ 50)',
-                      detail: 'Cards with perk value still on the table get a steady bump — sized by how much is actually unused, so a $200 credit counts for more than a $10 one, not just "a perk is a perk."',
-                      color: 'var(--text-secondary)',
-                    },
-                    {
-                      label: 'Expiring perks',
-                      formula: '+1/perk + (expiring $ ÷ 15) — within 14 days',
-                      detail: 'A perk about to reset gets real urgency weight, scaled to its dollar value — large enough that a credit worth real money expiring this week can outrank a card with a slightly better rewards rate.',
-                      color: 'var(--text-secondary)',
+                      label: 'Other unused credits',
+                      formula: 'Tie-breaker only',
+                      detail: 'Only decides between cards within 0.25¢ of each other. Favors more unused credit.',
+                      color: 'var(--ink-2)',
                     },
                     {
                       label: 'Gift card balance',
                       formula: '+5 if gift card has remaining balance',
-                      detail: 'A gift card with money on it should be used before any rewards card — you\'ve already paid for it.',
-                      color: 'var(--text-secondary)',
+                      detail: 'You already paid for it. Use it first.',
+                      color: 'var(--ink-2)',
                     },
                     {
-                      label: 'Merchant-matched perk',
-                      formula: 'Score → 500 + unused $ (overrides rewards math)',
-                      detail: 'If what you typed matches an unused perk\'s name (e.g. typing "Peloton" when a card has a Peloton credit), that card jumps to the top — these are use-it-here-or-lose-it credits where the rewards rate stops mattering.',
-                      color: 'var(--text-secondary)',
+                      label: 'Credit for this store',
+                      formula: 'Goes first',
+                      detail: 'Typed "Peloton" with an unused Peloton credit? That card goes first.',
+                      color: 'var(--ink-2)',
                     },
                     {
-                      label: 'Linked merchant override',
-                      formula: 'Score → 9999 (always #1)',
-                      detail: 'If you typed a merchant and a gift card is linked to that store, it locks to the top. No credit card rewards beat a gift card that only works here.',
-                      color: 'var(--text-secondary)',
+                      label: 'Linked gift card',
+                      formula: 'Always first',
+                      detail: 'A gift card for this store always goes first.',
+                      color: 'var(--ink-2)',
                     },
                     {
                       label: 'Tie-breaker',
-                      formula: 'Higher annual fee ranks lower',
-                      detail: 'When two cards score identically, the one charging you less per year wins. Why pay more for the same result?',
-                      color: 'var(--text-secondary)',
+                      formula: 'Higher annual fee ranks first',
+                      detail: 'Exact tie? Higher annual fee is listed first.',
+                      color: 'var(--ink-2)',
                     },
                   ].map(row => (
-                    <div key={row.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '6px', padding: '10px 12px' }}>
+                    <div key={row.label} style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-control)', padding: '10px 12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '700', color: row.color }}>{row.label}</span>
-                        <span style={{ fontSize: '11px', fontWeight: '600', fontFamily: 'monospace', color: 'var(--text-muted)', flexShrink: 0 }}>{row.formula}</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: row.color }}>{row.label}</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', fontFamily: 'monospace', color: 'var(--muted)', flexShrink: 0 }}>{row.formula}</span>
                       </div>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, lineHeight: '1.55' }}>{row.detail}</p>
+                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0, lineHeight: '1.55' }}>{row.detail}</p>
                     </div>
                   ))}
 
-                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: '1.5' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0', lineHeight: '1.5' }}>
                     Point valuations (cents per point) come from our internal table based on typical redemption rates — e.g. Chase UR at 1.8¢, Amex MR at 1.8¢, Capital One at 1.85¢.
                   </p>
                 </div>
@@ -2665,29 +2710,29 @@ export default function Dashboard() {
 
       {/* ── PERK UPDATE REVIEW MODAL ───────────────────── */}
       {perkUpdateModal && (
-        <div onClick={() => setPerkUpdateModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setPerkUpdateModal(null)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 110, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={{ ...sheetStyle, maxHeight: '80vh' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.25rem' }}>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Perk changes found</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{perkUpdateModal.card.name}</div>
+                <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)' }}>Perk changes found</div>
+                <div style={{ fontSize: '12px', color: 'var(--ink-2)', marginTop: '2px' }}>{perkUpdateModal.card.name}</div>
               </div>
-              <button onClick={() => setPerkUpdateModal(null)} style={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <button onClick={() => setPerkUpdateModal(null)} style={{ background: 'var(--sunken)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
               Clavis found updated perk data for this card. Review and apply what looks right — your usage tracking won't be affected.
             </div>
 
             {perkUpdateModal.newPerks.length > 0 && (
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: '8px' }}>New perks</div>
+                <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink)', marginBottom: '8px' }}>New perks</div>
                 {perkUpdateModal.newPerks.map((p, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(29,184,122,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--gain-wash)', border: '1px solid var(--gain-wash)', borderRadius: 'var(--radius-control)', marginBottom: '6px' }}>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{p.name}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{p.period}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{p.name}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{p.period}</div>
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--green)' }}>${p.total_amount}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', ...NUM }}>{moneyWhole(p.total_amount)}</div>
                   </div>
                 ))}
               </div>
@@ -2695,18 +2740,18 @@ export default function Dashboard() {
 
             {perkUpdateModal.changedPerks.length > 0 && (
               <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.07em', textTransform: 'uppercase', color: '#c9a227', marginBottom: '8px' }}>Updated amounts</div>
+                <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink)', marginBottom: '8px' }}>Updated amounts</div>
                 {perkUpdateModal.changedPerks.map((cp, i) => {
                   const userPerk = perkUpdateModal.card.perks.find(up => up.name.toLowerCase().includes(cp.name.toLowerCase()) || cp.name.toLowerCase().includes(up.name.toLowerCase()))
                   return (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(201,162,39,0.06)', border: '1px solid rgba(201,162,39,0.15)', borderRadius: '6px', marginBottom: '6px' }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', marginBottom: '6px' }}>
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{cp.name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{cp.period}</div>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{cp.name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{cp.period}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#c9a227' }}>${cp.total_amount}</div>
-                        {userPerk && <div style={{ fontSize: '11px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>${userPerk.total_amount}</div>}
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', ...NUM }}>{moneyWhole(cp.total_amount)}</div>
+                        {userPerk && <div style={{ fontSize: '12px', color: 'var(--muted)', textDecoration: 'line-through' }}>{moneyWhole(userPerk.total_amount)}</div>}
                       </div>
                     </div>
                   )
@@ -2717,13 +2762,13 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <button
                 onClick={() => dismissPerkUpdate(perkUpdateModal.card.id)}
-                style={{ padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                style={{ padding: '12px', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--ink-2)', fontFamily: 'inherit' }}>
                 Dismiss
               </button>
               <button
                 onClick={() => applyPerkUpdate(perkUpdateModal.card, perkUpdateModal.newPerks, perkUpdateModal.changedPerks)}
                 disabled={applyingPerkUpdate}
-                style={{ padding: '12px', background: 'var(--green)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', color: '#0a0a0f', fontFamily: 'inherit', opacity: applyingPerkUpdate ? 0.6 : 1 }}>
+                style={{ padding: '12px', background: 'var(--ink)', border: 'none', borderRadius: 'var(--radius-control)', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: 'var(--surface)', fontFamily: 'inherit', opacity: applyingPerkUpdate ? 0.6 : 1 }}>
                 {applyingPerkUpdate ? 'Applying…' : 'Apply updates'}
               </button>
             </div>
@@ -2751,30 +2796,35 @@ export default function Dashboard() {
       )}
 
       {editingCard && (
-        <div onClick={() => setEditingCard(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={() => setEditingCard(null)} style={{ position: 'fixed', inset: 0, background: 'var(--scrim)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div onClick={e => e.stopPropagation()} style={sheetStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Edit {editingCard.name}</div>
-              <button onClick={() => setEditingCard(null)} style={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+              <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--ink)' }}>Edit {editingCard.name}</div>
+              <button onClick={() => setEditingCard(null)} style={{ background: 'var(--sunken)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
-            <CardArt name={editingCard.name} style={{ height: '56px', marginBottom: '1rem' }} />
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', lineHeight: '1.5' }}>
+            <CardArt name={editingCard.name} lastFour={editingCard.last_four} style={{ height: '72px', marginBottom: '1rem' }} />
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '10px', lineHeight: '1.5' }}>
               Cash back: enter % (e.g. 1.5). Points/miles: enter multiplier (e.g. 3 for 3x).
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '10px 12px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', flexShrink: 0 }}>Apply to all categories</span>
-              <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '5px 8px', fontSize: '13px', flex: 1 }}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '10px 12px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--ink-2)', flexShrink: 0 }}>Apply to all categories</span>
+              <input className="input" type="number" placeholder="e.g. 1.5" min="0" max="20" style={{ padding: '5px 8px', fontSize: '14px', flex: 1 }}
                 onChange={e => { const val = e.target.value; const filled = {}; CATEGORIES.forEach(cat => { filled[cat] = val }); setEditMultipliers(filled) }} />
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginBottom: '8px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Or per category:</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '8px', fontWeight: '500' }}>Or per category:</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.25rem' }}>
               {CATEGORIES.map(cat => (
                 <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
-                  <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 8px', fontSize: '13px' }}
+                  <span style={{ fontSize: '12px', color: 'var(--ink-2)', width: '68px', flexShrink: 0 }}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                  <input className="input" type="number" placeholder="0" min="0" max="20" style={{ padding: '6px 8px', fontSize: '14px' }}
                     value={editMultipliers[cat] || ''} onChange={e => setEditMultipliers({ ...editMultipliers, [cat]: e.target.value })} />
                 </div>
               ))}
+            </div>
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label className="label" htmlFor="edit-opened">Card opened</label>
+              <input id="edit-opened" className="input" type="month" value={editOpenedOn} onChange={e => setEditOpenedOn(e.target.value)} />
+              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>Anniversary credits reset in this month.</div>
             </div>
             <div style={{ marginBottom: '1.25rem' }}>
               <label className="label">Annual fee ($)</label>
@@ -2785,50 +2835,51 @@ export default function Dashboard() {
                 if (String(known.annualFee) === editAnnualFee) return null
                 return (
                   <button onClick={() => setEditAnnualFee(String(known.annualFee))}
-                    style={{ marginTop: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--blue)', padding: 0 }}>
-                    ↻ Use latest known fee — ${known.annualFee}
+                    style={{ marginTop: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--ink)', padding: 0 }}>
+                    ↻ Use latest known fee — {moneyWhole(known.annualFee)}
                   </button>
                 )
               })()}
             </div>
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '12px', marginBottom: '1.25rem' }}>
+            <div style={{ borderTop: '1px solid var(--hairline-soft)', paddingTop: '12px', marginBottom: '1.25rem' }}>
               {!showCorrectionForm ? (
                 <button onClick={() => setShowCorrectionForm(true)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--text-muted)', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--muted)', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}>
                   Something look outdated? Suggest a correction
                 </button>
               ) : correctionSubmitted ? (
-                <div style={{ fontSize: '12.5px', color: 'var(--green)', fontWeight: '600' }}>
+                <div style={{ fontSize: '12px', color: 'var(--ink)', fontWeight: '600' }}>
                   ✓ Thanks — we'll review your suggestion and update our card data.
                 </div>
               ) : (
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '8px' }}>Suggest a correction for {editingCard.name}</div>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', marginBottom: '8px' }}>Suggest a correction for {editingCard.name}</div>
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                    <select className="input" value={correctionField} onChange={e => setCorrectionField(e.target.value)} style={{ flex: 1, fontSize: '13px', padding: '7px 8px' }}>
+                    <select className="input" value={correctionField} onChange={e => setCorrectionField(e.target.value)} style={{ flex: 1, fontSize: '14px', padding: '7px 8px' }}>
                       <option>Annual fee</option>
                       <option>Reward rate / multiplier</option>
                       <option>Perk details</option>
                       <option>Card name / details</option>
                       <option>Other</option>
                     </select>
-                    <input className="input" placeholder="Suggested value" value={correctionValue} onChange={e => setCorrectionValue(e.target.value)} style={{ flex: 1, fontSize: '13px', padding: '7px 8px' }} />
+                    <input className="input" placeholder="Suggested value" value={correctionValue} onChange={e => setCorrectionValue(e.target.value)} style={{ flex: 1, fontSize: '14px', padding: '7px 8px' }} />
                   </div>
                   <textarea className="input" placeholder="Add a note or source (optional)" value={correctionNote} onChange={e => setCorrectionNote(e.target.value)}
-                    style={{ width: '100%', minHeight: '54px', fontSize: '13px', padding: '7px 8px', marginBottom: '8px', fontFamily: 'inherit', resize: 'vertical' }} />
+                    style={{ width: '100%', minHeight: '54px', fontSize: '14px', padding: '7px 8px', marginBottom: '8px', fontFamily: 'inherit', resize: 'vertical' }} />
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button className="btn-secondary" disabled={!correctionValue.trim() || correctionSubmitting} onClick={handleSubmitCorrection}
                       style={{ fontSize: '12px', padding: '7px 14px', opacity: (!correctionValue.trim() || correctionSubmitting) ? 0.5 : 1 }}>
                       {correctionSubmitting ? 'Submitting…' : 'Submit suggestion'}
                     </button>
                     <button onClick={() => setShowCorrectionForm(false)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--text-faintest)', padding: '7px 4px' }}>
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--muted)', padding: '7px 4px' }}>
                       Cancel
                     </button>
                   </div>
                 </div>
               )}
             </div>
+            {editError && <div className="error">{editError}</div>}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn-primary" onClick={handleSaveEdit}>Save changes</button>
               <button className="btn-secondary" onClick={() => setEditingCard(null)}>Cancel</button>

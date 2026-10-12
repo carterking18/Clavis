@@ -1,0 +1,239 @@
+
+## Hex colors (113 distinct, 219 uses)
+    43  #C9A227
+    14  #FFF
+    11  #FFFFFF
+     5  #DDDDE4
+     4  #F3F4F6
+     4  #B45309
+     4  #0F9B65
+     4  #111827
+     3  #111
+     3  #FAFAFA
+     3  #8E8E99
+     3  #0A2A5A
+     3  #1A3A6B
+     2  #B8911F
+     2  #E5E7EB
+     2  #9CA3AF
+     2  #6B7280
+     2  #1A1A1A
+     2  #1A6EB5
+     2  #1A4A8A
+     2  #003087
+     2  #0057A8
+     2  #1A2A4A
+     2  #3A3A3A
+     2  #5A5A5A
+     2  #2A5A9B
+     2  #AA0000
+     2  #CC2222
+     1  #F9FAFB
+     1  #999
+     1  #555
+     1  #333
+     1  #AAA
+     1  #1C1C24
+     1  #F0F0F5
+     1  #C0C0CC
+     1  #5B4FFF
+     1  #D1D5DB
+     1  #8B5CF6
+     1  #06B6D4
+
+## rgb/rgba colors (88 distinct, 178 uses)
+     8  rgba(0,0,0,0.2)
+     6  rgba(201,162,39,0.08)
+     6  rgba(0,0,0,0.08)
+     5  rgba(255,255,255,0.05)
+     5  rgba(0,0,0,0.06)
+     5  rgba(201,162,39,0.5)
+     5  rgba(201,162,39,0.2)
+     5  rgba(37,99,235,0.06)
+     4  rgba(9,9,12,0.85)
+     4  rgba(201,162,39,0.18)
+     4  rgba(0,0,0,0.05)
+     4  rgba(0,0,0,0.18)
+     4  rgba(201,162,39,0.1)
+     4  rgba(217,82,82,0.3)
+     4  rgba(0,0,0,0.35)
+     3  rgba(201,162,39,0.25)
+     3  rgba(201,162,39,0.15)
+     3  rgba(180,83,9,0.08)
+     3  rgba(0,0,0,0.12)
+     3  rgba(217,82,82,0.08)
+     3  rgba(15,155,101,0.15)
+     2  rgba(221,221,228,0.35)
+     2  rgba(221,221,228,0.2)
+     2  rgba(0,0,0,0.07)
+     2  rgba(201,162,39,0.3)
+     2  rgba(201,162,39,0.12)
+     2  rgba(17,24,39,0.06)
+     2  rgba(201,162,39,0.06)
+     2  rgba(15,155,101,0.08)
+     2  rgba(15,155,101,0.2)
+     2  rgba(0,0,0,0.4)
+     2  rgba(37,99,235,0.15)
+     2  rgba(0,0,0,0.3)
+     2  rgba(29,184,122,0.15)
+     2  rgba(15,155,101,0.25)
+     2  rgba(217,82,82,0.6)
+     2  rgba(196,124,42,0.08)
+     2  rgba(29,184,122,0.06)
+     2  rgba(15,155,101,0.06)
+     2  rgba(37,99,235,0.16)
+     2  rgba(37,99,235,0.1)
+     1  rgba(0,0,0,0.04)
+     1  rgba(17,24,39,0.15)
+     1  rgba(17,24,39,0.07)
+     1  rgba(17,24,39,0.04)
+     1  rgba(201,162,39,0.05)
+     1  rgba(17,24,39,0.35)
+     1  rgba(201,162,39,0.28)
+     1  rgba(201,162,39,0.22)
+     1  rgba(201,162,39,0.9)
+
+## Border radii (17 distinct, 141 uses)
+    29  6px
+    24  4px
+    20  8px
+    15  9999px
+    13  50%
+     8  2px
+     8  10px
+     7  3px
+     4  12px
+     2  14px
+     2  16px
+     2  5px
+     2  0 0 4px 4px
+     2  20px
+     1  2px 2px 0 0
+     1  8px 8px 0 0
+     1  0
+
+## Box shadows (9 distinct, 11 uses)
+     2  0 12px 40px rgba(0,0,0,0.18)
+     2  0 8px 24px rgba(0,0,0,0.08)
+     1  0 24px 64px rgba(0,0,0,0.18)
+     1  0 8px 32px rgba(0,0,0,0.5)
+     1  0 0 0 9999px rgba(15,15,20,0.6)
+     1  0 16px 48px rgba(0,0,0,0.3)
+     1  0 8px 24px rgba(0,0,0,0.12)
+     1  0 1px 2px rgba(0,0,0,0.2)
+     1  none
+
+## Font families (8 distinct, 64 uses)
+    46  inherit
+    11  var(--font-instrument, Georgia, serif)
+     2  var(--font-geist)
+     1  Georgia, serif
+     1  var(--font-dm-sans)
+     1  -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif
+     1  monospace
+     1  var(--font-geist, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif)
+
+## Padding values (91 distinct, 184 uses)
+     9  1.5rem
+     8  14px 16px
+     7  4px
+     6  12px 14px
+     5  10px 12px
+     4  0 24px
+     4  9px 20px
+     4  2rem
+     4  11px 18px
+     4  24px
+     4  10px 14px
+     4  5px 12px
+     3  32px 24px
+     3  20px
+     3  18px 20px
+     3  0 2px
+     3  3rem 1rem
+     3  6px 14px
+     3  12px
+     3  7px 10px
+     3  0 1.125rem
+     3  15px 0
+     3  7px 8px
+     2  10px 16px
+     2  13px 16px
+     2  4px 10px
+     2  11px 14px
+     2  9px 12px
+     2  12px 0
+     2  16px
+
+## Gap values (15 distinct, 122 uses)
+    36  8px
+    28  10px
+    14  12px
+    12  6px
+     9  14px
+     5  16px
+     4  5px
+     3  4px
+     3  20px
+     2  32px
+     2  9px
+     1  60px
+     1  1px
+     1  28px
+     1  7px
+
+## Letter-spacing (14 distinct, 75 uses)
+    18  0.08em
+    11  0.1em
+     9  -0.01em
+     9  -0.03em
+     7  0.06em
+     4  0.12em
+     4  -0.02em
+     3  0.04em
+     3  0.02em
+     3  0.07em
+     1  0.05em
+     1  0.16em
+     1  0.01em
+     1  -0.04em
+
+## Uppercase text-transform: 40 uses
+
+## Font sizes, inline JS (29 distinct)
+    78  13px
+    66  11px
+    65  12px
+    43  14px
+    14  15px
+    12  16px
+    11  11.5px
+    10  10px
+     8  12.5px
+     7  9px
+     5  28px
+     4  14.5px
+     4  18px
+     4  22px
+     4  24px
+     3  20px
+     2  26px
+     2  17px
+     2  42px
+     2  10.5px
+     2  46px
+     1  19px
+     1  8px
+     1  44px
+     1  15.5px
+     1  13.5px
+     1  25px
+     1  40px
+     1  9.5px
+
+## Font weights, inline JS (5 distinct)
+    99  700
+    72  600
+    20  500
+     4  400
+     4  800

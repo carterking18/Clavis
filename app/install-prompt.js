@@ -63,29 +63,29 @@ export function InstallPrompt() {
       transform: 'translateX(-50%)',
       width: 'calc(100% - 32px)',
       maxWidth: '400px',
-      background: '#1c1c24',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: '16px',
+      background: 'var(--surface)',
+      border: '1px solid var(--hairline)',
+      borderRadius: 'var(--radius-container)',
       padding: '16px',
       zIndex: 9999,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+      boxShadow: 'var(--shadow-overlay)',
       display: 'flex',
       alignItems: 'flex-start',
       gap: '12px',
     }}>
       {/* Icon */}
-      <img src="/icon-192.png" alt="Clavis" style={{ width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0 }} />
+      <img src="/icon-192.png" alt="Clavis" style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-container)', flexShrink: 0 }} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: '600', fontSize: '15px', color: '#f0f0f5', marginBottom: '4px' }}>
+        <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--ink)', marginBottom: '4px' }}>
           Add Clavis to your home screen
         </div>
         {showIOS ? (
-          <div style={{ fontSize: '13px', color: '#8e8e99', lineHeight: '1.4' }}>
-            Tap the <ShareIcon /> share button, then <strong style={{ color: '#c0c0cc' }}>Add to Home Screen</strong>.
+          <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.4' }}>
+            Tap the <ShareIcon /> share button, then <strong style={{ color: 'var(--ink)' }}>Add to Home Screen</strong>.
           </div>
         ) : (
-          <div style={{ fontSize: '13px', color: '#8e8e99', lineHeight: '1.4' }}>
+          <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.4' }}>
             Install for faster access and a full-screen experience.
           </div>
         )}
@@ -94,15 +94,15 @@ export function InstallPrompt() {
             onClick={install}
             style={{
               marginTop: '10px',
-              background: '#5b4fff',
-              color: '#fff',
+              background: 'var(--ink)',
+              color: 'var(--surface)',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-container)',
               padding: '8px 16px',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: '600',
               cursor: 'pointer',
-              fontFamily: 'var(--font-dm-sans)',
+              fontFamily: 'var(--font-sans)',
             }}
           >
             Install
@@ -116,10 +116,10 @@ export function InstallPrompt() {
         style={{
           background: 'none',
           border: 'none',
-          color: '#8e8e99',
+          color: 'var(--ink-2)',
           cursor: 'pointer',
           padding: '2px',
-          fontSize: '18px',
+          fontSize: '16px',
           lineHeight: 1,
           flexShrink: 0,
         }}
