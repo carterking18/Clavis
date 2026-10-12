@@ -457,7 +457,7 @@ export default function Dashboard() {
   )
 
   function getRankedCards() { return rankedCards }
-  const rankRef = useReorder(rankedCards.map(r => r.card.id))
+  const runnerRef = useReorder(rankedCards.map(r => r.card.id))
   function getBestCard() { return rankedCards[0]?.card || null }
   function getActiveCard() {
     if (selectedCardId) return cards.find(c => c.id === selectedCardId) || getBestCard()
@@ -1279,15 +1279,31 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* 6 ── See all cards */}
-          {cards.length > 1 && (
-            <button onClick={() => setShowRankings(true)}
-              style={{ width: '100%', background: 'none', border: 'none', fontSize: '12px', fontWeight: '500', color: 'var(--muted)', cursor: 'pointer', padding: '8px', transition: 'color 0.15s', fontFamily: 'inherit' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--ink-2)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--muted)'}>
-              View all {cards.length} cards →
-            </button>
-          )}
+          {/* 6 ── Runner-up cards: the list that slides when the merchant or category changes */}
+          {cards.length > 1 && (() => {
+            const others = rankedCards.filter(r => r.card.id !== getActiveCard()?.id).slice(0, 3)
+            return (
+              <div style={{ marginTop: '16px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '4px' }}>Next best</div>
+                <div className="card" style={{ padding: '0 16px' }}>
+                  {others.map((r, i) => (
+                    <div key={r.card.id} ref={runnerRef(r.card.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: i < others.length - 1 ? '1px solid var(--hairline-soft)' : 'none', background: 'var(--surface)' }}>
+                      <CardArt name={r.card.name} size="sm" />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: '14px', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.card.name}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)', flexShrink: 0 }}>{formatRate(r.card, getMultiplier(r.card)) || 'no bonus'}</span>
+                      <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--ink)', minWidth: '64px', textAlign: 'right', flexShrink: 0, ...NUM }}>
+                        {selectedAmt > 0 ? money(r.dollarVal * selectedAmt) : `${centsPerDollar(r.dollarVal)}/$`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button className="btn-ghost" onClick={() => setShowRankings(true)} style={{ width: '100%', marginTop: '4px' }}>
+                  See why · all {cards.length} cards
+                </button>
+              </div>
+            )
+          })()}
 
           {tapConfirm && (
             <div className="success" style={{ marginTop: '10px', textAlign: 'center' }}>{tapConfirm}</div>
@@ -2531,7 +2547,7 @@ export default function Dashboard() {
                 const accentColor = isTop ? 'var(--accent-ink)' : 'var(--muted)'
                 const isSelected = selectedCardId === card.id
                 return (
-                  <button key={card.id} ref={rankRef(card.id)}
+                  <button key={card.id}
                     onClick={() => { setSelectedCardId(isSelected ? null : card.id); setShowRankings(false) }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 8px', margin: '0 -8px',
