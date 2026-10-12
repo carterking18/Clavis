@@ -8,7 +8,7 @@ export default function About() {
     <>
       <style>{marketingStyles}</style>
 
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--paper)', color: 'var(--ink)' }}>
 
         {/* ── Sticky nav ── */}
         <nav style={{

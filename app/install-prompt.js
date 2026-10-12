@@ -77,15 +77,15 @@ export function InstallPrompt() {
       <img src="/icon-192.png" alt="Clavis" style={{ width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0 }} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: '600', fontSize: '15px', color: '#f0f0f5', marginBottom: '4px' }}>
+        <div style={{ fontWeight: '600', fontSize: '14px', color: '#f0f0f5', marginBottom: '4px' }}>
           Add Clavis to your home screen
         </div>
         {showIOS ? (
-          <div style={{ fontSize: '13px', color: '#8e8e99', lineHeight: '1.4' }}>
+          <div style={{ fontSize: '14px', color: '#8e8e99', lineHeight: '1.4' }}>
             Tap the <ShareIcon /> share button, then <strong style={{ color: '#c0c0cc' }}>Add to Home Screen</strong>.
           </div>
         ) : (
-          <div style={{ fontSize: '13px', color: '#8e8e99', lineHeight: '1.4' }}>
+          <div style={{ fontSize: '14px', color: '#8e8e99', lineHeight: '1.4' }}>
             Install for faster access and a full-screen experience.
           </div>
         )}
@@ -99,10 +99,10 @@ export function InstallPrompt() {
               border: 'none',
               borderRadius: '8px',
               padding: '8px 16px',
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: '600',
               cursor: 'pointer',
-              fontFamily: 'var(--font-dm-sans)',
+              fontFamily: 'var(--font-sans)',
             }}
           >
             Install
@@ -119,7 +119,7 @@ export function InstallPrompt() {
           color: '#8e8e99',
           cursor: 'pointer',
           padding: '2px',
-          fontSize: '18px',
+          fontSize: '16px',
           lineHeight: 1,
           flexShrink: 0,
         }}

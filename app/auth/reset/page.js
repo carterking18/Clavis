@@ -34,7 +34,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--bg-page)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'var(--paper)' }}>
       <div style={{ width: '100%', maxWidth: '460px' }}>
 
         <div style={{ marginBottom: '48px' }}>
@@ -51,13 +51,13 @@ export default function ResetPassword() {
               </defs>
               <rect width="512" height="512" fill="#C9A227" mask="url(#akey2)"/>
             </svg>
-            <span style={{ fontSize: '13px', fontWeight: '700', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>CLAVIS</span>
+            <span style={{ fontSize: '14px', fontWeight: '600', letterSpacing: '0.08em', color: 'var(--muted)' }}>CLAVIS</span>
           </a>
 
-          <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '42px', fontWeight: '700', letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)', marginBottom: '12px', whiteSpace: 'nowrap' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', lineHeight: '1.1', color: 'var(--ink)', marginBottom: '12px', whiteSpace: 'nowrap' }}>
             Set a new <span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>password.</span>
           </h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+          <p style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.5' }}>
             {ready ? 'Choose a new password for your account.' : 'Verifying your reset link…'}
           </p>
         </div>
@@ -65,7 +65,7 @@ export default function ResetPassword() {
         {error && <div className="error">{error}</div>}
 
         {!ready ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: '2rem 0' }}>
+          <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '14px', padding: '2rem 0' }}>
             Waiting for confirmation…
           </div>
         ) : (

@@ -14,8 +14,8 @@ export default function Privacy() {
       <LegalP>By creating an account or using the Service, you acknowledge that you have read and agree to this Privacy Policy.</LegalP>
 
       <LegalH2>1. Information We Collect</LegalH2>
-      <LegalP><strong style={{ color: 'var(--text-primary)' }}>a. Account Information</strong> — When you register, we collect your email address and a password. Passwords are hashed by Supabase before storage; we never have access to your plain-text password.</LegalP>
-      <LegalP><strong style={{ color: 'var(--text-primary)' }}>b. Card Information You Enter</strong> — You may manually enter details about your credit or debit cards, which may include:</LegalP>
+      <LegalP><strong style={{ color: 'var(--ink)' }}>a. Account Information</strong> — When you register, we collect your email address and a password. Passwords are hashed by Supabase before storage; we never have access to your plain-text password.</LegalP>
+      <LegalP><strong style={{ color: 'var(--ink)' }}>b. Card Information You Enter</strong> — You may manually enter details about your credit or debit cards, which may include:</LegalP>
       <LegalList items={[
         'card name or nickname;',
         'last four digits of the card number;',
@@ -24,10 +24,10 @@ export default function Privacy() {
         'current balance (optional).',
       ]} />
       <LegalP>We do not collect full card numbers, CVVs, PINs, or any banking login credentials. Clavis does not connect to your bank or card issuer and does not use Plaid or any open banking integration.</LegalP>
-      <LegalP><strong style={{ color: 'var(--text-primary)' }}>c. Purchase History You Log</strong> — You may manually log individual purchases, including the merchant name, category, amount, and estimated rewards earned. All purchase data is entered by you — we do not retrieve it from any financial institution.</LegalP>
-      <LegalP><strong style={{ color: 'var(--text-primary)' }}>d. Email Preferences</strong> — If you opt in to weekly email summaries, we retain your email address and send digests of your card perks and credits through Resend, our email delivery provider. You may unsubscribe at any time using the link included in every email.</LegalP>
-      <LegalP><strong style={{ color: 'var(--text-primary)' }}>e. Usage and Technical Data</strong> — Clavis is hosted on Vercel, which may automatically collect standard server log data such as IP address, browser type, device type, and pages visited. Supabase may similarly log database access events. This data is used solely for service operation, security monitoring, and performance analysis. We do not operate additional third-party analytics tools beyond what Vercel and Supabase collect by default.</LegalP>
-      <LegalP><strong style={{ color: 'var(--text-primary)' }}>f. Support Communications</strong> — If you contact us for support, we retain the content of your message and your email address in order to respond. Support requests may be directed to <a href="mailto:carterking18@gmail.com" style={{ color: 'var(--blue)' }}>carterking18@gmail.com</a>.</LegalP>
+      <LegalP><strong style={{ color: 'var(--ink)' }}>c. Purchase History You Log</strong> — You may manually log individual purchases, including the merchant name, category, amount, and estimated rewards earned. All purchase data is entered by you — we do not retrieve it from any financial institution.</LegalP>
+      <LegalP><strong style={{ color: 'var(--ink)' }}>d. Email Preferences</strong> — If you opt in to weekly email summaries, we retain your email address and send digests of your card perks and credits through Resend, our email delivery provider. You may unsubscribe at any time using the link included in every email.</LegalP>
+      <LegalP><strong style={{ color: 'var(--ink)' }}>e. Usage and Technical Data</strong> — Clavis is hosted on Vercel, which may automatically collect standard server log data such as IP address, browser type, device type, and pages visited. Supabase may similarly log database access events. This data is used solely for service operation, security monitoring, and performance analysis. We do not operate additional third-party analytics tools beyond what Vercel and Supabase collect by default.</LegalP>
+      <LegalP><strong style={{ color: 'var(--ink)' }}>f. Support Communications</strong> — If you contact us for support, we retain the content of your message and your email address in order to respond. Support requests may be directed to <a href="mailto:carterking18@gmail.com" style={{ color: 'var(--blue)' }}>carterking18@gmail.com</a>.</LegalP>
 
       <LegalH2>2. How We Use Your Information</LegalH2>
       <LegalP>We use the information you provide to:</LegalP>

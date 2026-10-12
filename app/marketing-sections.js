@@ -28,7 +28,7 @@ export function LegalLayout({ title, meta, children, navId = 'lglkey', ftId = 'l
   return (
     <>
       <style>{marketingStyles}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--paper)', color: 'var(--ink)' }}>
         <nav style={{
           position: 'sticky', top: 0, zIndex: 100,
           background: 'rgba(9,9,12,0.85)',
@@ -49,7 +49,7 @@ export function LegalLayout({ title, meta, children, navId = 'lglkey', ftId = 'l
 
         <div style={{ maxWidth: '720px', margin: '0 auto', padding: '64px 24px 96px' }}>
           <h1 className="display-lg" style={{ marginBottom: '8px' }}>{title}</h1>
-          {meta && <p style={{ fontSize: '13px', color: 'var(--text-faintest)', marginBottom: '40px' }}>{meta}</p>}
+          {meta && <p style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '40px' }}>{meta}</p>}
           {children}
         </div>
 
@@ -72,18 +72,18 @@ export function LegalLayout({ title, meta, children, navId = 'lglkey', ftId = 'l
 
 // ── Content primitives for legal/info pages ──────────────
 export function LegalH2({ children }) {
-  return <h2 style={{ fontSize: '19px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.01em', marginTop: '40px', marginBottom: '14px' }}>{children}</h2>
+  return <h2 style={{ fontSize: '19px', fontWeight: '700', color: 'var(--ink)', letterSpacing: '-0.01em', marginTop: '40px', marginBottom: '14px' }}>{children}</h2>
 }
 
 export function LegalP({ children }) {
-  return <p style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-secondary)', marginBottom: '14px' }}>{children}</p>
+  return <p style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--ink-2)', marginBottom: '14px' }}>{children}</p>
 }
 
 export function LegalList({ items }) {
   return (
     <ul style={{ margin: '0 0 14px', paddingLeft: '22px' }}>
       {items.map((item, i) => (
-        <li key={i} style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-secondary)', marginBottom: '6px' }}>{item}</li>
+        <li key={i} style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--ink-2)', marginBottom: '6px' }}>{item}</li>
       ))}
     </ul>
   )
@@ -206,17 +206,17 @@ export function ComparisonArt() {
     <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         {['Card','Rate','Value'].map(h => (
-          <span key={h} style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: h === 'Card' ? 'left' : 'right' }}>{h}</span>
+          <span key={h} style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', textAlign: h === 'Card' ? 'left' : 'right' }}>{h}</span>
         ))}
       </div>
       {rows.map((row, i) => (
         <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '13px 16px', borderBottom: i < rows.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none', background: row.highlight ? 'rgba(201,162,39,0.04)' : 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '3px', height: '16px', borderRadius: '2px', background: row.highlight ? '#C9A227' : 'transparent', flexShrink: 0 }}/>
-            <span style={{ fontSize: '12px', fontWeight: row.highlight ? '600' : '400', color: row.highlight ? 'var(--text-primary)' : 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
+            <span style={{ fontSize: '12px', fontWeight: row.highlight ? '600' : '400', color: row.highlight ? 'var(--ink)' : 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
           </div>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: row.highlight ? '#C9A227' : 'var(--text-faintest)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.rate}</span>
-          <span style={{ fontSize: '12px', fontWeight: '500', color: row.highlight ? 'rgba(201,162,39,0.8)' : 'var(--text-faintest)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.val}</span>
+          <span style={{ fontSize: '13px', fontWeight: '700', color: row.highlight ? '#C9A227' : 'var(--muted)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.rate}</span>
+          <span style={{ fontSize: '12px', fontWeight: '500', color: row.highlight ? 'rgba(201,162,39,0.8)' : 'var(--muted)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.val}</span>
         </div>
       ))}
       <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', background: 'rgba(201,162,39,0.03)' }}>
@@ -237,7 +237,7 @@ export function PerkArt() {
   return (
     <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>Perk Tracker</span>
+        <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)' }}>Perk Tracker</span>
         <span style={{ fontSize: '10px', fontWeight: '600', color: '#C9A227' }}>4 active</span>
       </div>
       {perks.map((p, i) => {
@@ -247,10 +247,10 @@ export function PerkArt() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {p.warn && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#B45309', display: 'inline-block', flexShrink: 0 }}/>}
-                <span style={{ fontSize: '12px', fontWeight: '500', color: p.warn ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{p.name}</span>
+                <span style={{ fontSize: '12px', fontWeight: '500', color: p.warn ? 'var(--ink)' : 'var(--ink-2)' }}>{p.name}</span>
                 {p.warn && <span style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#B45309', background: 'rgba(180,83,9,0.08)', padding: '1px 6px', borderRadius: '9999px' }}>3d left</span>}
               </div>
-              <span style={{ fontSize: '11px', fontWeight: '600', color: p.done ? '#0F9B65' : 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>${p.used}/${p.total}</span>
+              <span style={{ fontSize: '11px', fontWeight: '600', color: p.done ? '#0F9B65' : 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>${p.used}/${p.total}</span>
             </div>
             <div style={{ height: '3px', background: 'rgba(0,0,0,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${pct}%`, borderRadius: '2px', background: p.done ? '#0F9B65' : p.warn ? '#B45309' : '#C9A227' }}/>
@@ -272,8 +272,8 @@ export function ChartArt() {
     <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', padding: '20px', width: '100%', maxWidth: '440px' }}>
       <div style={{ marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div>
-          <div style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>Earned this year</div>
-          <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>$847<span style={{ fontSize: '18px', color: 'var(--text-muted)' }}>.20</span></div>
+          <div style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '4px' }}>Earned this year</div>
+          <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--ink)', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>$847<span style={{ fontSize: '18px', color: 'var(--muted)' }}>.20</span></div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(15,155,101,0.08)', border: '1px solid rgba(15,155,101,0.2)', borderRadius: '9999px', padding: '4px 10px' }}>
           <span style={{ fontSize: '10px', fontWeight: '700', color: '#0F9B65' }}>↑ 23%</span>
@@ -288,7 +288,7 @@ export function ChartArt() {
       </div>
       <div style={{ display: 'flex', gap: '4px' }}>
         {months.map((m, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '8px', fontWeight: '600', color: i === 7 ? '#C9A227' : 'var(--text-faintest)' }}>{m}</div>
+          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: '8px', fontWeight: '600', color: i === 7 ? '#C9A227' : 'var(--muted)' }}>{m}</div>
         ))}
       </div>
     </div>
@@ -300,12 +300,12 @@ export const marketingStyles = `
   .mkt-nav-link {
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: var(--ink-2);
     text-decoration: none;
     transition: color 0.15s;
     letter-spacing: 0.01em;
   }
-  .mkt-nav-link:hover { color: var(--text-primary); }
+  .mkt-nav-link:hover { color: var(--ink); }
 
   .mkt-section {
     padding: 96px 24px;
@@ -332,14 +332,14 @@ export const marketingStyles = `
   .mkt-body {
     font-size: 16px;
     line-height: 1.65;
-    color: var(--text-secondary);
+    color: var(--ink-2);
     font-weight: 400;
     margin-top: 16px;
   }
 
   .mkt-divider {
     border: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--hairline);
     margin: 0;
   }
 
@@ -385,16 +385,16 @@ export function MarketingBody() {
           <div className="mkt-label">How it works</div>
           <h2 className="display-lg">Set up in minutes.</h2>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--hairline)', border: '1px solid var(--hairline)', borderRadius: '8px', overflow: 'hidden' }}>
           {[
             { step: '01', title: 'Add your cards',     body: 'Enter the cards you already have. Clavis fills in the reward rates and perks for you based on the card name.' },
             { step: '02', title: 'Search a merchant',  body: 'Type where you are shopping or pick a category like dining, travel, or grocery. Clavis figures out the rest.' },
             { step: '03', title: 'Use the right card', body: 'Clavis ranks every card by how much you will actually earn and highlights the best pick. Tap to log the purchase.' },
           ].map((item, i) => (
-            <div key={i} style={{ padding: '32px 28px', background: 'var(--bg-card)' }}>
+            <div key={i} style={{ padding: '32px 28px', background: 'var(--surface)' }}>
               <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.16em', color: 'rgba(201,162,39,0.5)', marginBottom: '16px' }}>{item.step}</div>
-              <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '10px', lineHeight: '1.3' }}>{item.title}</div>
-              <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text-secondary)' }}>{item.body}</div>
+              <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--ink)', marginBottom: '10px', lineHeight: '1.3' }}>{item.title}</div>
+              <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--ink-2)' }}>{item.body}</div>
             </div>
           ))}
         </div>
@@ -411,7 +411,7 @@ export function MarketingBody() {
             <p className="mkt-body">At Chipotle your Amex Gold earns 4x points. At Target your Venture X earns 2x miles, more than a Freedom Unlimited&apos;s 1.5%. Clavis knows the difference and tells you before you pay, not after.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {['Shows real dollar value, not just points', 'Factors in expiring credits automatically', 'You can always override and pick manually'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--ink-2)', fontWeight: '500' }}>
                   <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
                 </li>
@@ -433,7 +433,7 @@ export function MarketingBody() {
             <p className="mkt-body">Most cards come with travel credits, dining credits, and streaming perks that reset every year. Clavis tracks all of them and reminds you before they expire.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {['Alerts 14 days before a perk expires', 'See every unused credit across all your cards', 'Weekly email so nothing slips through'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--ink-2)', fontWeight: '500' }}>
                   <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
                 </li>
@@ -455,7 +455,7 @@ export function MarketingBody() {
             <p className="mkt-body">Track every purchase and the rewards it earned. Clavis also shows you past purchases where a different card would have done better, so you can improve over time.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {['Total rewards earned by month', 'See which past purchases used the wrong card', 'Spot which categories you are missing out on'].map((item, i) => (
-                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--ink-2)', fontWeight: '500' }}>
                   <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#C9A227', flexShrink: 0 }}/>
                   {item}
                 </li>

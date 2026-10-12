@@ -1,10 +1,11 @@
+import './tokens.css'
 import './globals.css'
 import { SWRegister } from './sw-register'
 import { Geist, Instrument_Serif } from 'next/font/google'
 
 const geist = Geist({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600'],
   variable: '--font-geist',
   display: 'swap',
 })
@@ -12,6 +13,7 @@ const geist = Geist({
 const instrumentSerif = Instrument_Serif({
   subsets: ['latin'],
   weight: ['400'],
+  style: ['normal', 'italic'],
   variable: '--font-instrument',
   display: 'swap',
 })

@@ -60,21 +60,21 @@ export default function FAQ() {
   return (
     <LegalLayout title="Frequently Asked Questions" navId="faqkey" ftId="faqftkey">
       {FAQS.map((item, i) => (
-        <div key={i} style={{ marginBottom: '28px', paddingBottom: '28px', borderBottom: i < FAQS.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-          <div style={{ fontSize: '15.5px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.01em' }}>
+        <div key={i} style={{ marginBottom: '28px', paddingBottom: '28px', borderBottom: i < FAQS.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
+          <div style={{ fontSize: '15.5px', fontWeight: '700', color: 'var(--ink)', marginBottom: '8px', letterSpacing: '-0.01em' }}>
             {item.q}
           </div>
           {Array.isArray(item.a) ? item.a.map((p, pi) => (
-            <p key={pi} style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-secondary)', marginBottom: pi < item.a.length - 1 ? '10px' : 0 }}>{p}</p>
+            <p key={pi} style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--ink-2)', marginBottom: pi < item.a.length - 1 ? '10px' : 0 }}>{p}</p>
           )) : (
-            <p style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--text-secondary)' }}>{item.a}</p>
+            <p style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--ink-2)' }}>{item.a}</p>
           )}
         </div>
       ))}
 
-      <div style={{ marginTop: '8px', padding: '18px 20px', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '8px' }}>
-        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>Still have a question?</div>
-        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+      <div style={{ marginTop: '8px', padding: '18px 20px', background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: '8px' }}>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Still have a question?</div>
+        <div style={{ fontSize: '13px', color: 'var(--ink-2)', lineHeight: '1.6' }}>
           Reach out anytime at <a href="mailto:carterking18@gmail.com" style={{ color: 'var(--blue)' }}>carterking18@gmail.com</a> — we read every message.
         </div>
       </div>

@@ -188,8 +188,8 @@ export function Onboarding({ onComplete, tourOnly = false }) {
       padding: '1.5rem',
     }}>
       <div style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border)',
+        background: 'var(--surface)',
+        border: '1px solid var(--hairline)',
         borderRadius: '12px',
         padding: '2rem',
         width: '100%',
@@ -206,13 +206,13 @@ export function Onboarding({ onComplete, tourOnly = false }) {
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '60px', height: '60px', borderRadius: '14px', background: 'rgba(201,162,39,0.08)', border: '1px solid rgba(201,162,39,0.18)', margin: '0 auto 16px' }}>
               {(() => { const I = TOUR_SLIDES[tourIndex].Icon; return <I /> })()}
             </div>
-            <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>
+            <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '6px' }}>
               {TOUR_SLIDES[tourIndex].tab} tab
             </div>
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '10px' }}>
               {TOUR_SLIDES[tourIndex].title}
             </div>
-            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '28px', minHeight: '78px' }}>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '28px', minHeight: '78px' }}>
               {TOUR_SLIDES[tourIndex].text}
             </div>
 
@@ -234,14 +234,14 @@ export function Onboarding({ onComplete, tourOnly = false }) {
             {!tourOnly && (
               <button
                 onClick={() => { setTourIndex(null); setStep(1) }}
-                style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', fontSize: '13px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+                style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', fontSize: '14px', color: 'var(--muted)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
                 Skip tour
               </button>
             )}
             {tourOnly && (
               <button
                 onClick={onComplete}
-                style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', fontSize: '13px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+                style={{ width: '100%', marginTop: '12px', background: 'none', border: 'none', fontSize: '14px', color: 'var(--muted)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
                 Close
               </button>
             )}
@@ -269,10 +269,10 @@ export function Onboarding({ onComplete, tourOnly = false }) {
               </svg>
             </div>
 
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '26px', fontWeight: '700', color: 'var(--text-primary)', letterSpacing: '-0.01em', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '8px' }}>
               Welcome to Clavis
             </div>
-            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '28px' }}>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '28px' }}>
               Every card in your wallet, ranked instantly.<br/>
               Always know which one to tap.
             </div>
@@ -285,11 +285,11 @@ export function Onboarding({ onComplete, tourOnly = false }) {
               ].map(item => (
                 <div key={item.text} style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
-                  background: 'var(--bg-elevated)', borderRadius: '8px', padding: '11px 14px',
-                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--sunken)', borderRadius: '8px', padding: '11px 14px',
+                  border: '1px solid var(--hairline-soft)',
                 }}>
                   <span style={{ fontSize: '16px' }}>{item.icon}</span>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>{item.text}</span>
+                  <span style={{ fontSize: '14px', color: 'var(--ink-2)', fontWeight: '500' }}>{item.text}</span>
                 </div>
               ))}
             </div>
@@ -305,10 +305,10 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           <div>
             <StepIndicator current={1} total={3} />
 
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '6px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '6px' }}>
               Add your main card
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '22px', lineHeight: '1.5' }}>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '22px', lineHeight: '1.5' }}>
               Clavis auto-fills rewards rates and perks for hundreds of cards.
             </div>
 
@@ -323,7 +323,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
                   autoFocus
                 />
                 {fetchingCard && (
-                  <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: 'var(--muted)' }}>
                     Looking up...
                   </div>
                 )}
@@ -371,7 +371,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
 
             <button
               onClick={finish}
-              style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', fontSize: '13px', color: 'var(--text-faintest)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
+              style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', fontSize: '14px', color: 'var(--muted)', cursor: 'pointer', padding: '4px', fontFamily: 'inherit' }}>
               Skip setup
             </button>
           </div>
@@ -382,10 +382,10 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           <div>
             <StepIndicator current={2} total={4} />
 
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '22px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '4px' }}>
               Known perks found
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
               Select the benefits you have on this card. You can edit amounts later.
             </div>
 
@@ -394,19 +394,19 @@ export function Onboarding({ onComplete, tourOnly = false }) {
                 onClick={() => setSelectedPerkIndices(prev =>
                   prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i]
                 )}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--hairline-soft)', cursor: 'pointer' }}>
                 <div style={{
                   width: '18px', height: '18px', borderRadius: '5px',
-                  border: selectedPerkIndices.includes(i) ? `2px solid var(--green)` : `1.5px solid var(--border)`,
-                  background: selectedPerkIndices.includes(i) ? 'var(--green)' : 'transparent',
+                  border: selectedPerkIndices.includes(i) ? `2px solid var(--gain)` : `1.5px solid var(--hairline)`,
+                  background: selectedPerkIndices.includes(i) ? 'var(--gain)' : 'transparent',
                   flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s',
                 }}>
-                  {selectedPerkIndices.includes(i) && <span style={{ color: '#fff', fontSize: '11px', fontWeight: '700' }}>✓</span>}
+                  {selectedPerkIndices.includes(i) && <span style={{ color: '#fff', fontSize: '12px', fontWeight: '600' }}>✓</span>}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{perk.name}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)' }}>{perk.name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                     {perk.period}{perk.total_amount > 0 ? ` · ${moneyWhole(perk.total_amount)}` : ''}
                   </div>
                 </div>
@@ -427,11 +427,11 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           <div style={{ textAlign: 'center' }}>
             <StepIndicator current={totalSteps - 1} total={totalSteps} />
 
-            <div style={{ fontSize: '44px', marginBottom: '16px' }}>🎉</div>
-            <div style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '24px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
+            <div style={{ fontSize: '28px', marginBottom: '16px' }}>🎉</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '8px' }}>
               You&apos;re all set
             </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '28px', lineHeight: '1.6' }}>
+            <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '28px', lineHeight: '1.6' }}>
               Here&apos;s how to use Clavis at checkout
             </div>
 
@@ -443,18 +443,18 @@ export function Onboarding({ onComplete, tourOnly = false }) {
               ].map(item => (
                 <div key={item.step} style={{
                   display: 'flex', alignItems: 'flex-start', gap: '12px',
-                  background: 'var(--bg-elevated)', borderRadius: '8px', padding: '12px 14px',
-                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--sunken)', borderRadius: '8px', padding: '12px 14px',
+                  border: '1px solid var(--hairline-soft)',
                 }}>
                   <div style={{
                     width: '22px', height: '22px', borderRadius: '50%', flexShrink: 0,
                     background: 'rgba(201,162,39,0.1)', border: '1px solid rgba(201,162,39,0.3)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '11px', fontWeight: '700', color: 'var(--gold)',
+                    fontSize: '12px', fontWeight: '600', color: 'var(--gold)',
                   }}>
                     {item.step}
                   </div>
-                  <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500', lineHeight: '1.5', paddingTop: '2px' }}>
+                  <span style={{ fontSize: '14px', color: 'var(--ink-2)', fontWeight: '500', lineHeight: '1.5', paddingTop: '2px' }}>
                     {item.text}
                   </span>
                 </div>
