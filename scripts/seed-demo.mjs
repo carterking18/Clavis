@@ -8,8 +8,7 @@
 // Refuses to run unless the email contains "demo".
 
 import { createClient } from '@supabase/supabase-js'
-import { getSuggestedMultipliers } from '../lib/cardRewards.js'
-import { getSuggestedPerks, calculateResetsAt } from '../lib/cardPerks.js'
+import { buildDemoWallet, DEMO_PURCHASES } from '../lib/demoWallet.js'
 import { dollarValuePerDollar } from '../lib/pointValues.js'
 
 const { DEMO_EMAIL, DEMO_PASSWORD, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY } = process.env
@@ -38,62 +37,28 @@ if (reset) {
   await must(supabase.from('cards').delete().eq('user_id', userId))
 }
 
-// Four common cards. Rates and credits come from the app's own catalog.
-// used: dollars already used of each credit, keyed by credit name prefix.
-const CARDS = [
-  { name: 'Amex Gold', last_four: '1007', balance_unit: 'points', network: 'AMEX', used: { 'Uber Cash': 10, 'Dining Credit': 10, "Dunkin'": 0 } },
-  { name: 'Chase Sapphire Reserve', last_four: '4421', balance_unit: 'points', network: 'VISA', used: { 'Travel Credit': 300 } },
-  { name: 'Chase Freedom Unlimited', last_four: '3390', balance_unit: 'cash back', network: 'VISA', used: {} },
-  { name: 'Capital One Venture X', last_four: '8812', balance_unit: 'points', network: 'VISA', used: { 'Capital One Travel Credit': 300 } },
-]
-
+// Same four cards, credits and purchases as the landing-page demo (lib/demoWallet.js)
+const wallet = buildDemoWallet()
 const created = {}
-for (const c of CARDS) {
-  const suggestion = getSuggestedMultipliers(c.name)
+for (const c of wallet) {
   const card = await must(supabase.from('cards').insert({
-    user_id: userId, name: c.name, type: 'credit', network: c.network, last_four: c.last_four,
-    balance: 0, balance_unit: c.balance_unit, annual_fee: suggestion?.annualFee || 0,
+    user_id: userId, name: c.name, type: c.type, network: null, last_four: c.last_four,
+    balance: 0, balance_unit: c.balance_unit, annual_fee: c.annual_fee,
   }).select().single())
-  const multipliers = Object.entries(suggestion?.multipliers || {}).map(([category, multiplier]) => ({ card_id: card.id, category, multiplier }))
-  if (multipliers.length) await must(supabase.from('multipliers').insert(multipliers))
-  card.multipliers = multipliers
-
-  for (const p of getSuggestedPerks(c.name) || []) {
-    const usedKey = Object.keys(c.used).find(k => p.name.startsWith(k))
-    const used = usedKey ? Math.min(c.used[usedKey], p.total_amount) : 0
-    await must(supabase.from('perks').insert({
+  await must(supabase.from('multipliers').insert(c.multipliers.map(m => ({ card_id: card.id, category: m.category, multiplier: m.multiplier }))))
+  if (c.perks.length) {
+    await must(supabase.from('perks').insert(c.perks.map(p => ({
       user_id: userId, card_id: card.id, name: p.name, total_amount: p.total_amount,
-      used_amount: used, period: p.period, resets_at: calculateResetsAt(p.period),
-    }))
+      used_amount: p.used_amount, period: p.period, resets_at: p.resets_at,
+    }))))
   }
-  created[c.name] = card
+  created[c.id] = { ...card, multipliers: c.multipliers }
 }
 
-// Purchases over the last ~7 weeks. Mostly the right card, a few not, so
-// Insights has something real (but not dramatic) to say.
 const day = 86400000
-const PURCHASES = [
-  ['Chipotle',        'dining',    18.45, 'Amex Gold', 2],
-  ['Whole Foods',     'grocery',   86.12, 'Amex Gold', 3],
-  ['Shell',           'gas',       41.30, 'Capital One Venture X', 5],
-  ['Delta',           'travel',   412.60, 'Chase Sapphire Reserve', 8],
-  ['Sweetgreen',      'dining',    16.95, 'Chase Freedom Unlimited', 9],
-  ['Target',          'retail',    64.88, 'Capital One Venture X', 12],
-  ['Trader Joe’s', 'grocery', 58.40, 'Chase Freedom Unlimited', 15],
-  ['Netflix',         'streaming', 15.49, 'Capital One Venture X', 18],
-  ['Blue Bottle',     'dining',     7.25, 'Amex Gold', 21],
-  ['Home Depot',      'retail',   132.07, 'Capital One Venture X', 24],
-  ['Marriott',        'hotel',    289.00, 'Chase Sapphire Reserve', 28],
-  ['Safeway',         'grocery',   72.15, 'Amex Gold', 31],
-  ['Uber',            'travel',     23.80, 'Chase Freedom Unlimited', 35],
-  ['Shake Shack',     'dining',    24.10, 'Amex Gold', 39],
-  ['Costco Gas',      'gas',       48.66, 'Chase Freedom Unlimited', 44],
-  ['CVS',             'retail',     19.32, 'Capital One Venture X', 48],
-]
-
 const rateLabel = (card, mult) => card.balance_unit === 'cash back' ? `${mult}%` : `${mult}x pts`
-const taps = PURCHASES.map(([merchant, category, amount, cardName, daysAgo]) => {
-  const card = created[cardName]
+const taps = DEMO_PURCHASES.map(([merchant, category, amount, cardId, daysAgo]) => {
+  const card = created[cardId]
   const mult = card.multipliers.find(m => m.category === category)?.multiplier || 1
   return {
     user_id: userId, card_id: card.id, card_name: card.name, merchant, category, amount,
@@ -104,5 +69,5 @@ const taps = PURCHASES.map(([merchant, category, amount, cardName, daysAgo]) => 
 })
 await must(supabase.from('taps').insert(taps))
 
-console.log(`Seeded ${DEMO_EMAIL}: ${CARDS.length} cards, ${taps.length} purchases.`)
+console.log(`Seeded ${DEMO_EMAIL}: ${wallet.length} cards, ${taps.length} purchases.`)
 await supabase.auth.signOut()
