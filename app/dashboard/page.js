@@ -12,6 +12,8 @@ import { money, moneyWhole, centsPerDollar, NUM } from '../../lib/format'
 import { useReorder } from '../../lib/useReorder'
 import { rankCards } from '../../lib/ranking'
 import { bookingRequirement } from '../../lib/bookingRates'
+import { valueOverTime } from '../../lib/valueOverTime'
+import { ValueChart, valueChartStyles } from '../value-chart'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
@@ -391,6 +393,7 @@ export default function Dashboard() {
   const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards, pointValuesVersion])
   const totalMissed = useMemo(() => retroactiveMissed.reduce((s, m) => s + m.missedTotal, 0), [retroactiveMissed])
   const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps, pointValuesVersion])
+  const valueData = useMemo(() => valueOverTime(taps, cards), [taps, cards, pointValuesVersion])
 
   // Monthly missed breakdown
   const missedByMonth = useMemo(() => {
@@ -924,6 +927,7 @@ export default function Dashboard() {
     <div className="app" style={{ paddingTop: 0 }}>
 
       <style>{marketingStyles}</style>
+      <style>{valueChartStyles}</style>
 
       {/* ── Sticky nav — exact match to about page nav ── */}
       <nav style={{
@@ -2050,6 +2054,13 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
+          {valueData && (
+            <div className="card" style={{ padding: '20px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink-2)', marginBottom: '12px' }}>What picking the best card is worth</div>
+              <ValueChart data={valueData} height={200}
+                caption={`Your ${valueData.count} logged purchases · credits not included`}/>
+            </div>
+          )}
           {(() => {
             const hasExpiring = perkInsights.length > 0
             const hasMissed = retroactiveMissed.length > 0

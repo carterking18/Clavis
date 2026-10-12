@@ -10,6 +10,8 @@ import { daysUntilReset } from '../lib/cardPerks.js'
 import { dollarValuePerDollar } from '../lib/pointValues.js'
 import { money, moneyWhole } from '../lib/format.js'
 import { useReorder } from '../lib/useReorder'
+import { valueOverTime } from '../lib/valueOverTime.js'
+import { ValueChart, valueChartStyles } from './value-chart'
 
 // Shared marketing page components used by /, /about and the legal pages
 
@@ -117,7 +119,7 @@ function useDemoWallet() {
   return useMemo(() => {
     const now = new Date()
     const asOf = new Date(now.getFullYear(), now.getMonth(), 1)
-    return { asOf, wallet: buildDemoWallet(asOf) }
+    return { asOf, today: now, wallet: buildDemoWallet(asOf) }
   }, [])
 }
 
@@ -440,8 +442,27 @@ export function HistoryPanel() {
   )
 }
 
+// ── Value chart on the demo wallet's purchases ────────────
+export function DemoValueChart() {
+  const { wallet, today } = useDemoWallet()
+  const { data, spend, weeks } = useMemo(() => {
+    const now = today.getTime()
+    const taps = DEMO_PURCHASES.map(([merchant, category, amount, , daysAgo]) => ({ merchant, category, amount, tapped_at: new Date(now - daysAgo * 86400000).toISOString() }))
+    const days = Math.max(...DEMO_PURCHASES.map(p => p[4]))
+    return { data: valueOverTime(taps, wallet), spend: taps.reduce((s, t) => s + t.amount, 0), weeks: Math.round(days / 7) }
+  }, [wallet, today])
+  if (!data) return null
+  const perYear = data.gain * 365 / (weeks * 7)
+  return (
+    <div className="ui-panel" style={{ padding: '24px' }}>
+      <ValueChart data={data} height={240}
+        caption={`Demo wallet · ${data.count} purchases, ${moneyWhole(spend)} over ${weeks} weeks · about ${moneyWhole(perYear)} a year at this pace · credits not included`}/>
+    </div>
+  )
+}
+
 // ── Shared section styles injected via <style> ────────────
-export const marketingStyles = `
+export const marketingStyles = valueChartStyles + `
   .mkt-page { min-height: 100vh; background: var(--paper); color: var(--ink); }
   .mkt-wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
@@ -626,6 +647,13 @@ export function MarketingBody({ cta, secondaryCta }) {
           <div><dt>First in line</dt><dd>the card whose credit covers the store</dd></div>
         </dl>
         <CreditsPanel/>
+      </section>
+
+      {/* Value: headline over a full-width chart */}
+      <section className="mkt-wrap mkt-section" style={{ paddingTop: 0 }}>
+        <h2 className="display-lg">The right card, every time, adds up.</h2>
+        <p className="mkt-lede" style={{ marginTop: '12px', marginBottom: '32px' }}>Compared with the best single card in the same wallet.</p>
+        <DemoValueChart/>
       </section>
 
       {/* History: short column beside a larger panel */}
