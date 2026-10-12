@@ -2605,19 +2605,13 @@ export default function Dashboard() {
                     {
                       label: 'Rewards value',
                       formula: 'multiplier × cents-per-point × 100',
-                      detail: 'The base score. A 3x card at 1.8¢/pt scores 5.4. A 2% cash-back card scores 2.0. This is the dominant factor — everything else is a small nudge.',
+                      detail: 'The base score: cents earned per dollar. A 3x card at 1.0¢ per point scores 3.0. A 2% cash-back card scores 2.0. This decides the ranking.',
                       color: 'var(--ink)',
                     },
                     {
-                      label: 'Unused perks',
-                      formula: '+0.3/perk + (unused $ ÷ 50)',
-                      detail: 'Cards with perk value still on the table get a steady bump — sized by how much is actually unused, so a $200 credit counts for more than a $10 one, not just "a perk is a perk."',
-                      color: 'var(--ink-2)',
-                    },
-                    {
-                      label: 'Expiring perks',
-                      formula: '+1/perk + (expiring $ ÷ 15) — within 14 days',
-                      detail: 'A perk about to reset gets real urgency weight, scaled to its dollar value — large enough that a credit worth real money expiring this week can outrank a card with a slightly better rewards rate.',
+                      label: 'Unused credits elsewhere',
+                      formula: 'Tie-breaker only: under +0.2',
+                      detail: 'Credits that don\'t cover this merchant can\'t change what this purchase earns. They only decide between cards that earn within 0.25¢ per dollar of each other, favoring the card with more unused credit, especially credits resetting within 14 days.',
                       color: 'var(--ink-2)',
                     },
                     {
@@ -2640,8 +2634,8 @@ export default function Dashboard() {
                     },
                     {
                       label: 'Tie-breaker',
-                      formula: 'Higher annual fee ranks lower',
-                      detail: 'When two cards score identically, the one charging you less per year wins. Why pay more for the same result?',
+                      formula: 'Higher annual fee ranks first',
+                      detail: 'When two cards score exactly the same, the one with the higher annual fee is listed first.',
                       color: 'var(--ink-2)',
                     },
                   ].map(row => (
