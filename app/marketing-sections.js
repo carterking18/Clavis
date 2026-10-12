@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { getSuggestedMultipliers } from '../lib/cardRewards'
+import { getPointValuation } from '../lib/pointValues'
 
 // Shared marketing page components used by both / and /about
 
@@ -176,7 +178,7 @@ export function HeroArt() {
       ))}
 
       {/* Right stat */}
-      <text x="294" y="356" fontSize="19" fontWeight="700" fill="rgba(201,162,39,0.9)" fontFamily="system-ui,sans-serif">7.2¢</text>
+      <text x="294" y="356" fontSize="19" fontWeight="700" fill="rgba(201,162,39,0.9)" fontFamily="system-ui,sans-serif">4.0¢</text>
       <rect x="294" y="362" width="50" height="4" rx="2" fill="rgba(17,24,39,0.05)"/>
       <text x="294" y="378" fontSize="9"            fill="rgba(17,24,39,0.3)" fontFamily="system-ui,sans-serif">per dollar</text>
     </svg>
@@ -184,13 +186,22 @@ export function HeroArt() {
 }
 
 // ── Card comparison table ─────────────────────────────────
+// Rows come from the app's own card data (lib/cardRewards.js) and valuations
+// (lib/pointValues.js), so the landing page can't drift from the product.
+const DEMO_CASH_BACK = ['freedom unlimited']
+function demoRow(name, category) {
+  const mult = getSuggestedMultipliers(name).multipliers[category]
+  const isCash = DEMO_CASH_BACK.some(k => name.toLowerCase().includes(k))
+  const cents = isCash ? mult : mult * getPointValuation(name).centsPerPoint
+  return { name, rate: isCash ? `${mult}%` : `${mult}×`, cents }
+}
+
 export function ComparisonArt() {
-  const rows = [
-    { name: 'Chase Sapphire Reserve', rate: '4×',   val: '7.2¢', highlight: true  },
-    { name: 'Amex Gold Card',         rate: '4×',   val: '7.2¢', highlight: false },
-    { name: 'Capital One Venture X',  rate: '2×',   val: '3.7¢', highlight: false },
-    { name: 'Freedom Unlimited',      rate: '1.5×', val: '1.5¢', highlight: false },
-  ]
+  const fmt = c => `${c.toFixed(1)}¢`
+  const ranked = ['Amex Gold', 'Chase Freedom Unlimited', 'Capital One Venture X']
+    .map(n => demoRow(n, 'dining'))
+    .sort((a, b) => b.cents - a.cents)
+  const rows = ranked.map((r, i) => ({ ...r, val: fmt(r.cents), highlight: i === 0 }))
   return (
     <div style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '8px', overflow: 'hidden', width: '100%', maxWidth: '440px' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 56px 56px', padding: '10px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -209,7 +220,7 @@ export function ComparisonArt() {
         </div>
       ))}
       <div style={{ padding: '10px 16px', borderTop: '1px solid rgba(0,0,0,0.05)', background: 'rgba(201,162,39,0.03)' }}>
-        <span style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.05em', color: '#C9A227' }}>◉ &nbsp;Recommended · Chase Sapphire Reserve</span>
+        <span style={{ fontSize: '10px', fontWeight: '600', letterSpacing: '0.05em', color: '#C9A227' }}>◉ &nbsp;Recommended at Chipotle · {rows[0].name}</span>
       </div>
     </div>
   )
@@ -397,7 +408,7 @@ export function MarketingBody() {
           <div>
             <div className="mkt-label">Smart selection</div>
             <h2 className="display-lg">Never guess<br/><span className="gradient-text">again.</span></h2>
-            <p className="mkt-body">At Chipotle your Amex Gold earns 4x. At Target your Freedom earns 5%. Clavis knows the difference and tells you before you pay, not after.</p>
+            <p className="mkt-body">At Chipotle your Amex Gold earns 4x points. At Target your Venture X earns 2x miles, more than a Freedom Unlimited&apos;s 1.5%. Clavis knows the difference and tells you before you pay, not after.</p>
             <ul style={{ marginTop: '24px', listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {['Shows real dollar value, not just points', 'Factors in expiring credits automatically', 'You can always override and pick manually'].map((item, i) => (
                 <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500' }}>
@@ -506,9 +517,9 @@ function TourIconInsights() {
 
 // ── Standalone tour modal (no auth required) ──────────────
 const TOUR_SLIDES = [
-  { Icon: TourIconTap,      tab: 'Tap',      title: 'Which card should I use?',       text: "This is the main screen. Type the store or restaurant where you are paying and Clavis looks at every card you have and tells you which one earns the most. At Chipotle, your Amex Gold earns 4x. At Target, your Freedom earns 5%. Clavis figures that out instantly so you never leave rewards on the table." },
+  { Icon: TourIconTap,      tab: 'Tap',      title: 'Which card should I use?',       text: "This is the main screen. Type the store or restaurant where you are paying and Clavis looks at every card you have and tells you which one earns the most. At Chipotle, your Amex Gold earns 4x points. At Target, a Venture X earns 2x miles while a Freedom Unlimited earns 1.5%. Clavis figures that out instantly so you never leave rewards on the table." },
   { Icon: TourIconWallet,   tab: 'Wallet',   title: 'All your cards in one place',     text: "Add each card you own once and Clavis remembers it. It knows the rewards rates, the annual fee, and how much you have earned. You do not need to check each card's app separately." },
-  { Icon: TourIconPerks,    tab: 'Perks',    title: 'Stop losing benefits you paid for', text: "Most cards come with free credits — things like $120 in dining credit or $50 toward hotels. They expire if you do not use them. Clavis tracks what you have left and reminds you before they disappear." },
+  { Icon: TourIconPerks,    tab: 'Perks',    title: 'Stop losing benefits you paid for', text: "Most cards come with free credits — things like the Amex Gold's $10 a month in Uber Cash or $7 a month at Dunkin'. They expire if you do not use them. Clavis tracks what you have left and reminds you before they disappear." },
   { Icon: TourIconHistory,  tab: 'History',  title: 'A record of every purchase',      text: "Every time you tap a card in Clavis, it logs the store, the card you used, and how much you earned. You can see your full spending history and even export it." },
   { Icon: TourIconInsights, tab: 'Insights', title: 'Tips to get more from your wallet', text: "Clavis watches your spending and spots things you might be missing — a perk about to expire, a card that would earn you more at a store you visit often, or a benefit you are not using. It is like having someone look over your wallet for you." },
 ]
