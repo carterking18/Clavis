@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { money } from '../lib/format.js'
+import { money, moneyWhole } from '../lib/format.js'
 
 // Cumulative rewards: best card per purchase (ink, emphasized) vs the best
 // single card (gray, context). The shaded gap is what choosing per purchase
@@ -61,17 +61,17 @@ export function ValueChart({ data, height = 220, caption }) {
       <div className="vc-head">
         <div>
           <div className="vc-big">{money(gain, { sign: true })}</div>
-          <div className="vc-sub">vs putting every purchase on {singleName}</div>
+          <div className="vc-sub">vs a {singleName} on everything</div>
         </div>
         <div className="vc-legend" aria-hidden="true">
           <span><i style={{ background: INK }}/>Best card every time</span>
-          <span><i style={{ background: CONTEXT }}/>{singleName} only</span>
+          <span><i style={{ background: CONTEXT }}/>{singleName}</span>
         </div>
       </div>
 
       <div style={{ position: 'relative' }}>
       <svg width={width} height={height} role="img" tabIndex={0}
-        aria-label={`Rewards over ${points.length} purchases: ${money(best)} using the best card each time, ${money(single)} using ${singleName} only.`}
+        aria-label={`Rewards over ${points.length} purchases: ${money(best)} using the best card each time, ${money(single)} with a ${singleName}.`}
         onPointerMove={e => setHover(nearest(e.clientX))}
         onPointerLeave={() => setHover(null)}
         onFocus={() => setHover(points.length - 1)}
@@ -101,7 +101,7 @@ export function ValueChart({ data, height = 220, caption }) {
             <text x={m.left + w + 12} y={yBest - 6} fill={INK} fontWeight="600">{money(best)}</text>
             <text x={m.left + w + 12} y={yBest + 9} fill="#4B5563">Best card every time</text>
             <text x={m.left + w + 12} y={ySingleLabel - 6} fill={INK} fontWeight="600">{money(single)}</text>
-            <text x={m.left + w + 12} y={ySingleLabel + 9} fill="#4B5563">{truncate(singleName, 22)} only</text>
+            <text x={m.left + w + 12} y={ySingleLabel + 9} fill="#4B5563">{truncate(singleName, 22)}</text>
           </g>
         )}
 
@@ -127,7 +127,7 @@ export function ValueChart({ data, height = 220, caption }) {
       <details className="vc-table">
         <summary>View as table</summary>
         <table>
-          <thead><tr><th scope="col">Date</th><th scope="col">Best card every time</th><th scope="col">{singleName} only</th></tr></thead>
+          <thead><tr><th scope="col">Date</th><th scope="col">Best card every time</th><th scope="col">{singleName}</th></tr></thead>
           <tbody>
             {points.map((p, i) => (
               <tr key={i}><td>{fmtDate(p.date)}</td><td>{money(p.best)}</td><td>{money(p.single)}</td></tr>
@@ -169,4 +169,104 @@ export const valueChartStyles = `
   .vc-table th, .vc-table td { text-align: right; padding: 6px 4px; border-bottom: 1px solid var(--hairline-soft); }
   .vc-table th:first-child, .vc-table td:first-child { text-align: left; }
   .vc-table th { font-weight: 500; color: var(--muted); }
+`
+
+// ── Is each card paying for itself? ───────────────────────
+// One row per card with an annual fee: captured this year (credits used +
+// rewards, solid) then credit still available before Dec 31 (light, same
+// hue), against a tick at the annual fee. Data from lib/cardValue.js.
+
+const GAIN = '#047857'
+const GAIN_LIGHT = 'rgba(4,120,87,0.24)'
+
+export function CardValueChart({ data, caption }) {
+  const [hover, setHover] = useState(null)
+  if (!data || data.rows.length === 0) return null
+  const { rows, totals } = data
+  const scale = Math.max(...rows.map(r => Math.max(r.fee, r.captured + r.available))) * 1.04
+  const pct = v => `${Math.min(100, (v / scale) * 100)}%`
+
+  return (
+    <figure className="cv" style={{ margin: 0 }}>
+      <div className="vc-head">
+        <div>
+          <div className="vc-big" style={{ color: 'var(--ink)' }}>{moneyWhole(totals.captured)} <span className="cv-of">of {moneyWhole(totals.fees)} in fees</span></div>
+          <div className="vc-sub">{moneyWhole(totals.available)} in credits still available this year</div>
+        </div>
+        <div className="vc-legend" aria-hidden="true">
+          <span><b className="cv-key" style={{ background: GAIN }}/>Credits used + rewards</span>
+          <span><b className="cv-key" style={{ background: GAIN_LIGHT }}/>Credits still available</span>
+          <span><b className="cv-key cv-key-fee"/>Annual fee</span>
+        </div>
+      </div>
+
+      <ul className="cv-rows">
+        {rows.map((r, i) => {
+          const covered = r.captured >= r.fee
+          return (
+            <li key={r.card.id} className="cv-row" tabIndex={0}
+              onPointerEnter={() => setHover(i)} onPointerLeave={() => setHover(null)}
+              onFocus={() => setHover(i)} onBlur={() => setHover(null)}
+              aria-label={`${r.card.name}: ${moneyWhole(r.captured)} of ${moneyWhole(r.fee)} annual fee covered, ${moneyWhole(r.available)} in credits still available.`}>
+              <div className="cv-label">
+                <span className="cv-name">{r.card.name}</span>
+                <span className="cv-value"><strong>{moneyWhole(r.captured)}</strong> of {moneyWhole(r.fee)}{covered && ' · paid for itself'}</span>
+              </div>
+              <div className="cv-track" aria-hidden="true">
+                <span className="cv-seg" style={{ width: pct(r.captured), background: GAIN }}/>
+                {r.available > 0 && <span className="cv-seg cv-seg-avail" style={{ width: pct(r.available), background: GAIN_LIGHT }}/>}
+                <span className="cv-fee" style={{ left: pct(r.fee) }}/>
+              </div>
+              {r.next && !covered && (
+                <div className="cv-next">Next: use your {moneyWhole(r.next.left)} {r.next.perk.name}</div>
+              )}
+              {hover === i && (
+                <div className="vc-tip cv-tip" role="status">
+                  <div className="vc-tip-date">{r.card.name}</div>
+                  <div><strong>{money(r.credits)}</strong> credits used</div>
+                  <div><strong>{money(r.rewards)}</strong> rewards logged</div>
+                  <div><strong>{moneyWhole(r.available)}</strong> credits still available</div>
+                  {r.lost > 0 && <div><strong>{moneyWhole(r.lost)}</strong> credits expired unused</div>}
+                  <div><strong>{moneyWhole(r.fee)}</strong> annual fee</div>
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+
+      {caption && <figcaption className="vc-caption">{caption}</figcaption>}
+
+      <details className="vc-table">
+        <summary>View as table</summary>
+        <table>
+          <thead><tr><th scope="col">Card</th><th scope="col">Credits used</th><th scope="col">Rewards</th><th scope="col">Still available</th><th scope="col">Annual fee</th></tr></thead>
+          <tbody>
+            {rows.map(r => (
+              <tr key={r.card.id}><td>{r.card.name}</td><td>{money(r.credits)}</td><td>{money(r.rewards)}</td><td>{moneyWhole(r.available)}</td><td>{moneyWhole(r.fee)}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
+    </figure>
+  )
+}
+
+export const cardValueStyles = `
+  .cv-of { font-size: 16px; font-weight: 500; color: var(--ink-2); letter-spacing: 0; }
+  .cv-key { display: inline-block; width: 12px; height: 8px; border-radius: 2px; }
+  .cv-key-fee { width: 2px; height: 12px; border-radius: 1px; background: var(--ink); }
+  .cv-rows { list-style: none; padding: 0; margin: 4px 0 0; }
+  .cv-row { position: relative; padding: 12px 0; border-top: 1px solid var(--hairline-soft); outline: none; }
+  .cv-row:first-child { border-top: none; }
+  .cv-row:focus-visible { box-shadow: var(--focus-ring); border-radius: 4px; }
+  .cv-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; font-size: 14px; }
+  .cv-name { color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .cv-value { color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .cv-value strong { color: var(--ink); font-weight: 600; }
+  .cv-track { position: relative; display: flex; gap: 2px; height: 12px; background: var(--sunken); border-radius: 3px; }
+  .cv-seg { display: block; height: 100%; border-radius: 3px; min-width: 0; }
+  .cv-fee { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
+  .cv-next { font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+  .cv-tip { top: calc(100% - 6px); right: 0; left: auto !important; z-index: 30; }
 `

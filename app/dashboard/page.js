@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring, savePointValueOverrides, updateCardOpenedOn } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring, savePointValueOverrides, updateCardOpenedOn, recordPerkPeriod, getPerkPeriods } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers, searchCardCatalog } from '../../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt, daysUntilReset, isResetDue } from '../../lib/cardPerks'
@@ -13,7 +13,8 @@ import { useReorder } from '../../lib/useReorder'
 import { rankCards } from '../../lib/ranking'
 import { bookingRequirement } from '../../lib/bookingRates'
 import { valueOverTime } from '../../lib/valueOverTime'
-import { ValueChart, valueChartStyles } from '../value-chart'
+import { ValueChart, valueChartStyles, CardValueChart, cardValueStyles } from '../value-chart'
+import { cardValueThisYear } from '../../lib/cardValue'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
@@ -252,6 +253,7 @@ export default function Dashboard() {
   const [pointDraft, setPointDraft] = useState({})
   const [pointSaveError, setPointSaveError] = useState('')
   const [pointValuesVersion, setPointValuesVersion] = useState(0)
+  const [perkPeriods, setPerkPeriods] = useState([])
   const [digestSaving, setDigestSaving] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
   const [taps, setTaps] = useState([])
@@ -305,6 +307,8 @@ export default function Dashboard() {
       for (const card of data) {
         for (const perk of card.perks || []) {
           if (isResetDue(perk.resets_at)) {
+            // Keep a record of how much of the ending period was used
+            await recordPerkPeriod(perk, card.id).catch(e => console.error(e))
             const update = { used_amount: 0, resets_at: calculateResetsAt(perk.period, new Date(), { basis: perk.resets_on, openedOn: card.opened_on }) }
             await updatePerk(perk.id, update)
             Object.assign(perk, update)
@@ -313,6 +317,7 @@ export default function Dashboard() {
         }
       }
       if (rolled) setCards([...data])
+      getPerkPeriods(`${new Date().getFullYear()}-01-01`).then(setPerkPeriods)
 
       // Check catalog for perk changes on cards that have perks tracked
       const dismissed = JSON.parse(localStorage.getItem('clavis_dismissed_perk_updates') || '{}')
@@ -394,6 +399,7 @@ export default function Dashboard() {
   const totalMissed = useMemo(() => retroactiveMissed.reduce((s, m) => s + m.missedTotal, 0), [retroactiveMissed])
   const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps, pointValuesVersion])
   const valueData = useMemo(() => valueOverTime(taps, cards), [taps, cards, pointValuesVersion])
+  const cardValue = useMemo(() => cardValueThisYear(cards, taps, perkPeriods), [cards, taps, perkPeriods])
 
   // Monthly missed breakdown
   const missedByMonth = useMemo(() => {
@@ -927,7 +933,7 @@ export default function Dashboard() {
     <div className="app" style={{ paddingTop: 0 }}>
 
       <style>{marketingStyles}</style>
-      <style>{valueChartStyles}</style>
+      <style>{valueChartStyles + cardValueStyles}</style>
 
       {/* ── Sticky nav — exact match to about page nav ── */}
       <nav style={{
@@ -2054,6 +2060,13 @@ export default function Dashboard() {
       {/* ── INSIGHTS ──────────────────────────────────── */}
       {tab === 'insights' && (
         <div>
+          {cardValue.rows.length > 0 && (
+            <div className="card" style={{ padding: '20px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink-2)', marginBottom: '12px' }}>Is each card paying for itself?</div>
+              <CardValueChart data={cardValue}
+                caption={cardValue.hasHistory ? 'This year · credits used and logged rewards vs annual fees' : "This year · credits used in earlier months weren't recorded; from now on each credit's use is saved when it resets"}/>
+            </div>
+          )}
           {valueData && (
             <div className="card" style={{ padding: '20px', marginBottom: '14px' }}>
               <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink-2)', marginBottom: '12px' }}>What picking the best card is worth</div>

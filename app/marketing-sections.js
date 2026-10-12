@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { buildDemoWallet, DEMO_CATEGORIES, DEMO_MERCHANTS, DEMO_PURCHASES, SOURCES, RATES_VERIFIED, RATES_VERIFIED_LABEL } from '../lib/demoWallet.js'
+import { buildDemoWallet, DEMO_CATEGORIES, DEMO_MERCHANTS, DEMO_PURCHASES, SOURCES, RATES_VERIFIED, RATES_VERIFIED_LABEL, demoPerkPeriods } from '../lib/demoWallet.js'
 import { rankCards, isCashBack } from '../lib/ranking.js'
 import { analyzeRetroactiveTaps } from '../lib/insights'
 import { searchMerchants } from '../lib/merchants'
@@ -11,7 +11,8 @@ import { dollarValuePerDollar } from '../lib/pointValues.js'
 import { money, moneyWhole } from '../lib/format.js'
 import { useReorder } from '../lib/useReorder'
 import { valueOverTime } from '../lib/valueOverTime.js'
-import { ValueChart, valueChartStyles } from './value-chart'
+import { ValueChart, valueChartStyles, CardValueChart, cardValueStyles } from './value-chart'
+import { cardValueThisYear } from '../lib/cardValue.js'
 
 // Shared marketing page components used by /, /about and the legal pages
 
@@ -354,42 +355,23 @@ export function LiveDemo() {
   )
 }
 
-// ── Credits panel: the demo wallet's monthly credits ──────
-export function CreditsPanel() {
-  const { wallet } = useDemoWallet()
-  const days = daysUntilReset(monthEnd(new Date()))
-  const rows = wallet.flatMap(c => c.perks.map(p => ({ ...p, card: c.name })))
-  const unused = rows.reduce((s, p) => s + (p.total_amount - p.used_amount), 0)
+// ── Is each card paying for itself? (demo wallet) ─────────
+export function DemoCardValue() {
+  const { wallet, today } = useDemoWallet()
+  const data = useMemo(() => {
+    const byId = Object.fromEntries(wallet.map(c => [c.id, c]))
+    const taps = DEMO_PURCHASES.map(([, category, amount, cardId, daysAgo]) => {
+      const card = byId[cardId]
+      const mult = card.multipliers.find(m => m.category === category)?.multiplier || 1
+      return { card_id: cardId, amount, category, tapped_at: new Date(today.getTime() - daysAgo * 86400000).toISOString(), estimated_value: dollarValuePerDollar(card, mult) * amount }
+    })
+    return cardValueThisYear(wallet, taps, demoPerkPeriods(wallet, today), today)
+  }, [wallet, today])
   return (
-    <div className="ui-panel">
-      <div className="ui-panel-head">
-        <span>Credits this month</span>
-        <span><strong>{moneyWhole(unused)}</strong> unused</span>
-      </div>
-      <div className="credit-grid">
-        {rows.map(p => {
-          const done = p.used_amount >= p.total_amount
-          return (
-            <div key={p.id} className="credit">
-              <div className="credit-top">
-                <div style={{ minWidth: 0 }}>
-                  <div className="credit-name">{p.name}</div>
-                  <div className="credit-meta">{p.card} · {done ? 'used this month' : `resets in ${days} days`}</div>
-                </div>
-                <span className={`credit-amt${done ? ' is-done' : ''}`}>{moneyWhole(p.used_amount)} / {moneyWhole(p.total_amount)}</span>
-              </div>
-              <div className="bar"><div style={{ width: `${(p.used_amount / p.total_amount) * 100}%`, background: done ? 'var(--gain)' : 'var(--ink)' }}/></div>
-            </div>
-          )
-        })}
-      </div>
+    <div className="ui-panel" style={{ padding: '24px' }}>
+      <CardValueChart data={data} caption="Demo wallet, this year · credits from issuer terms · rewards from 7 weeks of logged purchases"/>
     </div>
   )
-}
-
-function monthEnd(d) {
-  const end = new Date(d.getFullYear(), d.getMonth() + 1, 0)
-  return `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')}`
 }
 
 // ── History panel: demo purchases through the real analysis ──
@@ -462,7 +444,7 @@ export function DemoValueChart() {
 }
 
 // ── Shared section styles injected via <style> ────────────
-export const marketingStyles = valueChartStyles + `
+export const marketingStyles = valueChartStyles + cardValueStyles + `
   .mkt-page { min-height: 100vh; background: var(--paper); color: var(--ink); }
   .mkt-wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
@@ -640,13 +622,13 @@ export function MarketingBody({ cta, secondaryCta }) {
 
       {/* Credits: three numbers over a full-width panel */}
       <section id="credits" className="mkt-wrap mkt-section" style={{ scrollMarginTop: '40px' }}>
-        <h2 className="display-lg">Every credit, tracked to the reset.</h2>
+        <h2 className="display-lg">Make every card pay for itself.</h2>
         <dl className="stats">
           <div><dt>$27 a month</dt><dd>in Amex Gold monthly credits</dd></div>
           <div><dt>To the day</dt><dd>countdown for every credit</dd></div>
           <div><dt>First in line</dt><dd>the card whose credit covers the store</dd></div>
         </dl>
-        <CreditsPanel/>
+        <DemoCardValue/>
       </section>
 
       {/* Value: headline over a full-width chart */}
