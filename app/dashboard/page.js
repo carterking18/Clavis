@@ -9,6 +9,7 @@ import { getSuggestedPerks, calculateResetsAt, daysUntilReset, isResetDue } from
 import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar, getPointValuation, setPointValueOverrides, getPointValueOverrides, valuationNote, isCashCard } from '../../lib/pointValues'
 import { money, moneyWhole, centsPerDollar, NUM } from '../../lib/format'
+import { useReorder } from '../../lib/useReorder'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
@@ -375,17 +376,6 @@ export default function Dashboard() {
     if (tab === 'history') loadTaps()
   }, [tab, loadTaps])
 
-  // Scroll reveal
-  useEffect(() => {
-    const els = document.querySelectorAll('[data-reveal]')
-    if (!els.length) return
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); obs.unobserve(e.target) } })
-    }, { threshold: 0.08, rootMargin: '0px 0px -24px 0px' })
-    els.forEach(el => obs.observe(el))
-    return () => obs.disconnect()
-  }, [tab, cards, showAddCard, showAddPerk, taps])
-
   useEffect(() => () => { if (cardFetchTimer.current) clearTimeout(cardFetchTimer.current) }, [])
 
   // Insights computed from current wallet + history
@@ -565,6 +555,7 @@ export default function Dashboard() {
   }, [cards, selectedCat, detectedMerchant, merchantQuery, pointValuesVersion])
 
   function getRankedCards() { return rankedCards }
+  const rankRef = useReorder(rankedCards.map(r => r.card.id))
   function getBestCard() { return rankedCards[0]?.card || null }
   function getActiveCard() {
     if (selectedCardId) return cards.find(c => c.id === selectedCardId) || getBestCard()
@@ -1452,7 +1443,7 @@ export default function Dashboard() {
             const capturedValue = totalPerksVal + totalTapVal
             const unusedCredits = cards.flatMap(c => c.perks || []).reduce((s, p) => s + Math.max(0, (p.total_amount || 0) - (p.used_amount || 0)), 0)
             return (
-              <div data-reveal style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
                 {[
                   { label: 'Annual fees', sub: `${cards.length} card${cards.length !== 1 ? 's' : ''}`, value: moneyWhole(totalFees), color: 'var(--ink)' },
                   { label: 'Captured so far', sub: 'credits used + rewards', value: moneyWhole(capturedValue), color: capturedValue > 0 ? 'var(--gain)' : 'var(--ink)' },
@@ -1522,7 +1513,7 @@ export default function Dashboard() {
                 const isPaidOff = fee > 0 && roiPct >= 100
 
                 return (
-                  <div key={card.id} data-reveal style={{ marginBottom: '8px', borderRadius: 'var(--radius-container)', border: isPaidOff ? '1.5px solid var(--hairline)' : '1px solid var(--hairline-soft)', background: isPaidOff ? 'var(--gain-wash)' : 'var(--surface)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
+                  <div key={card.id} style={{ marginBottom: '8px', borderRadius: 'var(--radius-container)', border: isPaidOff ? '1.5px solid var(--hairline)' : '1px solid var(--hairline-soft)', background: isPaidOff ? 'var(--gain-wash)' : 'var(--surface)', overflow: 'hidden', transition: 'border-color 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '17px 16px', cursor: fee > 0 ? 'pointer' : 'default' }}
                       onClick={() => fee > 0 && setExpandedRoiId(isExpanded ? null : card.id)}>
                       <CardArt name={card.name} size="sm" />
@@ -1626,7 +1617,7 @@ export default function Dashboard() {
           <button className="btn-primary" onClick={() => setShowAddCard(true)}>+ Add card</button>
 
           {showAddCard && (
-            <div data-reveal style={{ marginTop: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-container)', padding: '1.25rem', border: '1px solid var(--hairline)' }}>
+            <div style={{ marginTop: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-container)', padding: '1.25rem', border: '1px solid var(--hairline)' }}>
               <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '1.125rem' }}>Add a card</div>
 
               <div style={{ marginBottom: '12px' }}>
@@ -1820,7 +1811,7 @@ export default function Dashboard() {
           )}
 
           {showAddPerk && (
-            <div data-reveal style={{ marginTop: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-container)', padding: '1.25rem', border: '1px solid var(--hairline)' }}>
+            <div style={{ marginTop: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-container)', padding: '1.25rem', border: '1px solid var(--hairline)' }}>
               <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>Add a perk</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.125rem' }}>
                 <CardArt name={cards.find(c => c.id === addingToCardId)?.name || ''} size="sm" />
@@ -1868,7 +1859,7 @@ export default function Dashboard() {
       {tab === 'perks' && (
         <div>
           {expiringPerks.length > 0 && (
-            <div data-reveal style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '10px 14px', marginBottom: '1rem', fontSize: '14px', color: 'var(--ink)', fontWeight: '500' }}>
+            <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '10px 14px', marginBottom: '1rem', fontSize: '14px', color: 'var(--ink)', fontWeight: '500' }}>
               — {expiringPerks.length} credit{expiringPerks.length > 1 ? 's' : ''} expiring within 14 days — use them now.
             </div>
           )}
@@ -1879,7 +1870,7 @@ export default function Dashboard() {
             const totalAll = allPerks.reduce((s, p) => s + p.total_amount, 0)
             const usedPct = totalAll > 0 ? Math.round(((totalAll - totalRemaining) / totalAll) * 100) : 0
             return totalRemaining > 0 ? (
-              <div data-reveal style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '18px 20px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '18px 20px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '500', marginBottom: '5px' }}>Uncaptured value</div>
                   <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{moneyWhole(totalRemaining)}</div>
@@ -1906,7 +1897,7 @@ export default function Dashboard() {
             const activeCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) > 0)
             const usedCardPerks = cardPerks.filter(p => (p.total_amount - p.used_amount) <= 0)
             return (
-              <div key={card.id} data-reveal style={{ marginBottom: '1.5rem' }}>
+              <div key={card.id} style={{ marginBottom: '1.5rem' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <CardArt name={card.name} size="sm" />
                   {card.name}
@@ -2035,7 +2026,7 @@ export default function Dashboard() {
               </button>
             </div>
           )}
-          <div data-reveal style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
             <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-container)', padding: '20px' }}>
               <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)', marginBottom: '7px' }}>This month</div>
               <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.03em', ...NUM }}>{money(thisMonthEarned)}</div>
@@ -2057,7 +2048,7 @@ export default function Dashboard() {
           ) : (
             <div className="card" style={{ padding: '0 1.125rem' }}>
               {taps.map((tap, i) => (
-                <div key={tap.id} data-reveal style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < taps.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
+                <div key={tap.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '15px 0', borderBottom: i < taps.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
                   <CardArt name={tap.card_name} size="sm" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -2628,7 +2619,7 @@ export default function Dashboard() {
                 const accentColor = isTop ? 'var(--accent-ink)' : 'var(--muted)'
                 const isSelected = selectedCardId === card.id
                 return (
-                  <button key={card.id}
+                  <button key={card.id} ref={rankRef(card.id)}
                     onClick={() => { setSelectedCardId(isSelected ? null : card.id); setShowRankings(false) }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 8px', margin: '0 -8px',
