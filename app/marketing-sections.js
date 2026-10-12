@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { buildDemoWallet, DEMO_CATEGORIES, DEMO_MERCHANTS, DEMO_PURCHASES, SOURCES, RATES_VERIFIED, RATES_VERIFIED_LABEL } from '../lib/demoWallet.js'
 import { rankCards, isCashBack } from '../lib/ranking.js'
@@ -146,6 +146,54 @@ export function LiveDemo() {
   const choose = m => { setMerchant(m); setQuery(m.name); setCategory(m.category) }
   const chooseCategory = c => { setCategory(c); setMerchant(null); setQuery('') }
 
+  // Self-playing demo: types each merchant and lets the ranking update, on a
+  // loop, while the demo is on screen. Any interaction hands control to the
+  // visitor for good; the Pause button stops it too. Off for reduced motion.
+  const rootRef = useRef(null)
+  const [autoplay, setAutoplay] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const userTookOver = useRef(false)
+
+  useEffect(() => {
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setAutoplay(true)
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.4 })
+    if (rootRef.current) io.observe(rootRef.current)
+    return () => io.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!autoplay || !visible) return
+    let cancelled = false
+    const timers = []
+    const wait = ms => new Promise(r => timers.push(setTimeout(r, ms)))
+    const run = async () => {
+      let i = DEMO_MERCHANTS.findIndex(m => m.name === merchant?.name) + 1
+      while (!cancelled) {
+        await wait(2600)
+        if (cancelled || document.hidden) continue
+        const m = DEMO_MERCHANTS[i % DEMO_MERCHANTS.length]
+        setMerchant(null)
+        for (let n = 1; n <= m.name.length && !cancelled; n++) {
+          setQuery(m.name.slice(0, n))
+          await wait(70)
+        }
+        await wait(350)
+        if (!cancelled) choose(m)
+        i++
+      }
+    }
+    run()
+    return () => { cancelled = true; timers.forEach(clearTimeout) }
+    // Restart only when play state or visibility changes, not on every step
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoplay, visible])
+
+  const takeOver = () => {
+    if (userTookOver.current) return
+    userTookOver.current = true
+    setAutoplay(false)
+  }
+
   const spend = Math.max(0, Number(amount) || 0)
   const ranked = rankCards(wallet, { category, merchant: merchant?.name || '', now: asOf })
   const best = ranked[0]
@@ -154,7 +202,7 @@ export function LiveDemo() {
   const rowRef = useReorder([best, ...others].map(r => r.card.id))
 
   return (
-    <div className="demo">
+    <div className="demo" ref={rootRef} onPointerDown={takeOver} onKeyDown={takeOver}>
       <div className="demo-controls">
         <div className="demo-field">
           <label htmlFor="demo-merchant" className="demo-label">Where are you paying?</label>
@@ -186,6 +234,11 @@ export function LiveDemo() {
         {DEMO_MERCHANTS.map(m => (
           <button key={m.name} className={`demo-chip${merchant?.name === m.name ? ' is-active' : ''}`} onClick={() => choose(m)}>{m.name}</button>
         ))}
+        {autoplay && (
+          <button className="demo-pause" onClick={e => { e.stopPropagation(); takeOver() }} aria-label="Pause the demo">
+            <span aria-hidden="true" className="demo-pause-dot"/> Playing · Pause
+          </button>
+        )}
       </div>
 
       <div role="radiogroup" aria-label="Or pick a category" className="segmented demo-segmented">
@@ -371,6 +424,9 @@ export const marketingStyles = `
   .demo-chip { min-height: 32px; padding: 0 10px; border: 1px solid var(--hairline); border-radius: var(--radius-control); background: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--ink-2); cursor: pointer; }
   .demo-chip:hover { color: var(--ink); border-color: var(--muted); }
   .demo-chip.is-active { color: var(--ink); border-color: var(--ink); }
+  .demo-pause { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: none; background: none; font: inherit; font-size: 12px; font-weight: 500; color: var(--ink-2); cursor: pointer; border-radius: var(--radius-control); }
+  .demo-pause:hover { background: var(--sunken); color: var(--ink); }
+  .demo-pause-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gain); }
   .demo-segmented { margin: 16px 24px 0; }
   .demo-results { margin-top: 24px; border-top: 1px solid var(--hairline); }
   .demo-best { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 28px 24px 28px 28px; box-shadow: inset 4px 0 0 var(--accent); background: var(--accent-wash); border-bottom: 1px solid var(--hairline); }
