@@ -1008,23 +1008,22 @@ export default function Dashboard() {
         marginLeft: 'calc(-50vw + 50%)',
         marginRight: 'calc(-50vw + 50%)',
         width: '100vw',
-        background: 'rgba(9,9,12,0.85)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        background: 'var(--paper)',
+        borderBottom: '1px solid var(--hairline)',
       }}>
-        <div className="dash-nav-inner" style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', minHeight: '60px', rowGap: '4px' }}>
+        {/* Same column as the content below, so the nav and page edges line up */}
+        <div className="dash-nav-inner" style={{ maxWidth: 'var(--content-width)', margin: '0 auto', padding: '10px 1.25rem 0', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Logo */}
           <a href="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
             <KeySVG size={18} id="dashkey"/>
-            <span className="dash-logo-text" style={{ fontSize: '14px', fontWeight: '600', letterSpacing: '0.08em', color: '#dddde4' }}>CLAVIS</span>
+            <span className="dash-logo-text" style={{ fontSize: '14px', fontWeight: '600', letterSpacing: '0.06em', color: 'var(--ink)' }}>CLAVIS</span>
           </a>
 
           {/* About / Sign out */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexShrink: 0, order: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, order: 2 }}>
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowNotifications(v => !v)} aria-label="Notifications"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative', display: 'flex', alignItems: 'center', padding: '4px', color: '#dddde4', lineHeight: 1 }}>
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '40px', height: '40px', color: 'var(--ink-2)', lineHeight: 1, borderRadius: 'var(--radius-control)' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -1033,7 +1032,7 @@ export default function Dashboard() {
                   <span style={{
                     position: 'absolute', top: '-2px', right: '-2px', minWidth: '15px', height: '15px', borderRadius: '50%',
                     background: urgentNotifCount > 0 ? 'var(--loss)' : 'var(--ink)', color: 'var(--surface)', fontSize: '12px', fontWeight: '600',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '1.5px solid rgba(9,9,12,0.85)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '1.5px solid var(--paper)',
                   }}>
                     {notifications.length > 9 ? '9+' : notifications.length}
                   </span>
@@ -1066,11 +1065,9 @@ export default function Dashboard() {
                 </>
               )}
             </div>
-            <button onClick={() => setTourStep(0)} className="mkt-nav-link dash-about-link" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Take a tour</button>
-            <a href="/about" className="mkt-nav-link dash-about-link">About</a>
             <div style={{ position: 'relative' }}>
               <button onClick={() => setShowAccountMenu(v => !v)}
-                className="pill-dark dash-sign-out" style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '9px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                className="pill-outline dash-sign-out" aria-expanded={showAccountMenu} style={{ padding: '8px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 Account
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showAccountMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
                   <path d="M6 9l6 6 6-6" />
@@ -1089,6 +1086,18 @@ export default function Dashboard() {
                         {user.email}
                       </div>
                     )}
+                    <button onClick={() => { setShowAccountMenu(false); setTourStep(0) }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: '500', color: 'var(--ink-2)', padding: '10px', borderRadius: 'var(--radius-control)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      Take a tour
+                    </button>
+                    <a href="/about"
+                      style={{ display: 'block', width: '100%', textAlign: 'left', textDecoration: 'none', fontSize: '14px', fontWeight: '500', color: 'var(--ink-2)', padding: '10px', borderRadius: 'var(--radius-control)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      About Clavis
+                    </a>
                     <button onClick={() => {
                         setShowAccountMenu(false)
                         const current = getPointValueOverrides()
@@ -1096,19 +1105,19 @@ export default function Dashboard() {
                         setPointSaveError('')
                         setShowPointValues(true)
                       }}
-                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', padding: '9px 10px', borderRadius: '6px' }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: '500', color: 'var(--ink-2)', padding: '10px', borderRadius: 'var(--radius-control)' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       Point values
                     </button>
                     <button onClick={() => { setShowAccountMenu(false); supabase.auth.signOut().then(() => router.push('/auth')) }}
-                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: '600', color: 'var(--ink-2)', padding: '9px 10px', borderRadius: '6px' }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: '500', color: 'var(--ink-2)', padding: '10px', borderRadius: 'var(--radius-control)' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--sunken)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       Sign out
                     </button>
                     <button onClick={() => { setShowAccountMenu(false); setShowDeleteAccount(true); setDeleteConfirmText(''); setDeleteAccountError('') }}
-                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: '600', color: 'var(--loss)', padding: '9px 10px', borderRadius: '6px' }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '14px', fontWeight: '500', color: 'var(--loss)', padding: '10px', borderRadius: 'var(--radius-control)' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--loss-wash)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                       Delete account
@@ -1120,7 +1129,7 @@ export default function Dashboard() {
           </div>
 
           {/* Center links — dashboard tabs (own row on narrow screens, scrollable) */}
-          <div className="dash-nav-tabs" style={{ display: 'flex', alignItems: 'center', gap: '28px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: 0, flex: '1 1 auto', justifyContent: 'center', order: 1 }}>
+          <div className="dash-nav-tabs" role="tablist" style={{ display: 'flex', alignItems: 'flex-end', gap: '24px', overflowX: 'auto', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch', minWidth: 0, flex: '1 1 100%', order: 3, marginTop: '6px' }}>
             {[
               { key: 'tap',      label: 'Tap' },
               { key: 'wallet',   label: 'Wallet' },
@@ -1129,12 +1138,9 @@ export default function Dashboard() {
               { key: 'insights', label: 'Insights' },
             ].map(({ key, label }) => (
               <button key={key} ref={el => { tourTabRefs.current[key] = el }} onClick={() => setTab(key)}
-                className="mkt-nav-link"
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
-                  whiteSpace: 'nowrap', flexShrink: 0,
-                  color: tab === key ? '#dddde4' : (key === 'insights' && insightCount > 0 ? 'var(--ink)' : undefined),
-                }}>
+                role="tab" aria-selected={tab === key}
+                className={`tab-btn${tab === key ? ' active' : ''}`}
+                style={{ flex: 'none', padding: '10px 0 12px', minHeight: '44px' }}>
                 {label}
                 {key === 'insights' && insightCount > 0 && tab !== key && (
                   <span style={{ display: 'inline-block', width: '5px', height: '5px', background: 'var(--ink)', borderRadius: '50%', marginLeft: '5px', verticalAlign: 'middle', marginBottom: '2px' }} />

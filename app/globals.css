@@ -264,25 +264,8 @@ option {
 .dash-nav-tabs::-webkit-scrollbar { display: none; }
 
 @media (max-width: 640px) {
-  /* Row 1: logo + sign out. Row 2 (full width, own line): tabs — no more crowding. */
-  .dash-nav-inner  { padding-top: 10px !important; padding-bottom: 10px !important; }
-  .dash-logo-text  { font-size: var(--text-xs) !important; }
-  .dash-about-link { display: none; }
-  .dash-sign-out   { padding: 7px 12px !important; font-size: var(--text-xs) !important; }
-  .dash-nav-tabs   {
-    order: 3 !important;
-    flex: 1 1 100% !important;
-    justify-content: center !important;
-    gap: 24px !important;
-    margin-top: 8px;
-    padding: 6px 14px 2px;
-    scroll-padding: 0 14px;
-  }
-  .dash-nav-tabs .mkt-nav-link {
-    font-size: var(--text-sm) !important;
-    font-weight: var(--weight-medium) !important;
-    padding: 6px 2px !important;
-  }
+  .dash-nav-inner  { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .dash-nav-tabs   { justify-content: space-between; gap: 12px !important; }
 }
 
 @media (max-width: 400px) {
