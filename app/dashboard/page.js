@@ -11,6 +11,7 @@ import { dollarValuePerDollar, formatValuePerDollar, getPointValuation, setPoint
 import { money, moneyWhole, centsPerDollar, NUM } from '../../lib/format'
 import { useReorder } from '../../lib/useReorder'
 import { rankCards } from '../../lib/ranking'
+import { bookingRequirement } from '../../lib/bookingRates'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
@@ -1248,6 +1249,17 @@ export default function Dashboard() {
                           </span>
                         )}
                       </div>
+                      {(() => {
+                        // This rate only applies when booked a certain way: say how, and what it earns otherwise
+                        const req = activeCard && mult > 0 ? bookingRequirement(activeCard.name, selectedCat, mult) : null
+                        if (!req) return null
+                        return (
+                          <div role="note" style={{ marginTop: '12px', fontSize: '14px', color: 'var(--ink)', background: 'var(--surface)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '10px 12px', lineHeight: 1.45 }}>
+                            <strong style={{ fontWeight: '600' }}>{req.how}</strong> to earn {mult}x.
+                            <span style={{ color: 'var(--ink-2)' }}> Otherwise {req.base}x.</span>
+                          </div>
+                        )
+                      })()}
                       {portalTip && dismissedPortalTip !== portalTip && (
                         <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--ink-2)', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '8px 12px', lineHeight: '1.5', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                           <span style={{ flex: 1 }}>💡 {portalTip}</span>
@@ -1291,7 +1303,10 @@ export default function Dashboard() {
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: i < others.length - 1 ? '1px solid var(--hairline-soft)' : 'none', background: 'var(--surface)' }}>
                       <CardArt name={r.card.name} size="sm" />
                       <span style={{ flex: 1, minWidth: 0, fontSize: '14px', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.card.name}</span>
-                      <span style={{ fontSize: '12px', color: 'var(--muted)', flexShrink: 0 }}>{formatRate(r.card, getMultiplier(r.card)) || 'no bonus'}</span>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)', flexShrink: 0 }}>
+                        {formatRate(r.card, getMultiplier(r.card)) || 'no bonus'}
+                        {bookingRequirement(r.card.name, selectedCat, getMultiplier(r.card)) && <span title={bookingRequirement(r.card.name, selectedCat, getMultiplier(r.card)).how}> · booking rules</span>}
+                      </span>
                       <span style={{ fontSize: '14px', fontWeight: '500', color: 'var(--ink)', minWidth: '64px', textAlign: 'right', flexShrink: 0, ...NUM }}>
                         {selectedAmt > 0 ? money(r.dollarVal * selectedAmt) : `${centsPerDollar(r.dollarVal)}/$`}
                       </span>
