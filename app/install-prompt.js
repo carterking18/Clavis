@@ -65,7 +65,7 @@ export function InstallPrompt() {
       maxWidth: '400px',
       background: 'var(--surface)',
       border: '1px solid var(--hairline)',
-      borderRadius: '16px',
+      borderRadius: 'var(--radius-container)',
       padding: '16px',
       zIndex: 9999,
       boxShadow: 'var(--shadow-overlay)',
@@ -74,7 +74,7 @@ export function InstallPrompt() {
       gap: '12px',
     }}>
       {/* Icon */}
-      <img src="/icon-192.png" alt="Clavis" style={{ width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0 }} />
+      <img src="/icon-192.png" alt="Clavis" style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-container)', flexShrink: 0 }} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: '600', fontSize: '14px', color: 'var(--ink)', marginBottom: '4px' }}>
@@ -97,7 +97,7 @@ export function InstallPrompt() {
               background: 'var(--ink)',
               color: 'var(--surface)',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: 'var(--radius-container)',
               padding: '8px 16px',
               fontSize: '14px',
               fontWeight: '600',

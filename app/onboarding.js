@@ -36,7 +36,7 @@ function CardArt({ name, style = {} }) {
   const design = getCardDesign(name)
   return (
     <div style={{
-      borderRadius: '10px',
+      borderRadius: 'var(--radius-container)',
       background: `linear-gradient(135deg, ${design.gradient[0]}, ${design.gradient[1]})`,
       ...style
     }} />
@@ -190,7 +190,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
       <div style={{
         background: 'var(--surface)',
         border: '1px solid var(--hairline)',
-        borderRadius: '12px',
+        borderRadius: 'var(--radius-container)',
         padding: '2rem',
         width: '100%',
         maxWidth: '400px',
@@ -203,10 +203,10 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           <div style={{ textAlign: 'center' }}>
             <StepIndicator current={tourIndex} total={TOUR_SLIDES.length} />
 
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '60px', height: '60px', borderRadius: '14px', background: 'var(--sunken)', border: '1px solid var(--hairline)', margin: '0 auto 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '60px', height: '60px', borderRadius: 'var(--radius-container)', background: 'var(--sunken)', border: '1px solid var(--hairline)', margin: '0 auto 16px' }}>
               {(() => { const I = TOUR_SLIDES[tourIndex].Icon; return <I /> })()}
             </div>
-            <div style={{ fontSize: '12px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: '6px' }}>
+            <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink)', marginBottom: '6px' }}>
               {TOUR_SLIDES[tourIndex].tab} tab
             </div>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '10px' }}>
@@ -285,7 +285,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
               ].map(item => (
                 <div key={item.text} style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
-                  background: 'var(--sunken)', borderRadius: '8px', padding: '11px 14px',
+                  background: 'var(--sunken)', borderRadius: 'var(--radius-container)', padding: '11px 14px',
                   border: '1px solid var(--hairline-soft)',
                 }}>
                   <span style={{ fontSize: '16px' }}>{item.icon}</span>
@@ -337,7 +337,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
             )}
 
             {suggestion && (
-              <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--ink)', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: '6px', padding: '9px 12px' }}>
+              <div style={{ marginBottom: '12px', fontSize: '12px', color: 'var(--ink)', background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '9px 12px' }}>
                 ✦ Rewards rates{suggestion.annualFee !== undefined ? ' and annual fee' : ''} auto-filled — {suggestion.note}
               </div>
             )}
@@ -396,7 +396,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
                 )}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', borderBottom: '1px solid var(--hairline-soft)', cursor: 'pointer' }}>
                 <div style={{
-                  width: '18px', height: '18px', borderRadius: '5px',
+                  width: '18px', height: '18px', borderRadius: 'var(--radius-control)',
                   border: selectedPerkIndices.includes(i) ? `2px solid var(--gain)` : `1.5px solid var(--hairline)`,
                   background: selectedPerkIndices.includes(i) ? 'var(--gain)' : 'transparent',
                   flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -443,7 +443,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
               ].map(item => (
                 <div key={item.step} style={{
                   display: 'flex', alignItems: 'flex-start', gap: '12px',
-                  background: 'var(--sunken)', borderRadius: '8px', padding: '12px 14px',
+                  background: 'var(--sunken)', borderRadius: 'var(--radius-container)', padding: '12px 14px',
                   border: '1px solid var(--hairline-soft)',
                 }}>
                   <div style={{
