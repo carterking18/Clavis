@@ -203,20 +203,22 @@ export function LiveDemo() {
             <div>
               <div className="demo-best-label">Use this card{merchant ? ` at ${merchant.name}` : ''}</div>
               <div className="demo-best-name">{best.card.name}</div>
-              <div className="demo-meta">
-                {rateLabel(best.card, best.mult)}
-                {best.merchantPerk && <> · uses your unused {moneyWhole(best.merchantPerk.total_amount - best.merchantPerk.used_amount)} {best.merchantPerk.name}</>}
-              </div>
+              <div className="demo-meta">{rateLabel(best.card, best.mult)}</div>
+              {best.merchantPerk && (
+                <div className="demo-note-chip">
+                  Unused {moneyWhole(best.merchantPerk.total_amount - best.merchantPerk.used_amount)} {best.merchantPerk.name.replace(/ Restaurant Promo$/, ' promo')} applies here
+                </div>
+              )}
             </div>
           </div>
           <div className="demo-best-value">
             <div className="demo-big">{money(best.dollarVal * spend + credit)}</div>
             <div className="demo-meta">
-              {credit > 0 ? `${money(best.dollarVal * spend)} rewards + ${money(credit)} credit` : `back on ${money(spend)}`}
+              {credit > 0 ? `${money(best.dollarVal * spend)} points + ${money(credit)} credit` : `on ${money(spend)}`}
             </div>
           </div>
         </div>
-        <div className="demo-others-label">What your other cards would earn here</div>
+        <div className="demo-others-label">Your other cards</div>
         {others.map(r => (
           <div key={r.card.id} className="demo-row" ref={rowRef(r.card.id)}>
             <span className="demo-row-name"><Swatch name={r.card.name}/>{r.card.name}</span>
@@ -224,10 +226,7 @@ export function LiveDemo() {
             <span className="demo-row-val">{money(r.dollarVal * spend)}</span>
           </div>
         ))}
-        <p className="demo-foot">
-          Demo wallet: four common cards with their published rates and monthly credits. Points valued at 1.0¢, which you can change in the app.
-          {best.merchantPerk && ' The best card here earns fewer points but uses a credit that would otherwise expire unused.'}
-        </p>
+        <p className="demo-foot">Demo wallet · Issuer rates, checked {RATES_VERIFIED_LABEL} · Points at 1.0¢</p>
       </div>
     </div>
   )
@@ -389,8 +388,15 @@ export const marketingStyles = `
   .demo-row-val { text-align: right; color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
   .demo-foot { padding: 16px 24px 20px; font-size: 12px; line-height: 1.6; color: var(--muted); }
   .swatch { display: inline-block; width: 28px; height: 19px; border-radius: 3px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
-  .demo-how { font-size: 16px; color: var(--ink-2); margin: 0 0 20px; }
-  .demo-how strong { color: var(--ink); font-weight: 600; }
+  .steps { list-style: none; padding: 0; margin: 0 0 16px; display: flex; flex-wrap: wrap; gap: 8px 28px; font-size: 14px; font-weight: 500; color: var(--ink); }
+  .steps li { display: flex; align-items: center; gap: 8px; }
+  .steps span { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--hairline); font-size: 12px; color: var(--ink-2); }
+  .demo-note-chip { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: var(--radius-control); background: var(--surface); border: 1px solid var(--hairline); font-size: 12px; font-weight: 500; color: var(--ink); }
+  .mkt-caption { font-size: 14px; color: var(--muted); margin-top: 12px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 40px 0 32px; }
+  .stats div { border-top: 1px solid var(--ink); padding-top: 16px; }
+  .stats dt { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
+  .stats dd { margin: 6px 0 0; font-size: 14px; color: var(--ink-2); }
 
   /* Product panels */
   .ui-panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-container); overflow: hidden; box-shadow: 0 1px 2px rgba(17,24,39,0.04), 0 24px 48px -32px rgba(17,24,39,0.16); font-variant-numeric: tabular-nums; }
@@ -414,14 +420,14 @@ export const marketingStyles = `
   .split-head { display: grid; grid-template-columns: 1.1fr 1fr; gap: 64px; align-items: end; margin-bottom: 48px; }
   .side-by-side { display: grid; grid-template-columns: 5fr 7fr; gap: 72px; align-items: start; }
   .sticky-col { position: sticky; top: 108px; }
-  .facts { border-top: 1px solid var(--ink); margin-top: 48px; }
-  .fact { display: grid; grid-template-columns: 240px 1fr; gap: 32px; padding: 28px 0; border-bottom: 1px solid var(--hairline); }
+  .facts { border-top: 1px solid var(--ink); margin-top: 40px; }
+  .fact { display: grid; grid-template-columns: 240px 1fr; gap: 32px; padding: 20px 0; border-bottom: 1px solid var(--hairline); }
   .fact dt { font-size: 16px; font-weight: 600; }
   .fact dd { margin: 0; }
-  .sources { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
+  .sources { list-style: none; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px 20px; }
   .sources a { font-size: 14px; }
   .data-band { background: var(--surface); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
-  .data-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 64px; margin-top: 40px; }
+  .data-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 40px; margin-top: 40px; }
   .data-item { padding: 20px 0; border-top: 1px solid var(--hairline); }
   .data-item h3 { font-size: 16px; font-weight: 600; }
   .data-item p { font-size: 14px; line-height: 1.6; color: var(--ink-2); margin-top: 4px; }
@@ -429,7 +435,9 @@ export const marketingStyles = `
 
   @media (max-width: 860px) {
     .mkt-nav-links { display: none; }
-    .split-head, .side-by-side, .data-grid { grid-template-columns: 1fr; gap: 20px; }
+    .split-head, .side-by-side { grid-template-columns: 1fr; gap: 20px; }
+    .data-grid { grid-template-columns: 1fr 1fr; gap: 0 24px; }
+    .stats { grid-template-columns: 1fr; gap: 16px; margin: 28px 0 24px; }
     .sticky-col { position: static; }
     .fact { grid-template-columns: 1fr; gap: 8px; }
   }
@@ -451,6 +459,7 @@ export const marketingStyles = `
     .credit:nth-child(odd) { border-right: none; }
     .credit, .ui-panel-head, .history-sum, .history-row { padding-left: 16px; padding-right: 16px; }
     .mkt-close { padding-block: 88px; }
+    .data-grid { grid-template-columns: 1fr; }
   }
 `
 
@@ -462,92 +471,85 @@ export function MarketingBody({ cta, secondaryCta }) {
       {/* Hero: the question, then the product answering it */}
       <section className="mkt-wrap mkt-hero">
         <h1 className="display-xl">Which card should I <em>use?</em></h1>
-        <p className="mkt-lede">
-          Type where you&apos;re paying. Clavis ranks every card in your wallet by what it actually earns there, counting the credits you haven&apos;t used yet.
-        </p>
+        <p className="mkt-lede">Every card in your wallet, ranked for each purchase. Credits included.</p>
         <div className="mkt-hero-ctas">
           <a href={cta.href} className="pill-dark">{cta.label}</a>
-          <span className="mkt-hero-note">Free. No bank login.</span>
+          <span className="mkt-hero-note">Free · No bank login</span>
         </div>
       </section>
 
       <section id="demo" className="mkt-wrap" style={{ scrollMarginTop: '80px' }}>
-        <p className="demo-how"><strong>How it works:</strong> add your cards once, type where you&apos;re paying, and pay with the card at the top.</p>
+        <ol className="steps" aria-label="How it works">
+          <li><span>1</span>Add your cards once</li>
+          <li><span>2</span>Type where you&apos;re paying</li>
+          <li><span>3</span>Pay with the top card</li>
+        </ol>
         <LiveDemo/>
       </section>
 
-      {/* Credits: split header over a full-width panel */}
+      {/* Credits: three numbers over a full-width panel */}
       <section id="credits" className="mkt-wrap mkt-section" style={{ scrollMarginTop: '40px' }}>
-        <div className="split-head">
-          <h2 className="display-lg">Credits you pay for, tracked until they reset.</h2>
-          <div>
-            <p className="mkt-body">The Amex Gold alone comes with $10 a month in Uber Cash, $10 a month in dining credits and $7 a month at Dunkin&apos;. Each one resets whether you use it or not.</p>
-            <p className="mkt-body">Clavis keeps every credit on one list, counts down to each reset, and moves the card with an unused credit to the top when you&apos;re at the merchant it covers.</p>
-          </div>
-        </div>
+        <h2 className="display-lg">Every credit, tracked to the reset.</h2>
+        <dl className="stats">
+          <div><dt>$27 a month</dt><dd>in Amex Gold monthly credits</dd></div>
+          <div><dt>To the day</dt><dd>countdown for every credit</dd></div>
+          <div><dt>First in line</dt><dd>the card whose credit covers the store</dd></div>
+        </dl>
         <CreditsPanel/>
       </section>
 
-      {/* History: narrow text beside a larger panel */}
+      {/* History: short column beside a larger panel */}
       <section className="mkt-wrap mkt-section" style={{ paddingTop: 0 }}>
         <div className="side-by-side">
           <div className="sticky-col">
-            <h2 className="display-lg">Every purchase, and what a better card would have earned.</h2>
-            <p className="mkt-body" style={{ marginTop: '20px' }}>Log a purchase in one tap. Clavis records the card, the amount and the rewards, then checks each one against the rest of your wallet.</p>
-            <p className="mkt-body">These are the demo wallet&apos;s last seven weeks, run through the same analysis the app uses.</p>
+            <h2 className="display-lg">What every purchase earned.</h2>
+            <p className="mkt-lede" style={{ marginTop: '16px' }}>And what a better card would have.</p>
+            <p className="mkt-caption">Demo wallet, last 7 weeks</p>
           </div>
           <HistoryPanel/>
         </div>
       </section>
 
-      {/* Where the numbers come from: a plain statement and a list of facts */}
+      {/* Where the numbers come from: one line per fact */}
       <section id="numbers" className="mkt-wrap mkt-section" style={{ paddingTop: 0, scrollMarginTop: '40px' }}>
-        <h2 className="display-lg" style={{ maxWidth: '720px' }}>Where the numbers come from.</h2>
+        <h2 className="display-lg">Where the numbers come from.</h2>
         <dl className="facts">
           <div className="fact">
             <dt>Reward rates</dt>
             <dd>
-              <p className="mkt-body">From each card issuer&apos;s published terms. The cards in this demo were last checked on <time dateTime={RATES_VERIFIED}>{RATES_VERIFIED_LABEL}</time>:</p>
+              <p className="mkt-body">Issuer terms, checked <time dateTime={RATES_VERIFIED}>{RATES_VERIFIED_LABEL}</time>.</p>
               <ul className="sources">
-                {SOURCES.map(s => <li key={s.card}><a className="mkt-link" href={s.url} target="_blank" rel="noopener noreferrer">{s.card}, {s.issuer}</a></li>)}
+                {SOURCES.map(s => <li key={s.card}><a className="mkt-link" href={s.url} target="_blank" rel="noopener noreferrer">{s.card}</a></li>)}
               </ul>
             </dd>
           </div>
-          <div className="fact">
-            <dt>Point values</dt>
-            <dd><p className="mkt-body">Points and miles are converted to dollars at a conservative value close to what you&apos;d get as a statement credit, usually 1.0¢. Transfer partners can be worth more, but Clavis won&apos;t count on it. You can set your own value for each card.</p></dd>
-          </div>
-          <div className="fact">
-            <dt>Credits</dt>
-            <dd><p className="mkt-body">Amounts and reset schedules come from the issuer&apos;s terms. Annual credits currently reset on the calendar year.</p></dd>
-          </div>
-          <div className="fact">
-            <dt>Rankings</dt>
-            <dd><p className="mkt-body">Each card is scored on what it earns per dollar at that merchant. A card with an unused credit that covers the merchant goes to the top, because that credit is worth more than any rate difference. Estimates only: your issuer decides how each purchase is categorized.</p></dd>
-          </div>
+          <div className="fact"><dt>Point values</dt><dd><p className="mkt-body">1.0¢ per point by default. Set your own per card.</p></dd></div>
+          <div className="fact"><dt>Credits</dt><dd><p className="mkt-body">Issuer terms. Annual credits reset Dec 31.</p></dd></div>
+          <div className="fact"><dt>Rankings</dt><dd><p className="mkt-body">Cents earned per dollar. A credit that covers the store goes first.</p></dd></div>
+          <div className="fact"><dt>Limits</dt><dd><p className="mkt-body">Estimates. Your issuer decides each purchase&apos;s category.</p></dd></div>
         </dl>
       </section>
 
-      {/* Your data: structured facts, checked against the code */}
+      {/* Your data: bold phrase, one short line each */}
       <section id="data" className="data-band" style={{ scrollMarginTop: '40px' }}>
         <div className="mkt-wrap mkt-section">
-          <h2 className="display-lg" style={{ maxWidth: '720px' }}>How your data is handled.</h2>
+          <h2 className="display-lg">Your data.</h2>
           <div className="data-grid">
-            <div className="data-item"><h3>You add cards by hand</h3><p>Clavis never connects to your bank or card accounts. There is no bank login to give it.</p></div>
-            <div className="data-item"><h3>No card numbers</h3><p>Clavis stores the card&apos;s name, its rates and credits, and, if you choose, its last four digits. Never the full number, expiry or security code.</p></div>
-            <div className="data-item"><h3>Never sold</h3><p>Your data is used only to run Clavis. It goes to the services that host it (Supabase for the database and sign-in, Vercel for hosting, Resend for the emails you opt into) and nowhere else.</p></div>
-            <div className="data-item"><h3>Unrecognized cards</h3><p>If you add a card Clavis doesn&apos;t know, its name, and only its name, is sent to Anthropic&apos;s Claude to look up its rates and credits.</p></div>
-            <div className="data-item"><h3>Delete everything</h3><p>Deleting your account removes your cards, credits, purchases and email preferences.</p></div>
-            <div className="data-item"><h3>Card links</h3><p>Some card suggestions in Insights link to issuers that pay Clavis a commission. It never changes which cards are recommended.</p></div>
+            <div className="data-item"><h3>No bank login</h3><p>You add cards by hand.</p></div>
+            <div className="data-item"><h3>No card numbers</h3><p>Last four digits at most, if you choose.</p></div>
+            <div className="data-item"><h3>Never sold</h3><p>Shared only with Supabase, Vercel and Resend, to run Clavis.</p></div>
+            <div className="data-item"><h3>Unknown cards</h3><p>Only the card&apos;s name goes to Claude (Anthropic) to look up rates.</p></div>
+            <div className="data-item"><h3>Delete anytime</h3><p>Removes your cards, credits, purchases and settings.</p></div>
+            <div className="data-item"><h3>Card links</h3><p>Some issuer links pay us a commission. Rankings ignore it.</p></div>
           </div>
-          <p className="mkt-body" style={{ marginTop: '32px' }}>Details are in the <Link className="mkt-link" href="/privacy">privacy policy</Link>.</p>
+          <p className="mkt-caption" style={{ marginTop: '24px' }}>Full details: <Link className="mkt-link" href="/privacy">privacy policy</Link></p>
         </div>
       </section>
 
       {/* Closing CTA */}
       <section className="mkt-wrap mkt-close">
         <h2 className="display-lg">Start getting more from every purchase.</h2>
-        <p className="mkt-body" style={{ maxWidth: '440px', margin: '20px auto 0' }}>You already have the cards. Clavis makes sure you use the right one, and the credits that come with it.</p>
+        <p className="mkt-caption" style={{ marginTop: '16px' }}>Free · No bank login</p>
         <div style={{ display: 'flex', gap: '12px', marginTop: '32px', justifyContent: 'center', flexWrap: 'wrap' }}>
           <a href={cta.href} className="pill-dark">{cta.label}</a>
           {secondaryCta && <a href={secondaryCta.href} className="pill-outline">{secondaryCta.label}</a>}
