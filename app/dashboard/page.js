@@ -1443,7 +1443,7 @@ export default function Dashboard() {
             const capturedValue = totalPerksVal + totalTapVal
             const unusedCredits = cards.flatMap(c => c.perks || []).reduce((s, p) => s + Math.max(0, (p.total_amount || 0) - (p.used_amount || 0)), 0)
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
+              <div className="stat-grid-3" style={{ marginBottom: '1.5rem' }}>
                 {[
                   { label: 'Annual fees', sub: `${cards.length} card${cards.length !== 1 ? 's' : ''}`, value: moneyWhole(totalFees), color: 'var(--ink)' },
                   { label: 'Captured so far', sub: 'credits used + rewards', value: moneyWhole(capturedValue), color: capturedValue > 0 ? 'var(--gain)' : 'var(--ink)' },
@@ -2452,7 +2452,7 @@ export default function Dashboard() {
                   navigator.clipboard.writeText(refUrl)
                   alert('Referral link copied!')
                 }
-              }} style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
+              }} style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', background: 'none', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', padding: '0 12px', minHeight: '40px', whiteSpace: 'nowrap', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
                 onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

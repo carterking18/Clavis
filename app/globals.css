@@ -280,9 +280,6 @@ option {
   .dash-nav-tabs   { justify-content: space-between; gap: 12px !important; }
 }
 
-@media (max-width: 400px) {
-  .dash-logo-text { display: none; }
-}
 
 @media (max-width: 640px) {
   .app {
@@ -374,4 +371,10 @@ option {
 
 @media (max-width: 640px) {
   .segmented-item { min-height: 40px; }
+}
+
+/* Three figures side by side; stacked on narrow phones so 28px numbers fit */
+.stat-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+@media (max-width: 480px) {
+  .stat-grid-3 { grid-template-columns: 1fr; }
 }
