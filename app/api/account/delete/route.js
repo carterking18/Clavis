@@ -44,6 +44,10 @@ export async function POST(request) {
     }
 
     // perks carry user_id directly (see addPerk in lib/cards.js)
+    // Credit history; the table may not exist on older databases
+    const { error: periodsErr } = await supabaseAdmin.from('perk_periods').delete().eq('user_id', userId)
+    if (periodsErr && periodsErr.code !== '42P01' && periodsErr.code !== 'PGRST205') throw periodsErr
+
     const { error: perksErr } = await supabaseAdmin.from('perks').delete().eq('user_id', userId)
     if (perksErr) throw perksErr
 
