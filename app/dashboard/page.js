@@ -189,9 +189,13 @@ function TimeAgo({ dateStr }) {
   return <span>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
 }
 
+// Missed rewards below this (per period) are reported as 'close to optimal'
+const MEANINGFUL_MISSED = 5
+
 function formatResetDate(dateStr) {
   if (!dateStr) return 'end of period'
-  const d = new Date(dateStr + 'T00:00:00')
+  // Stored dates may be full timestamps; only the calendar date matters
+  const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00')
   if (isNaN(d.getTime())) return 'end of period'
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
@@ -2002,54 +2006,55 @@ export default function Dashboard() {
             const urgentExpiring = perkInsights.filter(i => i.days <= 7).length
             const soonExpiring = perkInsights.filter(i => i.days <= 14).length
             const expiringScore = urgentExpiring > 0 ? 3 : soonExpiring > 0 ? 2 : hasExpiring ? 1 : -1
-            const missedScore = hasMissed ? (totalMissed >= 50 ? 3 : totalMissed >= 10 ? 2 : 1) : -1
+            // A few cents of missed rewards isn't news: only lead with it when it adds up
+            const missedScore = hasMissed ? (totalMissed >= 50 ? 3 : totalMissed >= 10 ? 2 : totalMissed >= MEANINGFUL_MISSED ? 1 : 0) : -1
             const recsScore = cardRecs.length > 0 ? 1 : (hasRecsSection ? 0 : -1)
 
             const expiringSummary = hasExpiring
-              ? `${perkInsights.length} perk${perkInsights.length !== 1 ? 's' : ''} to use${urgentExpiring > 0 ? ` · ${urgentExpiring} expiring within a week` : ''}`
+              ? `${moneyWhole(perkInsights.reduce((s, i) => s + i.remaining, 0))} across ${perkInsights.length} credit${perkInsights.length !== 1 ? 's' : ''}${urgentExpiring > 0 ? ` · ${urgentExpiring} reset within a week` : ''}`
               : null
             const missedSummary = hasMissed
-              ? `${money(totalMissed)} left on the table across ${retroactiveMissed.length} purchase${retroactiveMissed.length !== 1 ? 's' : ''}`
+              ? (totalMissed >= MEANINGFUL_MISSED
+                  ? `${money(totalMissed)} more was possible on ${retroactiveMissed.length} purchase${retroactiveMissed.length !== 1 ? 's' : ''}`
+                  : 'Your card choices are close to the best in your wallet')
               : null
             const recsSummary = cardRecs.length > 0
               ? `${cardRecs.length} card${cardRecs.length !== 1 ? 's' : ''} could earn you more`
               : (cards.length > 0 ? 'Your wallet looks well-optimized' : null)
 
             // ── Section bodies ──
-            const renderExpiring = () => perkInsights.map(insight => {
-              const urgentColor = insight.days <= 7 ? 'var(--loss)' : insight.days <= 14 ? 'var(--ink)' : 'var(--ink-2)'
-              const urgentBg = insight.days <= 7 ? 'var(--loss-wash)' : insight.days <= 14 ? 'var(--sunken)' : 'var(--gain-wash)'
-              const urgentBorder = insight.days <= 7 ? 'var(--hairline)' : insight.days <= 14 ? 'var(--hairline)' : 'var(--hairline)'
-              return (
-                <div key={insight.id} style={{ background: urgentBg, border: `1px solid ${urgentBorder}`, borderLeft: `3px solid ${urgentColor}`, borderRadius: 'var(--radius-container)', padding: '16px 16px 16px 14px', marginBottom: '9px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <CardArt name={insight.card.name} size="sm" />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: '500', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.card.name}</div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{insight.perk.name}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: '28px', fontWeight: '600', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                        {moneyWhole(insight.remaining)}
+            const renderExpiring = () => (
+              <div className="card" style={{ padding: '0 16px' }}>
+                {perkInsights.map((insight, i) => {
+                  // Red only when the credit is about to be lost
+                  const urgent = insight.days <= 7
+                  return (
+                    <div key={insight.id} style={{ display: 'flex', gap: '12px', padding: '14px 0', borderBottom: i < perkInsights.length - 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
+                      <CardArt name={insight.card.name} size="sm" style={{ marginTop: '2px' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--ink)' }}>{insight.perk.name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
+                          {insight.card.name} · resets {formatResetDate(insight.resetDate)}
+                        </div>
+                        {insight.suggestion && (
+                          <div style={{ fontSize: '12px', color: 'var(--ink-2)', marginTop: '6px' }}>
+                            {insight.suggestionFromHistory
+                              ? `You've shopped at ${insight.suggestion} before. This credit covers it.`
+                              : `Use it on ${insight.suggestion}.`}
+                          </div>
+                        )}
                       </div>
-                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '3px' }}>{insight.days}d left</div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: urgent ? 'var(--loss)' : 'var(--ink)', ...NUM }}>{moneyWhole(insight.remaining)}</div>
+                        <div style={{ fontSize: '12px', color: urgent ? 'var(--loss)' : 'var(--muted)', marginTop: '2px' }}>
+                          {insight.days === 0 ? 'last day' : `${insight.days} day${insight.days !== 1 ? 's' : ''} left`}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.55' }}>
-                    {'You have '}
-                    <span style={{ color: 'var(--ink)', fontWeight: '600' }}>{moneyWhole(insight.remaining)}</span>
-                    {' in '}
-                    <span style={{ color: 'var(--ink)', fontWeight: '600' }}>{insight.perk.name}</span>
-                    {' until '}
-                    <span style={{ color: urgentColor, fontWeight: '600' }}>{formatResetDate(insight.resetDate)}</span>
-                    {insight.suggestion && (
-                      <> — based on your history, <span style={{ color: 'var(--ink)', fontWeight: '600' }}>{insight.suggestion}</span> would use this optimally</>
-                    )}
-                    {!insight.suggestion && '.'}
-                  </div>
-                </div>
-              )
-            })
+                  )
+                })}
+              </div>
+            )
 
             const renderMissed = () => (
               <>
@@ -2085,6 +2090,14 @@ export default function Dashboard() {
                       })
                     : retroactiveMissed
                   const filteredTotal = filtered.reduce((s, m) => s + m.missedTotal, 0)
+                  const periodTaps = selectedMonth
+                    ? taps.filter(t => {
+                        const d = new Date(t.tapped_at)
+                        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === selectedMonth
+                      })
+                    : taps
+                  const periodEarned = periodTaps.reduce((s, t) => s + (t.estimated_value || 0), 0)
+                  const meaningful = filteredTotal >= MEANINGFUL_MISSED
                   const [yr, mo] = (selectedMonth || '').split('-')
                   const monthLabel = selectedMonth
                     ? new Date(+yr, +mo - 1).toLocaleString('default', { month: 'long', year: 'numeric' })
@@ -2092,16 +2105,17 @@ export default function Dashboard() {
 
                   return (
                     <>
-                      <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '20px 22px', marginBottom: '14px' }}>
-                        <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '7px' }}>
-                          {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
+                      <div style={{ background: 'var(--sunken)', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-container)', padding: '20px', marginBottom: '14px' }}>
+                        <div style={{ fontSize: '14px', color: 'var(--ink-2)' }}>
+                          Rewards earned {selectedMonth ? `in ${monthLabel}` : 'all time'}
                         </div>
-                        <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--ink)', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                          {money(filteredTotal)}
+                        <div style={{ fontSize: '28px', fontWeight: '600', color: 'var(--gain)', letterSpacing: '-0.02em', lineHeight: 1.2, marginTop: '4px', ...NUM }}>
+                          {money(periodEarned)}
                         </div>
-                        <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginTop: '7px' }}>
-                          on the table across {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
-                          {!selectedMonth && ' in your history'}
+                        <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginTop: '8px', lineHeight: 1.5 }}>
+                          {meaningful
+                            ? <>Using the card Clavis recommended would have earned <strong style={{ color: 'var(--ink)', fontWeight: '600' }}>{money(filteredTotal)}</strong> more on {filtered.length} purchase{filtered.length !== 1 ? 's' : ''}.</>
+                            : <>Your card choices were close to the best in your wallet: {money(filteredTotal)} more was possible across {filtered.length} purchase{filtered.length !== 1 ? 's' : ''}.</>}
                         </div>
                       </div>
 
@@ -2116,7 +2130,7 @@ export default function Dashboard() {
                                   {item.tap.amount > 0 && <span style={{ color: 'var(--muted)', fontWeight: '400' }}> · {money(item.tap.amount)}</span>}
                                 </div>
                                 <div style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                                  <span style={{ color: 'var(--loss)' }}>{item.usedCard.name}</span>
+                                  <span>{item.usedCard.name}</span>
                                   <span style={{ color: 'var(--muted)' }}> → </span>
                                   <span style={{ color: 'var(--ink)' }}>{item.bestCard.name}</span>
                                   {item.tap.category && <span style={{ color: 'var(--muted)' }}> · {item.tap.category}</span>}
@@ -2296,8 +2310,8 @@ export default function Dashboard() {
             }
 
             const sections = [
-              hasExpiring    && { key: 'expiring', score: expiringScore, label: 'Use before they expire', summary: expiringSummary, render: renderExpiring },
-              hasMissed      && { key: 'missed',   score: missedScore,   label: 'Left on the table',     summary: missedSummary,   render: renderMissed },
+              hasExpiring    && { key: 'expiring', score: expiringScore, label: 'Credits to use',        summary: expiringSummary, render: renderExpiring },
+              hasMissed      && { key: 'missed',   score: missedScore,   label: 'Card choices',          summary: missedSummary,   render: renderMissed },
               hasRecsSection && { key: 'recs',     score: recsScore,     label: 'Cards worth adding',    summary: recsSummary,     render: renderRecs },
               hasSpending    && { key: 'spending', score: spendingScore, label: 'Spending breakdown',    summary: spendingSummary, render: renderSpending },
             ].filter(Boolean).sort((a, b) => b.score - a.score)
