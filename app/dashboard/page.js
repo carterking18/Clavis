@@ -2634,75 +2634,69 @@ export default function Dashboard() {
               })
             })()}
 
-            {/* How we rank — collapsible formula */}
-            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--hairline)', paddingTop: '0.75rem' }}>
-              <button
-                onClick={() => setShowFormula(f => !f)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', fontFamily: 'inherit' }}>
-                <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--muted)' }}>How we rank cards</span>
-                <span style={{ fontSize: '12px', color: 'var(--muted)', transition: 'transform 0.2s', display: 'inline-block', transform: showFormula ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
-              </button>
-
-              {showFormula && (
-                <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-                  <div style={{ fontSize: '12px', color: 'var(--ink-2)', lineHeight: '1.6' }}>
-                    Each card gets a score. Highest wins.
+            {/* Why this order: one line that always shows, and the full ladder on demand */}
+            {(() => {
+              const ranked = getRankedCards()
+              if (ranked.length === 0) return null
+              const [first, second] = ranked
+              const cents = r => `${(r.dollarVal * 100).toFixed(1)}¢`
+              // Which rung of the ladder decided #1
+              let step = 3
+              let why = second ? `It earns the most here: ${cents(first)} per $1, vs ${cents(second)} for ${second.card.name}.` : 'It is the only card that applies.'
+              if (first.score >= 9999) { step = 1; why = 'It is a gift card for this store.' }
+              else if (first.merchantPerk) { step = 2; why = `It has an unused ${first.merchantPerk.name} you can use here.` }
+              else if (second && Math.abs(first.dollarVal - second.dollarVal) * 100 < 0.25) {
+                step = Math.abs(first.score - second.score) <= 0.001 ? 5 : 4
+                why = step === 4
+                  ? `It earns about the same as ${second.card.name}, and has more unused credits.`
+                  : `It ties with ${second.card.name}, and has the higher annual fee.`
+              }
+              const rungs = [
+                { n: 1, title: 'Gift card for this store', note: 'Used first. You already paid for it.' },
+                { n: 2, title: 'Unused credit for this store', note: 'Typed "Peloton" with a Peloton credit? That card goes first.' },
+                { n: 3, title: 'Most cents per dollar', note: '4x points at 1.0¢ = 4.0¢. 2% cash back = 2.0¢.' },
+                { n: 4, title: 'Within 0.25¢? More unused credits', note: 'Nudges you toward credits you would otherwise lose.' },
+                { n: 5, title: 'Exact tie? Higher annual fee', note: null },
+              ]
+              return (
+                <div style={{ marginTop: '1rem', borderTop: '1px solid var(--hairline)', paddingTop: '1rem' }}>
+                  <div style={{ fontSize: '14px', color: 'var(--ink)', lineHeight: 1.5 }}>
+                    <strong style={{ fontWeight: '600' }}>Why {first.card.name} is first:</strong> {why}
                   </div>
-
-                  {[
-                    {
-                      label: 'Rewards value',
-                      formula: 'multiplier × cents-per-point × 100',
-                      detail: '3x at 1.0¢ = 3.0. 2% cash back = 2.0. This decides the ranking.',
-                      color: 'var(--ink)',
-                    },
-                    {
-                      label: 'Other unused credits',
-                      formula: 'Tie-breaker only',
-                      detail: 'Only decides between cards within 0.25¢ of each other. Favors more unused credit.',
-                      color: 'var(--ink-2)',
-                    },
-                    {
-                      label: 'Gift card balance',
-                      formula: '+5 if gift card has remaining balance',
-                      detail: 'You already paid for it. Use it first.',
-                      color: 'var(--ink-2)',
-                    },
-                    {
-                      label: 'Credit for this store',
-                      formula: 'Goes first',
-                      detail: 'Typed "Peloton" with an unused Peloton credit? That card goes first.',
-                      color: 'var(--ink-2)',
-                    },
-                    {
-                      label: 'Linked gift card',
-                      formula: 'Always first',
-                      detail: 'A gift card for this store always goes first.',
-                      color: 'var(--ink-2)',
-                    },
-                    {
-                      label: 'Tie-breaker',
-                      formula: 'Higher annual fee ranks first',
-                      detail: 'Exact tie? Higher annual fee is listed first.',
-                      color: 'var(--ink-2)',
-                    },
-                  ].map(row => (
-                    <div key={row.label} style={{ background: 'var(--sunken)', border: '1px solid var(--hairline-soft)', borderRadius: 'var(--radius-control)', padding: '10px 12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: row.color }}>{row.label}</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', fontFamily: 'monospace', color: 'var(--muted)', flexShrink: 0 }}>{row.formula}</span>
-                      </div>
-                      <p style={{ fontSize: '12px', color: 'var(--muted)', margin: 0, lineHeight: '1.55' }}>{row.detail}</p>
-                    </div>
-                  ))}
-
-                  <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '2px 0 0', lineHeight: '1.5' }}>
-                    Point valuations (cents per point) come from our internal table based on typical redemption rates — e.g. Chase UR at 1.8¢, Amex MR at 1.8¢, Capital One at 1.85¢.
-                  </p>
+                  <button className="btn-ghost" onClick={() => setShowFormula(f => !f)} aria-expanded={showFormula}
+                    style={{ marginTop: '6px', marginLeft: '-12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    How Clavis picks
+                    <span aria-hidden="true" style={{ fontSize: '12px', transition: 'transform 0.2s', transform: showFormula ? 'rotate(180deg)' : 'none' }}>▾</span>
+                  </button>
+                  {showFormula && (
+                    <ol style={{ listStyle: 'none', padding: 0, margin: '8px 0 0' }}>
+                      {rungs.map(r => {
+                        const active = r.n === step
+                        return (
+                          <li key={r.n} style={{ display: 'flex', gap: '12px', padding: '10px 0', borderTop: r.n > 1 ? '1px solid var(--hairline-soft)' : 'none' }}>
+                            <span aria-hidden="true" style={{
+                              flexShrink: 0, width: '24px', height: '24px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: '12px', fontWeight: '600',
+                              background: active ? 'var(--ink)' : 'transparent', color: active ? 'var(--surface)' : 'var(--ink-2)',
+                              border: active ? 'none' : '1px solid var(--hairline)',
+                            }}>{r.n}</span>
+                            <span style={{ minWidth: 0 }}>
+                              <span style={{ display: 'block', fontSize: '14px', fontWeight: active ? '600' : '500', color: 'var(--ink)' }}>
+                                {r.title}{active && <span style={{ fontWeight: '500', color: 'var(--ink-2)' }}> · decided this one</span>}
+                              </span>
+                              {r.note && <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{r.note}</span>}
+                            </span>
+                          </li>
+                        )
+                      })}
+                      <li style={{ fontSize: '12px', color: 'var(--muted)', paddingTop: '10px', borderTop: '1px solid var(--hairline-soft)' }}>
+                        Points are valued at 1.0¢ unless you change it in Account → Point values.
+                      </li>
+                    </ol>
+                  )}
                 </div>
-              )}
-            </div>
+              )
+            })()}
 
           </div>
         </div>

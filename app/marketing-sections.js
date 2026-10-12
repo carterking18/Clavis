@@ -191,7 +191,7 @@ export function LiveDemo() {
     }
     const run = async () => {
       let i = DEMO_MERCHANTS.findIndex(m => m.name === merchant?.name) + 1
-      await moveTo(root?.querySelector('.demo-best-value'), 0.5, 0.4, 0)
+      await moveTo(root?.querySelector('.demo-best-value .demo-meta'), 0.55, 1.9, 0)
       while (!cancelled) {
         await wait(2200)
         if (cancelled || document.hidden) continue
@@ -211,7 +211,7 @@ export function LiveDemo() {
         if (cancelled) break
         choose(m)
         await wait(250)
-        await moveTo(root.querySelector('.demo-best-value'), 0.5, 0.4, 700)
+        await moveTo(root.querySelector('.demo-best-value .demo-meta'), 0.55, 1.9, 700)
         i++
       }
     }
