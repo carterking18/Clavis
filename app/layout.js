@@ -18,9 +18,19 @@ const instrumentSerif = Instrument_Serif({
   display: 'swap',
 })
 
+const DESCRIPTION = 'Type where you are paying and Clavis ranks every card in your wallet by what it actually earns there, counting the credits you have not used yet. Free, no bank login.'
+
 export const metadata = {
-  title: 'Clavis',
-  description: 'One card. Every reward.',
+  metadataBase: new URL('https://claviscard.com'),
+  title: { default: 'Clavis: which card to use, wherever you pay', template: '%s · Clavis' },
+  description: DESCRIPTION,
+  openGraph: {
+    title: 'Which card should I use?',
+    description: DESCRIPTION,
+    siteName: 'Clavis',
+    type: 'website',
+  },
+  twitter: { card: 'summary_large_image', title: 'Which card should I use?', description: DESCRIPTION },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
