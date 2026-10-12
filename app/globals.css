@@ -104,6 +104,25 @@ input, select, textarea, button {
   color: var(--ink);
 }
 
+/* Quiet text button for secondary row actions */
+.btn-ghost {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease);
+}
+.btn-ghost:hover { background: var(--sunken); color: var(--ink); }
+.btn-ghost-danger { color: var(--loss); }
+.btn-ghost-danger:hover { background: var(--loss-wash); color: var(--loss); }
+
 /* ── Pill variants (marketing / CTA use) ─────────────── */
 
 .pill-dark {

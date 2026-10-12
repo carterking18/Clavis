@@ -8,7 +8,7 @@ const FAQS = [
   },
   {
     q: 'How does "Tap" work?',
-    a: 'Search for or select the merchant or category you’re spending at, and Clavis recommends the best card from your wallet for that purchase based on its rewards rate and any matching perks you have. Enter the amount to see your estimated reward, then log the purchase ("Tap Clavis") to track it in your history.',
+    a: 'Search for or select the merchant or category you’re spending at, and Clavis recommends the best card from your wallet for that purchase based on its rewards rate and any matching perks you have. Enter the amount to see your estimated reward, then log the purchase ("Log purchase") to track it in your history.',
   },
   {
     q: 'How does Clavis pick the "Recommended" card?',

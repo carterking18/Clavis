@@ -620,9 +620,9 @@ export default function Dashboard() {
       const newBalance = Math.max(0, currentBalance - charge)
       await updateCardBalance(card.id, newBalance)
       await loadCards()
-      confirmMsg = `Tapped ${card.name} · ${money(charge)} charged · ${money(newBalance)} remaining`
+      confirmMsg = `Logged on ${card.name} · ${money(charge)} charged · ${money(newBalance)} remaining`
     } else {
-      confirmMsg = `Tapped as ${card.name} · ${rate ? `${rate} on ${money(selectedAmt)}` : 'card charged'} · Transaction complete`
+      confirmMsg = `Logged on ${card.name} · ${rate ? `${rate} on ${money(selectedAmt)}` : 'no rewards rate'}`
     }
 
     try {
@@ -1371,7 +1371,7 @@ export default function Dashboard() {
 
           {/* 4 ── Tap button */}
           <button className="btn-primary" onClick={simulateTap} disabled={!activeCard} style={{ marginBottom: '8px' }}>
-            ◉ &nbsp;Tap Clavis
+            Log purchase
           </button>
 
           {/* 5 ── Amount input */}
@@ -1604,24 +1604,17 @@ export default function Dashboard() {
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '5px', padding: '0 14px 14px' }}>
-                      <button onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}
-                        style={{ flex: 1, padding: '6px 4px', fontSize: '12px', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', background: 'transparent', cursor: 'pointer', color: 'var(--muted)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; e.currentTarget.style.color = 'var(--ink)' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.color = 'var(--muted)' }}>
-                        + perk
+                    {/* Quiet actions: one row of text buttons, 40px targets */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '4px', padding: '0 8px 8px' }}>
+                      <button className="btn-ghost" onClick={() => { setAddingToCardId(card.id); setShowAddPerk(true) }}>
+                        Add credit
                       </button>
-                      <button onClick={() => openEditCard(card)}
-                        style={{ padding: '6px 9px', fontSize: '12px', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', background: 'transparent', cursor: 'pointer', color: 'var(--muted)', fontWeight: '600', transition: 'border-color 0.15s, color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--muted)'; e.currentTarget.style.color = 'var(--ink)' }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.color = 'var(--muted)' }}>
-                        edit
+                      <button className="btn-ghost" onClick={() => openEditCard(card)}>
+                        Edit
                       </button>
-                      <button onClick={() => deleteCard(card.id).then(loadCards)}
-                        style={{ padding: '6px 9px', fontSize: '12px', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', background: 'transparent', cursor: 'pointer', color: 'var(--loss)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--loss)'}
-                        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
-                        ×
+                      <button className="btn-ghost btn-ghost-danger" aria-label={`Remove ${card.name}`}
+                        onClick={() => { if (window.confirm(`Remove ${card.name}? Its credits are removed too.`)) deleteCard(card.id).then(loadCards) }}>
+                        Remove
                       </button>
                     </div>
                   </div>
@@ -1902,35 +1895,6 @@ export default function Dashboard() {
             ) : null
           })()}
 
-          <div style={{ marginBottom: '1.25rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '14px' }}>
-            <button className="btn-primary" onClick={sendEmail} disabled={emailSending}>
-              {emailSending ? 'Sending...' : 'Email me my perk summary'}
-            </button>
-            <button
-              onClick={async () => {
-                const next = !weeklyDigest
-                setWeeklyDigest(next); setDigestSaving(true)
-                try { await setWeeklyDigestPref(next) } catch (e) { console.error(e); setWeeklyDigest(!next) }
-                setDigestSaving(false)
-              }}
-              disabled={digestSaving}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '6px 0', opacity: digestSaving ? 0.6 : 1 }}
-            >
-              <span style={{
-                position: 'relative', width: '34px', height: '20px', borderRadius: 'var(--radius-container)', flexShrink: 0,
-                background: weeklyDigest ? 'var(--ink)' : 'var(--hairline)', transition: 'background 0.15s',
-              }}>
-                <span style={{
-                  position: 'absolute', top: '2px', left: weeklyDigest ? '16px' : '2px', width: '16px', height: '16px',
-                  borderRadius: '50%', background: 'var(--surface)', transition: 'left 0.15s', boxShadow: '0 1px 2px var(--hairline)',
-                }} />
-              </span>
-              <span style={{ fontSize: '12px', color: 'var(--ink-2)' }}>
-                Weekly summary emails {weeklyDigest ? 'on' : 'off'}
-              </span>
-            </button>
-          </div>
-          {emailMsg && <div className="success">{emailMsg}</div>}
 
           {cards.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--muted)', fontSize: '14px' }}>No cards yet. Add cards in Wallet to track perks.</div>
@@ -1997,18 +1961,13 @@ export default function Dashboard() {
                           <div style={{ fontSize: '14px', fontWeight: '600', color: accent, marginBottom: '6px' }}>
                             {`${moneyWhole(remaining)} left`}
                           </div>
-                          <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
-                            <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
-                              style={{ fontSize: '12px', padding: '3px 8px', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', background: 'transparent', cursor: 'pointer', color: 'var(--muted)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--muted)'}
-                              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
-                              mark used
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end', marginRight: '-12px' }}>
+                            <button className="btn-ghost" onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}>
+                              Mark used
                             </button>
-                            <button onClick={() => deletePerk(perk.id).then(loadCards)}
-                              style={{ fontSize: '12px', padding: '3px 8px', border: '1px solid var(--hairline)', borderRadius: 'var(--radius-control)', background: 'transparent', cursor: 'pointer', color: 'var(--loss)', fontWeight: '600', transition: 'border-color 0.15s', fontFamily: 'inherit' }}
-                              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--loss)'}
-                              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--hairline)'}>
-                              remove
+                            <button className="btn-ghost btn-ghost-danger" aria-label={`Remove ${perk.name}`}
+                              onClick={() => { if (window.confirm(`Remove ${perk.name}?`)) deletePerk(perk.id).then(loadCards) }}>
+                              Remove
                             </button>
                           </div>
                         </div>
@@ -2024,6 +1983,36 @@ export default function Dashboard() {
               </div>
             )
           })}
+          {/* Email controls sit below the credits they summarize */}
+          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--hairline-soft)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <button className="btn-secondary" onClick={sendEmail} disabled={emailSending} style={{ width: 'auto' }}>
+              {emailSending ? 'Sending...' : 'Email me my perk summary'}
+            </button>
+            <button
+              onClick={async () => {
+                const next = !weeklyDigest
+                setWeeklyDigest(next); setDigestSaving(true)
+                try { await setWeeklyDigestPref(next) } catch (e) { console.error(e); setWeeklyDigest(!next) }
+                setDigestSaving(false)
+              }}
+              disabled={digestSaving}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '6px 0', opacity: digestSaving ? 0.6 : 1 }}
+            >
+              <span style={{
+                position: 'relative', width: '34px', height: '20px', borderRadius: 'var(--radius-container)', flexShrink: 0,
+                background: weeklyDigest ? 'var(--ink)' : 'var(--hairline)', transition: 'background 0.15s',
+              }}>
+                <span style={{
+                  position: 'absolute', top: '2px', left: weeklyDigest ? '16px' : '2px', width: '16px', height: '16px',
+                  borderRadius: '50%', background: 'var(--surface)', transition: 'left 0.15s', boxShadow: '0 1px 2px var(--hairline)',
+                }} />
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--ink-2)' }}>
+                Weekly summary emails {weeklyDigest ? 'on' : 'off'}
+              </span>
+            </button>
+          </div>
+          {emailMsg && <div className="success">{emailMsg}</div>}
         </div>
       )}
 
