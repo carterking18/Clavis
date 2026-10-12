@@ -10,7 +10,7 @@ export default function GlobalError({ error, reset }) {
 
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', background: '#FAFAFA', color: '#111827' }}>
+      <body style={{ margin: 0, fontFamily: "'Avenir Next', 'Avenir', -apple-system, 'Segoe UI', sans-serif", background: '#FAFAFA', color: '#111827' }}>
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', textAlign: 'center' }}>
           <div style={{ width: '100%', maxWidth: '420px' }}>
             <div style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '0.08em', color: '#9CA3AF', marginBottom: '24px' }}>CLAVIS</div>

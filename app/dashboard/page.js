@@ -152,7 +152,7 @@ function TourOverlay({ slides, step, targetRefs, onNext, onBack, onFinish, onClo
         <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink)', marginBottom: '6px' }}>
           {slide.tab} tab · {step + 1}/{slides.length}
         </div>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: '400', color: 'var(--ink)', marginBottom: '8px' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '8px' }}>
           {slide.icon} {slide.title}
         </div>
         <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '16px' }}>

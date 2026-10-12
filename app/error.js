@@ -25,7 +25,7 @@ export default function Error({ error, reset }) {
           </svg>
         </div>
 
-        <h1 style={{ fontFamily: 'var(--font-instrument, Georgia, serif)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '10px' }}>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '10px' }}>
           Something went <span style={{ background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>sideways.</span>
         </h1>
         <p style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '28px' }}>

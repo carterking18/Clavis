@@ -212,7 +212,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
             <div style={{ fontSize: '12px', fontWeight: '500', color: 'var(--ink)', marginBottom: '6px' }}>
               {TOUR_SLIDES[tourIndex].tab} tab
             </div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '10px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '10px' }}>
               {TOUR_SLIDES[tourIndex].title}
             </div>
             <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '28px', minHeight: '78px' }}>
@@ -272,7 +272,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
               </svg>
             </div>
 
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '8px' }}>
               Welcome to Clavis
             </div>
             <div style={{ fontSize: '14px', color: 'var(--ink-2)', lineHeight: '1.6', marginBottom: '28px' }}>
@@ -308,7 +308,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           <div>
             <StepIndicator current={1} total={3} />
 
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '6px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '6px' }}>
               Add your main card
             </div>
             <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '22px', lineHeight: '1.5' }}>
@@ -385,7 +385,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           <div>
             <StepIndicator current={2} total={4} />
 
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '4px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '4px' }}>
               Known perks found
             </div>
             <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '1.25rem', lineHeight: '1.5' }}>
@@ -431,7 +431,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
             <StepIndicator current={totalSteps - 1} total={totalSteps} />
 
             <div style={{ fontSize: '28px', marginBottom: '16px' }}>🎉</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', color: 'var(--ink)', marginBottom: '8px' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', color: 'var(--ink)', marginBottom: '8px' }}>
               You&apos;re all set
             </div>
             <div style={{ fontSize: '14px', color: 'var(--ink-2)', marginBottom: '28px', lineHeight: '1.6' }}>

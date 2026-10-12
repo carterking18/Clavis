@@ -1,20 +1,16 @@
 import './tokens.css'
 import './globals.css'
 import { SWRegister } from './sw-register'
-import { Geist, Instrument_Serif } from 'next/font/google'
+import { Figtree } from 'next/font/google'
 
-const geist = Geist({
+// Clavis is set in Avenir Next. It ships with macOS and iOS but can't be
+// self-hosted without a Monotype license, so other devices get Figtree, the
+// closest free match in width and weight. See --font-sans in tokens.css.
+const figtree = Figtree({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
-  variable: '--font-geist',
-  display: 'swap',
-})
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ['latin'],
-  weight: ['400'],
   style: ['normal', 'italic'],
-  variable: '--font-instrument',
+  variable: '--font-figtree',
   display: 'swap',
 })
 
@@ -45,7 +41,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${geist.variable} ${instrumentSerif.variable}`}>
+    <html lang="en" className={figtree.variable}>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/logo.svg" type="image/svg+xml" />

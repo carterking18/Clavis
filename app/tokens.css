@@ -26,9 +26,10 @@
 
   --focus-ring:    0 0 0 2px var(--paper), 0 0 0 4px var(--ink);
 
-  /* ── Type: Instrument Serif for brand headlines, Geist for everything else ── */
-  --font-sans:     var(--font-geist), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display:  var(--font-instrument), Georgia, serif;
+  /* ── Type: one family everywhere. Avenir Next where installed (Apple
+     devices), Figtree elsewhere (loaded in app/layout.js) ── */
+  --font-sans:     'Avenir Next', 'Avenir', var(--font-figtree), -apple-system, 'Segoe UI', sans-serif;
+  --font-display:  var(--font-sans);
 
   /* App scale: 4 sizes, 3 weights */
   --text-xs:  12px;   /* labels, meta, captions */

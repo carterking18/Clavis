@@ -78,7 +78,7 @@ export default function Auth() {
             <span style={{ fontSize: '14px', fontWeight: '600', letterSpacing: '0.08em', color: 'var(--muted)' }}>CLAVIS</span>
           </a>
 
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '400', lineHeight: '1.1', color: 'var(--ink)', marginBottom: '12px', whiteSpace: 'nowrap' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '600', letterSpacing: '-0.02em', lineHeight: '1.1', color: 'var(--ink)', marginBottom: '12px', whiteSpace: 'nowrap' }}>
             {heading[mode]}
           </h1>
           <p style={{ fontSize: '14px', color: 'var(--ink-2)', fontWeight: '400', lineHeight: '1.5' }}>
