@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring, savePointValueOverrides } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring, savePointValueOverrides, updateCardOpenedOn } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers, searchCardCatalog } from '../../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt, daysUntilReset, isResetDue } from '../../lib/cardPerks'
@@ -222,6 +222,8 @@ export default function Dashboard() {
   const [editingCard, setEditingCard] = useState(null)
   const [editMultipliers, setEditMultipliers] = useState({})
   const [editAnnualFee, setEditAnnualFee] = useState('')
+  const [editOpenedOn, setEditOpenedOn] = useState('')
+  const [editError, setEditError] = useState('')
   const [showCorrectionForm, setShowCorrectionForm] = useState(false)
   const [correctionField, setCorrectionField] = useState('Annual fee')
   const [correctionValue, setCorrectionValue] = useState('')
@@ -287,7 +289,7 @@ export default function Dashboard() {
   const cardFetchTimer = useRef(null)
 
   const [newPerk, setNewPerk] = useState({
-    name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: ''
+    name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: '', resets_on: 'calendar'
   })
 
   const loadCards = useCallback(async () => {
@@ -301,7 +303,7 @@ export default function Dashboard() {
       for (const card of data) {
         for (const perk of card.perks || []) {
           if (isResetDue(perk.resets_at)) {
-            const update = { used_amount: 0, resets_at: calculateResetsAt(perk.period) }
+            const update = { used_amount: 0, resets_at: calculateResetsAt(perk.period, new Date(), { basis: perk.resets_on, openedOn: card.opened_on }) }
             await updatePerk(perk.id, update)
             Object.assign(perk, update)
             rolled = true
@@ -656,7 +658,7 @@ export default function Dashboard() {
     try {
       for (const i of selectedPerkIndices) {
         const p = suggestedPerks[i]
-        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period), card_id: pendingCardId })
+        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period), card_id: pendingCardId, ...(p.resetsOn === 'anniversary' ? { resets_on: 'anniversary' } : {}) })
       }
       await loadCards()
     } catch (e) { console.error(e) }
@@ -666,9 +668,19 @@ export default function Dashboard() {
   async function handleAddPerk() {
     if (!newPerk.name || !newPerk.total_amount || !addingToCardId) return
     try {
-      await addPerk({ ...newPerk, card_id: addingToCardId, total_amount: parseFloat(newPerk.total_amount), used_amount: parseFloat(newPerk.used_amount) || 0 })
+      const card = cards.find(c => c.id === addingToCardId)
+      const anniversary = newPerk.period === 'annual' && newPerk.resets_on === 'anniversary'
+      const { resets_on: _basis, ...fields } = newPerk
+      await addPerk({
+        ...fields,
+        card_id: addingToCardId,
+        total_amount: parseFloat(newPerk.total_amount),
+        used_amount: parseFloat(newPerk.used_amount) || 0,
+        resets_at: newPerk.resets_at || calculateResetsAt(newPerk.period, new Date(), { basis: anniversary ? 'anniversary' : 'calendar', openedOn: card?.opened_on }),
+        ...(anniversary ? { resets_on: 'anniversary' } : {}),
+      })
       await loadCards(); setShowAddPerk(false)
-      setNewPerk({ name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: '' })
+      setNewPerk({ name: '', total_amount: '', used_amount: '0', period: 'monthly', resets_at: '', resets_on: 'calendar' })
     } catch (e) { console.error(e) }
   }
 
@@ -677,6 +689,8 @@ export default function Dashboard() {
     CATEGORIES.forEach(cat => { const m = card.multipliers?.find(m => m.category === cat); mults[cat] = m ? String(m.multiplier) : '' })
     setEditMultipliers(mults)
     setEditAnnualFee(card.annual_fee != null ? String(card.annual_fee) : '')
+    setEditOpenedOn(card.opened_on ? String(card.opened_on).slice(0, 7) : '')
+    setEditError('')
     setShowCorrectionForm(false)
     setCorrectionField('Annual fee')
     setCorrectionValue('')
@@ -759,9 +773,18 @@ export default function Dashboard() {
       await updateCardMultipliers(editingCard.id, editMultipliers)
       const fee = parseFloat(editAnnualFee)
       if (!isNaN(fee) && fee !== (editingCard.annual_fee || 0)) await updateCardFee(editingCard.id, fee)
+      const previousOpened = editingCard.opened_on ? String(editingCard.opened_on).slice(0, 7) : ''
+      if (editOpenedOn !== previousOpened) {
+        const openedOn = editOpenedOn ? `${editOpenedOn}-01` : null
+        await updateCardOpenedOn(editingCard.id, openedOn)
+        // Move anniversary credits to the new card year
+        await Promise.all((editingCard.perks || [])
+          .filter(p => p.period === 'annual' && p.resets_on === 'anniversary')
+          .map(p => updatePerk(p.id, { resets_at: calculateResetsAt('annual', new Date(), { basis: 'anniversary', openedOn }) })))
+      }
       await loadCards()
       setEditingCard(null)
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setEditError(e.message || 'Could not save. Try again.') }
   }
 
   // Cards whose annual fee no longer matches the latest known rate in our
@@ -842,7 +865,7 @@ export default function Dashboard() {
     try {
       // Add brand-new perks
       for (const p of newPerks) {
-        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period), card_id: card.id })
+        await addPerk({ name: p.name, total_amount: p.total_amount, used_amount: 0, period: p.period, resets_at: calculateResetsAt(p.period, new Date(), { basis: p.resetsOn, openedOn: card.opened_on }), card_id: card.id, ...(p.resetsOn === 'anniversary' ? { resets_on: 'anniversary' } : {}) })
       }
       // Update total_amount on changed perks (preserve used_amount)
       for (const cp of changedPerks) {
@@ -1774,10 +1797,20 @@ export default function Dashboard() {
                     <option value="annual">Annual</option>
                   </select>
                 </div>
-                <div>
-                  <label className="label">Expiry / reset date</label>
-                  <input className="input" type="date" value={newPerk.resets_at} onChange={e => setNewPerk({ ...newPerk, resets_at: e.target.value })} />
-                </div>
+                {newPerk.period === 'annual' ? (
+                  <div>
+                    <label className="label">Resets on</label>
+                    <select className="input" value={newPerk.resets_on} onChange={e => setNewPerk({ ...newPerk, resets_on: e.target.value })}>
+                      <option value="calendar">Dec 31 each year</option>
+                      <option value="anniversary">Card anniversary</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="label">Reset date (optional)</label>
+                    <input className="input" type="date" value={newPerk.resets_at} onChange={e => setNewPerk({ ...newPerk, resets_at: e.target.value })} />
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button className="btn-primary" onClick={handleAddPerk}>Save perk</button>
@@ -1874,7 +1907,7 @@ export default function Dashboard() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '4px' }}>{perk.name}</div>
                           <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '9px' }}>
-                            {perk.period}
+                            {perk.period === 'annual' && perk.resets_on === 'anniversary' ? (card.opened_on ? 'card year' : 'card year · add the open date in Edit') : perk.period}
                             {daysLeft !== null ? ` · ${daysLeft === 0 ? 'last day' : isExpiring ? `${daysLeft}d left` : `resets in ${daysLeft}d`}` : ''}
                           </div>
                           <div style={{ height: '4px', background: 'var(--sunken)', borderRadius: '2px' }}>
@@ -2789,6 +2822,11 @@ export default function Dashboard() {
               ))}
             </div>
             <div style={{ marginBottom: '1.25rem' }}>
+              <label className="label" htmlFor="edit-opened">Card opened</label>
+              <input id="edit-opened" className="input" type="month" value={editOpenedOn} onChange={e => setEditOpenedOn(e.target.value)} />
+              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>Anniversary credits reset in this month.</div>
+            </div>
+            <div style={{ marginBottom: '1.25rem' }}>
               <label className="label">Annual fee ($)</label>
               <input className="input" type="number" placeholder="0" value={editAnnualFee} onChange={e => setEditAnnualFee(e.target.value)} />
               {(() => {
@@ -2841,6 +2879,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+            {editError && <div className="error">{editError}</div>}
             <div style={{ display: 'flex', gap: '8px' }}>
               <button className="btn-primary" onClick={handleSaveEdit}>Save changes</button>
               <button className="btn-secondary" onClick={() => setEditingCard(null)}>Cancel</button>

@@ -170,6 +170,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
           period: p.period,
           resets_at: calculateResetsAt(p.period),
           card_id: pendingCardId,
+          ...(p.resetsOn === 'anniversary' ? { resets_on: 'anniversary' } : {}),
         })
       }
     } catch (e) { console.error(e) }
