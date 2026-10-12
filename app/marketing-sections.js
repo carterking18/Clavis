@@ -147,16 +147,25 @@ export function LiveDemo() {
   const chooseCategory = c => { setCategory(c); setMerchant(null); setQuery('') }
 
   // Self-playing demo: types each merchant and lets the ranking update, on a
-  // loop, while the demo is on screen. Any interaction hands control to the
-  // visitor for good; the Pause button stops it too. Off for reduced motion.
+  // loop, while the demo is on screen. Modes:
+  //   playing      the demo drives itself
+  //   interacting  the visitor clicked or typed in it; it resumes after they
+  //                click outside, or after RESUME_IDLE_MS with no interaction
+  //                while they aren't hovering it or typing in it
+  //   paused       the visitor pressed Pause; only Play resumes it
+  //   off          prefers-reduced-motion
+  const RESUME_IDLE_MS = 15000
+  const RESUME_AFTER_OUTSIDE_MS = 1500
   const rootRef = useRef(null)
-  const [autoplay, setAutoplay] = useState(false)
+  const [mode, setMode] = useState('off')
+  const autoplay = mode === 'playing'
   const [visible, setVisible] = useState(false)
-  const userTookOver = useRef(false)
+  const lastInteraction = useRef(0)
+  const hovering = useRef(false)
   const [cursor, setCursor] = useState({ show: false, x: 0, y: 0, ms: 0, down: false })
 
   useEffect(() => {
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setAutoplay(true)
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) setMode('playing')
     const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.4 })
     if (rootRef.current) io.observe(rootRef.current)
     return () => io.disconnect()
@@ -212,12 +221,33 @@ export function LiveDemo() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoplay, visible])
 
+  // Visitor interacts: hand over control, and remember when
   const takeOver = () => {
-    if (userTookOver.current) return
-    userTookOver.current = true
-    setAutoplay(false)
-    setCursor(c => ({ ...c, show: false }))
+    lastInteraction.current = Date.now()
+    if (mode === 'playing') {
+      setMode('interacting')
+      setCursor(c => ({ ...c, show: false }))
+    }
   }
+
+  useEffect(() => {
+    if (mode !== 'interacting') return
+    let resumeTimer
+    // Clicking or tapping anywhere outside the demo hands it back
+    const onOutside = e => {
+      if (rootRef.current && !rootRef.current.contains(e.target)) {
+        clearTimeout(resumeTimer)
+        resumeTimer = setTimeout(() => setMode(m => (m === 'interacting' ? 'playing' : m)), RESUME_AFTER_OUTSIDE_MS)
+      }
+    }
+    // Or a quiet spell, as long as they aren't reading or typing in it
+    const idle = setInterval(() => {
+      const typing = rootRef.current?.contains(document.activeElement)
+      if (!hovering.current && !typing && Date.now() - lastInteraction.current > RESUME_IDLE_MS) setMode('playing')
+    }, 1000)
+    document.addEventListener('pointerdown', onOutside)
+    return () => { document.removeEventListener('pointerdown', onOutside); clearInterval(idle); clearTimeout(resumeTimer) }
+  }, [mode])
 
   const spend = Math.max(0, Number(amount) || 0)
   const ranked = rankCards(wallet, { category, merchant: merchant?.name || '', now: asOf })
@@ -227,7 +257,8 @@ export function LiveDemo() {
   const rowRef = useReorder([best, ...others].map(r => r.card.id))
 
   return (
-    <div className="demo" ref={rootRef} onPointerDown={takeOver} onKeyDown={takeOver}>
+    <div className="demo" ref={rootRef} onPointerDown={takeOver} onKeyDown={takeOver}
+      onPointerEnter={() => { hovering.current = true }} onPointerLeave={() => { hovering.current = false; lastInteraction.current = Date.now() }}>
       {autoplay && cursor.show && (
         <span className={`demo-cursor${cursor.down ? ' is-down' : ''}`} aria-hidden="true"
           style={{ transform: `translate(${cursor.x - 5}px, ${cursor.y - 3}px)`, transitionDuration: `${cursor.ms}ms` }}>
@@ -265,9 +296,14 @@ export function LiveDemo() {
         {DEMO_MERCHANTS.map(m => (
           <button key={m.name} className={`demo-chip${merchant?.name === m.name ? ' is-active' : ''}`} onClick={() => choose(m)}>{m.name}</button>
         ))}
-        {autoplay && (
-          <button className="demo-pause" onClick={e => { e.stopPropagation(); takeOver() }} aria-label="Pause the demo">
+        {mode === 'playing' && (
+          <button className="demo-pause" onPointerDown={e => e.stopPropagation()} onClick={() => { setMode('paused'); setCursor(c => ({ ...c, show: false })) }} aria-label="Pause the demo">
             <span aria-hidden="true" className="demo-pause-dot"/> Demo playing · Pause
+          </button>
+        )}
+        {(mode === 'interacting' || mode === 'paused') && (
+          <button className="demo-pause" onPointerDown={e => e.stopPropagation()} onClick={() => setMode('playing')} aria-label="Resume the demo">
+            {mode === 'interacting' ? 'Your turn · Resume demo' : 'Paused · Play demo'}
           </button>
         )}
       </div>
