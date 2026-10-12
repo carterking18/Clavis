@@ -2,12 +2,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring } from '../../lib/cards'
+import { getUserCards, addCard, deleteCard, updateCardBalance, updateCardFee, addMultipliers, updateCardMultipliers, addPerk, updatePerk, deletePerk, submitCardCorrection, getWeeklyDigestPref, setWeeklyDigestPref, getRecurring, saveRecurring, savePointValueOverrides } from '../../lib/cards'
 import { getCardDesign } from '../../lib/cardImages'
 import { getSuggestedMultipliers, searchCardCatalog } from '../../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt, daysUntilReset, isResetDue } from '../../lib/cardPerks'
 import { searchMerchants } from '../../lib/merchants'
-import { dollarValuePerDollar, formatValuePerDollar, getPointValuation } from '../../lib/pointValues'
+import { dollarValuePerDollar, formatValuePerDollar, getPointValuation, setPointValueOverrides, getPointValueOverrides, valuationNote, isCashCard } from '../../lib/pointValues'
 import { money, moneyWhole, centsPerDollar, NUM } from '../../lib/format'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
@@ -231,6 +231,10 @@ export default function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [weeklyDigest, setWeeklyDigest] = useState(true)
+  const [showPointValues, setShowPointValues] = useState(false)
+  const [pointDraft, setPointDraft] = useState({})
+  const [pointSaveError, setPointSaveError] = useState('')
+  const [pointValuesVersion, setPointValuesVersion] = useState(0)
   const [digestSaving, setDigestSaving] = useState(false)
   const [emailMsg, setEmailMsg] = useState('')
   const [taps, setTaps] = useState([])
@@ -337,6 +341,8 @@ export default function Dashboard() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/auth'); return }
       setUser(session.user)
+      setPointValueOverrides(session.user.user_metadata?.point_values)
+      setPointValuesVersion(v => v + 1)
       getWeeklyDigestPref().then(setWeeklyDigest).catch(() => {})
       getRecurring().then(setRecurring).catch(() => {})
       // Auto-launch tour for first-time visitors or if ?tour=1 is in the URL
@@ -377,10 +383,10 @@ export default function Dashboard() {
   useEffect(() => () => { if (cardFetchTimer.current) clearTimeout(cardFetchTimer.current) }, [])
 
   // Insights computed from current wallet + history
-  const perkInsights = useMemo(() => generateInsights(cards, taps), [cards, taps])
-  const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards])
+  const perkInsights = useMemo(() => generateInsights(cards, taps), [cards, taps, pointValuesVersion])
+  const retroactiveMissed = useMemo(() => analyzeRetroactiveTaps(taps, cards), [taps, cards, pointValuesVersion])
   const totalMissed = useMemo(() => retroactiveMissed.reduce((s, m) => s + m.missedTotal, 0), [retroactiveMissed])
-  const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps])
+  const cardRecs = useMemo(() => generateRecommendations(cards, taps), [cards, taps, pointValuesVersion])
 
   // Monthly missed breakdown
   const missedByMonth = useMemo(() => {
@@ -550,7 +556,7 @@ export default function Dashboard() {
         return (b.card.annual_fee || 0) - (a.card.annual_fee || 0)
       })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cards, selectedCat, detectedMerchant, merchantQuery])
+  }, [cards, selectedCat, detectedMerchant, merchantQuery, pointValuesVersion])
 
   function getRankedCards() { return rankedCards }
   function getBestCard() { return rankedCards[0]?.card || null }
@@ -1083,6 +1089,18 @@ export default function Dashboard() {
                         {user.email}
                       </div>
                     )}
+                    <button onClick={() => {
+                        setShowAccountMenu(false)
+                        const current = getPointValueOverrides()
+                        setPointDraft(Object.fromEntries(Object.entries(current).map(([k, v]) => [k, String(v)])))
+                        setPointSaveError('')
+                        setShowPointValues(true)
+                      }}
+                      style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '600', color: 'var(--text-secondary)', padding: '9px 10px', borderRadius: '6px' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      Point values
+                    </button>
                     <button onClick={() => { setShowAccountMenu(false); supabase.auth.signOut().then(() => router.push('/auth')) }}
                       style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12.5px', fontWeight: '600', color: 'var(--text-secondary)', padding: '9px 10px', borderRadius: '6px' }}
                       onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
@@ -1317,7 +1335,10 @@ export default function Dashboard() {
                             {mult > 0 ? formatRate(activeCard, mult) : isCashBack(activeCard) ? '1%' : '1×'}
                           </span>
                           {valuePer && mult > 0 && (
-                            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>{valuePer}</span>
+                            <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '500' }}>
+                              {valuePer}
+                              {valuationNote(activeCard) && <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}> · {valuationNote(activeCard)}</span>}
+                            </span>
                           )}
                         </div>
                         {estimatedOnAmt > 0 && (
@@ -2455,6 +2476,61 @@ export default function Dashboard() {
       </div>
 
       {/* ── MODALS ────────────────────────────────────── */}
+
+      {showPointValues && (() => {
+        const pointCards = cards.filter(c => !isCashCard(c) && c.type !== 'gift' && c.type !== 'debit')
+        const save = async () => {
+          const next = {}
+          for (const [id, raw] of Object.entries(pointDraft)) {
+            const v = parseFloat(raw)
+            if (raw !== '' && !(v > 0 && v <= 10)) { setPointSaveError('Enter a value between 0.1¢ and 10¢, or leave it blank for the default.'); return }
+            if (v > 0) next[id] = Math.round(v * 100) / 100
+          }
+          try {
+            setPointValueOverrides(await savePointValueOverrides(next))
+            setPointValuesVersion(v => v + 1)
+            setShowPointValues(false)
+          } catch (e) {
+            setPointSaveError(e.message || 'Could not save. Try again.')
+          }
+        }
+        return (
+          <div onClick={() => setShowPointValues(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+            <div role="dialog" aria-labelledby="pv-title" onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '1.5rem', width: '100%', maxWidth: '440px', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div id="pv-title" style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '6px' }}>Point values</div>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '16px' }}>
+                Clavis turns points into dollars using a conservative value per point, close to what you get as a statement credit. If you usually redeem through a travel portal or transfer partners, set your own value. It changes every recommendation and total.
+              </div>
+              {pointCards.length === 0 && <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>None of your cards earn points.</div>}
+              {pointCards.map(c => {
+                const def = getPointValuation(c.name).centsPerPoint
+                return (
+                  <label key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>{c.name}</span>
+                      <span style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)' }}>Default {def.toFixed(2).replace(/0$/, '')}¢ per point</span>
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                      <input className="input" type="number" inputMode="decimal" step="0.05" min="0.1" max="10"
+                        aria-label={`Cents per point for ${c.name}`}
+                        placeholder={def.toFixed(2).replace(/0$/, '')}
+                        value={pointDraft[c.id] ?? ''}
+                        onChange={e => setPointDraft(d => ({ ...d, [c.id]: e.target.value }))}
+                        style={{ width: '84px', textAlign: 'right' }} />
+                      <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>¢</span>
+                    </span>
+                  </label>
+                )
+              })}
+              {pointSaveError && <div style={{ fontSize: '12px', color: 'var(--red)', marginTop: '12px' }}>{pointSaveError}</div>}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                <button className="btn-secondary" onClick={() => setPointDraft({})} style={{ width: 'auto' }}>Reset to defaults</button>
+                <button className="btn-primary" onClick={save} style={{ flex: 1 }}>Save</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {showDeleteAccount && (
         <div onClick={() => !deletingAccount && setShowDeleteAccount(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
