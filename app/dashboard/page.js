@@ -1438,17 +1438,22 @@ export default function Dashboard() {
             const totalFees = cards.reduce((s, c) => s + (c.annual_fee || 0), 0)
             const totalPerksVal = cards.flatMap(c => c.perks || []).reduce((s, p) => s + (p.used_amount || 0), 0)
             const totalTapVal = taps.reduce((s, t) => s + (t.estimated_value || 0), 0)
-            const netValue = totalPerksVal + totalTapVal - totalFees
+            // Fees are a cost you chose, not a loss: show them next to what you've
+            // captured and what's still available, instead of one net figure that
+            // starts every new user deep in the red
+            const capturedValue = totalPerksVal + totalTapVal
+            const unusedCredits = cards.flatMap(c => c.perks || []).reduce((s, p) => s + Math.max(0, (p.total_amount || 0) - (p.used_amount || 0)), 0)
             return (
               <div data-reveal style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
                 {[
-                  { label: 'Cards', value: cards.length, color: 'var(--text-primary)' },
-                  { label: 'Annual fees', value: moneyWhole(totalFees), color: totalFees > 0 ? 'var(--red)' : 'var(--text-faintest)' },
-                  { label: 'Net value', value: moneyWhole(netValue, { sign: true }), color: netValue >= 0 ? 'var(--green)' : 'var(--red)' },
+                  { label: 'Annual fees', sub: `${cards.length} card${cards.length !== 1 ? 's' : ''}`, value: moneyWhole(totalFees), color: 'var(--text-primary)' },
+                  { label: 'Captured so far', sub: 'credits used + rewards', value: moneyWhole(capturedValue), color: capturedValue > 0 ? 'var(--green)' : 'var(--text-primary)' },
+                  { label: 'Credits still available', sub: 'resets on schedule', value: moneyWhole(unusedCredits), color: 'var(--text-primary)' },
                 ].map(m => (
                   <div key={m.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '18px 12px', textAlign: 'center' }}>
                     <div style={{ fontSize: '24px', fontWeight: '700', color: m.color, marginBottom: '5px' }}>{m.value}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>{m.label}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '500' }}>{m.label}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{m.sub}</div>
                   </div>
                 ))}
               </div>
@@ -1568,8 +1573,8 @@ export default function Dashboard() {
                           <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--red)', ...NUM }}>{money(-fee)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
-                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>Net value</span>
-                          <span style={{ fontSize: '14px', fontWeight: '700', color: totalValue >= fee ? 'var(--green)' : 'var(--gold)', letterSpacing: '-0.02em' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>Net so far</span>
+                          <span style={{ fontSize: '14px', fontWeight: '700', color: totalValue >= fee ? 'var(--green)' : 'var(--text-primary)', letterSpacing: '-0.02em', ...NUM }}>
                             {money(totalValue - fee, { sign: true })}
                           </span>
                         </div>
