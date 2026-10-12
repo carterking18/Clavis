@@ -8,6 +8,7 @@ import { getSuggestedMultipliers, searchCardCatalog } from '../../lib/cardReward
 import { getSuggestedPerks, calculateResetsAt, daysUntilReset, isResetDue } from '../../lib/cardPerks'
 import { searchMerchants } from '../../lib/merchants'
 import { dollarValuePerDollar, formatValuePerDollar, getPointValuation } from '../../lib/pointValues'
+import { money, moneyWhole, centsPerDollar, NUM } from '../../lib/format'
 import { logTap, getTaps, deleteTap } from '../../lib/taps'
 import { generateInsights, analyzeRetroactiveTaps } from '../../lib/insights'
 import { generateRecommendations } from '../../lib/recommendations'
@@ -522,7 +523,7 @@ export default function Dashboard() {
     const reasons = []
     if (merchantPerkMatch) {
       const remaining = merchantPerkMatch.total_amount - merchantPerkMatch.used_amount
-      reasons.push(`Use here — captures your $${remaining % 1 === 0 ? remaining.toFixed(0) : remaining.toFixed(2)} ${merchantPerkMatch.name.replace(/\s*credit\s*$/i, '')} credit`)
+      reasons.push(`Use here — captures your ${remaining % 1 === 0 ? moneyWhole(remaining) : money(remaining)} ${merchantPerkMatch.name.replace(/\s*credit\s*$/i, '')} credit`)
     }
     if (mult > 0) {
       const fvpd = formatValuePerDollar(card, mult)
@@ -530,7 +531,7 @@ export default function Dashboard() {
     }
     if (expiringPerks.length > 0) reasons.push(`${expiringPerks.length} perk${expiringPerks.length > 1 ? 's' : ''} expiring soon`)
     else if (activePerks.length > 0 && !merchantPerkMatch) reasons.push(`${activePerks.length} active perk${activePerks.length > 1 ? 's' : ''}`)
-    if (isGiftWithBalance) reasons.push(`$${card.balance} gift balance`)
+    if (isGiftWithBalance) reasons.push(`${money(card.balance)} gift balance`)
     if (giftMerchantLinked) reasons.unshift(`Use here`)
 
     return { card, score, dollarVal, reasons }
@@ -607,9 +608,9 @@ export default function Dashboard() {
       const newBalance = Math.max(0, currentBalance - charge)
       await updateCardBalance(card.id, newBalance)
       await loadCards()
-      confirmMsg = `Tapped ${card.name} · $${charge.toFixed(2)} charged · $${newBalance.toFixed(2)} remaining`
+      confirmMsg = `Tapped ${card.name} · ${money(charge)} charged · ${money(newBalance)} remaining`
     } else {
-      confirmMsg = `Tapped as ${card.name} · ${rate ? `${rate} on $${selectedAmt}` : 'card charged'} · Transaction complete`
+      confirmMsg = `Tapped as ${card.name} · ${rate ? `${rate} on ${money(selectedAmt)}` : 'card charged'} · Transaction complete`
     }
 
     try {
@@ -883,7 +884,7 @@ export default function Dashboard() {
           icon: '◷',
           color: insight.days <= 7 ? 'var(--red)' : 'var(--orange)',
           title: `${insight.perk.name} expires in ${insight.days}d`,
-          detail: `$${insight.remaining.toFixed(0)} unused on your ${insight.card.name}`,
+          detail: `${money(insight.remaining)} unused on your ${insight.card.name}`,
           tab: 'perks',
         })
       }
@@ -895,7 +896,7 @@ export default function Dashboard() {
         icon: '✦',
         color: u.newFee > u.oldFee ? 'var(--orange)' : 'var(--green)',
         title: `${u.name} annual fee changed`,
-        detail: `$${u.oldFee} → $${u.newFee}`,
+        detail: `${moneyWhole(u.oldFee)} → ${moneyWhole(u.newFee)}`,
         tab: 'wallet',
       })
     }
@@ -1299,7 +1300,7 @@ export default function Dashboard() {
                   {isGift ? (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
                       <span style={{ fontSize: '46px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                        ${(activeCard.balance || 0).toFixed(2)}
+                        {money(activeCard.balance || 0)}
                       </span>
                       <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>remaining</span>
                     </div>
@@ -1321,7 +1322,7 @@ export default function Dashboard() {
                         </div>
                         {estimatedOnAmt > 0 && (
                           <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
-                            +${estimatedOnAmt.toFixed(2)}
+                            {money(estimatedOnAmt, { sign: true })}
                           </span>
                         )}
                       </div>
@@ -1395,7 +1396,7 @@ export default function Dashboard() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--orange)', marginBottom: '2px' }}>
                   {missedInsight.missedOnAmt
-                    ? `$${missedInsight.missedOnAmt.toFixed(2)} more with ${missedInsight.cardName}`
+                    ? `${money(missedInsight.missedOnAmt)} more with ${missedInsight.cardName}`
                     : `${missedInsight.missedPerDollar}¢/$ more with ${missedInsight.cardName}`}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -1421,8 +1422,8 @@ export default function Dashboard() {
               <div data-reveal style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0,1fr))', gap: '8px', marginBottom: '1.5rem' }}>
                 {[
                   { label: 'Cards', value: cards.length, color: 'var(--text-primary)' },
-                  { label: 'Annual fees', value: totalFees > 0 ? `$${totalFees.toFixed(0)}` : '$0', color: totalFees > 0 ? 'var(--red)' : 'var(--text-faintest)' },
-                  { label: 'Net value', value: `${netValue >= 0 ? '+' : ''}$${netValue.toFixed(0)}`, color: netValue >= 0 ? 'var(--green)' : 'var(--red)' },
+                  { label: 'Annual fees', value: moneyWhole(totalFees), color: totalFees > 0 ? 'var(--red)' : 'var(--text-faintest)' },
+                  { label: 'Net value', value: moneyWhole(netValue, { sign: true }), color: netValue >= 0 ? 'var(--green)' : 'var(--red)' },
                 ].map(m => (
                   <div key={m.label} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '18px 12px', textAlign: 'center' }}>
                     <div style={{ fontSize: '24px', fontWeight: '700', color: m.color, marginBottom: '5px' }}>{m.value}</div>
@@ -1444,7 +1445,7 @@ export default function Dashboard() {
               <div style={{ marginBottom: '12px' }}>
                 {feeUpdates.map(u => (
                   <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', fontSize: '13px', color: 'var(--text-secondary)', padding: '4px 0' }}>
-                    <span>{u.name} — ${u.oldFee}/yr → <strong style={{ color: 'var(--text-primary)' }}>${u.newFee}/yr</strong></span>
+                    <span>{u.name} — {moneyWhole(u.oldFee)}/yr → <strong style={{ color: 'var(--text-primary)' }}>{moneyWhole(u.newFee)}/yr</strong></span>
                     <button onClick={() => syncOneFee(u)} disabled={syncingFees}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--blue)', padding: '2px 6px', flexShrink: 0 }}>
                       Update
@@ -1494,7 +1495,7 @@ export default function Dashboard() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</div>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                          {card.type}{fee > 0 ? ` · $${fee}/yr fee` : ''}
+                          {card.type}{fee > 0 ? ` · ${moneyWhole(fee)}/yr fee` : ''}
                         </div>
                       </div>
                       {fee > 0 ? (
@@ -1504,7 +1505,7 @@ export default function Dashboard() {
                           ) : (
                             <>
                               <div style={{ fontSize: '16px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.02em' }}>{roiPct.toFixed(0)}%</div>
-                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px' }}>${remaining.toFixed(0)} to go</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '1px', ...NUM }}>{moneyWhole(remaining)} to go</div>
                             </>
                           )}
                         </div>
@@ -1536,19 +1537,19 @@ export default function Dashboard() {
                               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{row.label}</span>
                             </div>
                             <span style={{ fontSize: '13px', fontWeight: '600', color: row.value > 0 ? row.color : 'var(--text-faintest)' }}>
-                              {row.value > 0 ? `+$${row.value.toFixed(2)}` : '—'}
+                              {row.value > 0 ? money(row.value, { sign: true }) : '—'}
                             </span>
                           </div>
                         ))}
                         <div style={{ height: '1px', background: 'var(--bg-elevated)', margin: '8px 0' }} />
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
                           <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Annual fee</span>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--red)' }}>−${fee.toFixed(2)}</span>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--red)', ...NUM }}>{money(-fee)}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: breakEvenLabel ? '8px' : '0' }}>
                           <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>Net value</span>
                           <span style={{ fontSize: '14px', fontWeight: '700', color: totalValue >= fee ? 'var(--green)' : 'var(--gold)', letterSpacing: '-0.02em' }}>
-                            {totalValue >= fee ? '+' : ''}${(totalValue - fee).toFixed(2)}
+                            {money(totalValue - fee, { sign: true })}
                           </span>
                         </div>
                         {breakEvenLabel && (
@@ -1631,7 +1632,7 @@ export default function Dashboard() {
                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                           <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{c.name}</span>
                           {c.annualFee > 0
-                            ? <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>${c.annualFee}/yr</span>
+                            ? <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{moneyWhole(c.annualFee)}/yr</span>
                             : <span style={{ fontSize: '11px', color: 'var(--green)' }}>No annual fee</span>
                           }
                         </div>
@@ -1854,7 +1855,7 @@ export default function Dashboard() {
               <div data-reveal style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '18px 20px', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '5px' }}>Uncaptured value</div>
-                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${totalRemaining.toFixed(0)}</div>
+                  <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em', ...NUM }}>{moneyWhole(totalRemaining)}</div>
                   <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px', marginTop: '9px' }}>
                     <div style={{ height: '4px', borderRadius: '2px', width: usedPct + '%', background: 'var(--green)', transition: 'width 0.5s' }} />
                   </div>
@@ -1960,7 +1961,7 @@ export default function Dashboard() {
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{ fontSize: '15px', fontWeight: '700', color: accent, marginBottom: '6px' }}>
-                            {`$${remaining.toFixed(0)} left`}
+                            {`${moneyWhole(remaining)} left`}
                           </div>
                           <div style={{ display: 'flex', gap: '5px', justifyContent: 'flex-end' }}>
                             <button onClick={() => handleUpdatePerkUsed(perk.id, perk.total_amount)}
@@ -2014,12 +2015,12 @@ export default function Dashboard() {
           <div data-reveal style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '1.5rem' }}>
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '20px' }}>
               <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>This month</div>
-              <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em' }}>${thisMonthEarned.toFixed(2)}</div>
+              <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--green)', letterSpacing: '-0.03em', ...NUM }}>{money(thisMonthEarned)}</div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{thisMonthTaps.length} tap{thisMonthTaps.length !== 1 ? 's' : ''}</div>
             </div>
             <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '20px' }}>
               <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '7px' }}>All time</div>
-              <div style={{ fontSize: '28px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em' }}>${totalEarned.toFixed(2)}</div>
+              <div style={{ fontSize: '28px', fontWeight: '700', color: '#c9a227', letterSpacing: '-0.03em', ...NUM }}>{money(totalEarned)}</div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>{taps.length} tap{taps.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
@@ -2051,10 +2052,10 @@ export default function Dashboard() {
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     {tap.amount > 0 && (
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px' }}>${tap.amount.toFixed(2)}</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', ...NUM }}>{money(tap.amount)}</div>
                     )}
                     {tap.estimated_value > 0 ? (
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--green)' }}>+${tap.estimated_value.toFixed(2)}</div>
+                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--green)', ...NUM }}>{money(tap.estimated_value, { sign: true })}</div>
                     ) : (
                       <div style={{ fontSize: '12px', color: 'var(--text-faintest)' }}>{tap.rewards_rate || '—'}</div>
                     )}
@@ -2096,7 +2097,7 @@ export default function Dashboard() {
               ? `${perkInsights.length} perk${perkInsights.length !== 1 ? 's' : ''} to use${urgentExpiring > 0 ? ` · ${urgentExpiring} expiring within a week` : ''}`
               : null
             const missedSummary = hasMissed
-              ? `$${totalMissed.toFixed(0)} left on the table across ${retroactiveMissed.length} purchase${retroactiveMissed.length !== 1 ? 's' : ''}`
+              ? `${money(totalMissed)} left on the table across ${retroactiveMissed.length} purchase${retroactiveMissed.length !== 1 ? 's' : ''}`
               : null
             const recsSummary = cardRecs.length > 0
               ? `${cardRecs.length} card${cardRecs.length !== 1 ? 's' : ''} could earn you more`
@@ -2117,14 +2118,14 @@ export default function Dashboard() {
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontSize: '25px', fontWeight: '700', color: urgentColor, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                        ${insight.remaining.toFixed(0)}
+                        {moneyWhole(insight.remaining)}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>{insight.days}d left</div>
                     </div>
                   </div>
                   <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>
                     {'You have '}
-                    <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>${insight.remaining.toFixed(0)}</span>
+                    <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{moneyWhole(insight.remaining)}</span>
                     {' in '}
                     <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{insight.perk.name}</span>
                     {' until '}
@@ -2184,7 +2185,7 @@ export default function Dashboard() {
                           {selectedMonth ? `In ${monthLabel}, you left` : 'You\'ve left'}
                         </div>
                         <div style={{ fontSize: '40px', fontWeight: '800', color: 'var(--orange)', letterSpacing: '-0.04em', lineHeight: 1 }}>
-                          ${filteredTotal.toFixed(2)}
+                          {money(filteredTotal)}
                         </div>
                         <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '7px' }}>
                           on the table across {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
@@ -2200,7 +2201,7 @@ export default function Dashboard() {
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {item.tap.merchant || item.tap.card_name}
-                                  {item.tap.amount > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}> · ${item.tap.amount.toFixed(2)}</span>}
+                                  {item.tap.amount > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: '400' }}> · {money(item.tap.amount)}</span>}
                                 </div>
                                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                                   <span style={{ color: 'var(--red)' }}>{item.usedCard.name}</span>
@@ -2210,8 +2211,8 @@ export default function Dashboard() {
                                 </div>
                               </div>
                               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--orange)' }}>+${item.missedTotal.toFixed(2)}</div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginTop: '2px' }}>{(item.missedPerDollar * 100).toFixed(1)}¢/$</div>
+                                <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--orange)', ...NUM }}>{money(item.missedTotal, { sign: true })}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-faintest)', marginTop: '2px', ...NUM }}>{centsPerDollar(item.missedPerDollar)}/$</div>
                               </div>
                             </div>
                           ))}
@@ -2266,13 +2267,13 @@ export default function Dashboard() {
                               {tierStyle.label}
                             </span>
                             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                              {rec.annualFee === 0 ? 'No annual fee' : `$${rec.annualFee}/yr`}
+                              {rec.annualFee === 0 ? 'No annual fee' : `${moneyWhole(rec.annualFee)}/yr`}
                             </span>
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <div style={{ fontSize: '20px', fontWeight: '800', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1 }}>
-                            +${Math.round(netAnnualGain)}/yr
+                            {moneyWhole(netAnnualGain, { sign: true })}/yr
                           </div>
                           <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>est. from your spend</div>
                         </div>
@@ -2283,8 +2284,8 @@ export default function Dashboard() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
                         {improvements.slice(0, 4).map(imp => (
                           <span key={imp.category} style={{ fontSize: '11px', fontWeight: '600', color: 'var(--blue)', background: 'rgba(37,99,235,0.1)', borderRadius: '4px', padding: '3px 7px' }}>
-                            {imp.category} +{(imp.gainPerDollar * 100).toFixed(1)}¢/$
-                            {imp.annualCatGain >= 10 && <span style={{ opacity: 0.6 }}> (${Math.round(imp.annualCatGain)}/yr)</span>}
+                            {imp.category} +{centsPerDollar(imp.gainPerDollar)}/$
+                            {imp.annualCatGain >= 10 && <span style={{ opacity: 0.6 }}> ({moneyWhole(imp.annualCatGain)}/yr)</span>}
                           </span>
                         ))}
                       </div>
@@ -2319,7 +2320,7 @@ export default function Dashboard() {
             const hasSpending = spendingBreakdown.totalSpend > 0
             const spendingScore = hasSpending ? 0.5 : -1
             const spendingSummary = hasSpending
-              ? `$${spendingBreakdown.totalSpend.toFixed(0)} tracked across ${spendingBreakdown.categories.length} categor${spendingBreakdown.categories.length !== 1 ? 'ies' : 'y'}`
+              ? `${moneyWhole(spendingBreakdown.totalSpend)} tracked across ${spendingBreakdown.categories.length} categor${spendingBreakdown.categories.length !== 1 ? 'ies' : 'y'}`
               : null
 
             const renderSpending = () => {
@@ -2330,7 +2331,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '5px' }}>
                     <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', textTransform: 'capitalize' }}>{label}</div>
                     <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>${value.toFixed(0)}</span>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', ...NUM }}>{moneyWhole(value)}</span>
                       {sub && <span style={{ fontSize: '11px', color: 'var(--text-faintest)', marginLeft: '6px' }}>{sub}</span>}
                     </div>
                   </div>
@@ -2348,11 +2349,11 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
                     <div style={{ flex: 1, background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.16)', borderRadius: '10px', padding: '14px 16px' }}>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Total spend tracked</div>
-                      <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1 }}>${totalSpend.toFixed(0)}</div>
+                      <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--blue)', letterSpacing: '-0.03em', lineHeight: 1, ...NUM }}>{moneyWhole(totalSpend)}</div>
                     </div>
                     <div style={{ flex: 1, background: 'rgba(15,155,101,0.06)', border: '1px solid rgba(15,155,101,0.15)', borderRadius: '10px', padding: '14px 16px' }}>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Rewards earned</div>
-                      <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--green)', letterSpacing: '-0.03em', lineHeight: 1 }}>${totalEarned.toFixed(0)}</div>
+                      <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--green)', letterSpacing: '-0.03em', lineHeight: 1, ...NUM }}>{money(totalEarned)}</div>
                     </div>
                   </div>
 
@@ -2369,7 +2370,7 @@ export default function Dashboard() {
                     <>
                       <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', margin: '18px 0 10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>By card</div>
                       {byCard.slice(0, 8).map((c, i) => (
-                        <Bar key={c.key} label={c.name} sub={`${c.count} tap${c.count !== 1 ? 's' : ''} · $${c.earned.toFixed(0)} earned`} value={c.spend} max={maxCardSpend} color={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                        <Bar key={c.key} label={c.name} sub={`${c.count} tap${c.count !== 1 ? 's' : ''} · ${money(c.earned)} earned`} value={c.spend} max={maxCardSpend} color={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
                       ))}
                     </>
                   )}
@@ -2513,7 +2514,7 @@ export default function Dashboard() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{perk.name}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{perk.period}{perk.total_amount > 0 ? ` · $${perk.total_amount}` : ''}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{perk.period}{perk.total_amount > 0 ? ` · ${moneyWhole(perk.total_amount)}` : ''}</div>
                 </div>
               </div>
             ))}
@@ -2531,7 +2532,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div>
                 <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>Card rankings</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · ${selectedAmt}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{selectedCat.charAt(0).toUpperCase() + selectedCat.slice(1)} · {money(selectedAmt)}</div>
               </div>
               <button onClick={() => setShowRankings(false)} style={{ background: 'var(--bg-elevated)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
             </div>
@@ -2689,7 +2690,7 @@ export default function Dashboard() {
                       <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{p.name}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{p.period}</div>
                     </div>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--green)' }}>${p.total_amount}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--green)', ...NUM }}>{moneyWhole(p.total_amount)}</div>
                   </div>
                 ))}
               </div>
@@ -2707,8 +2708,8 @@ export default function Dashboard() {
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{cp.period}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#c9a227' }}>${cp.total_amount}</div>
-                        {userPerk && <div style={{ fontSize: '11px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>${userPerk.total_amount}</div>}
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: '#c9a227', ...NUM }}>{moneyWhole(cp.total_amount)}</div>
+                        {userPerk && <div style={{ fontSize: '11px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>{moneyWhole(userPerk.total_amount)}</div>}
                       </div>
                     </div>
                   )
@@ -2788,7 +2789,7 @@ export default function Dashboard() {
                 return (
                   <button onClick={() => setEditAnnualFee(String(known.annualFee))}
                     style={{ marginTop: '6px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', color: 'var(--blue)', padding: 0 }}>
-                    ↻ Use latest known fee — ${known.annualFee}
+                    ↻ Use latest known fee — {moneyWhole(known.annualFee)}
                   </button>
                 )
               })()}

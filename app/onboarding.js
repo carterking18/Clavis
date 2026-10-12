@@ -4,6 +4,7 @@ import { addCard, addMultipliers, addPerk } from '../lib/cards'
 import { getSuggestedMultipliers } from '../lib/cardRewards'
 import { getSuggestedPerks, calculateResetsAt } from '../lib/cardPerks'
 import { getCardDesign } from '../lib/cardImages'
+import { moneyWhole } from '../lib/format'
 
 const CATEGORIES = ['dining', 'travel', 'hotel', 'grocery', 'gas', 'streaming', 'retail', 'other']
 
@@ -406,7 +407,7 @@ export function Onboarding({ onComplete, tourOnly = false }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{perk.name}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {perk.period}{perk.total_amount > 0 ? ` · $${perk.total_amount}` : ''}
+                    {perk.period}{perk.total_amount > 0 ? ` · ${moneyWhole(perk.total_amount)}` : ''}
                   </div>
                 </div>
               </div>
